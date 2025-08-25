@@ -1,0 +1,74 @@
+version: 2
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+  gofumpt: true
+  goimports: true
+
+output:
+  sort-results: true
+  format: colored-line-number
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - unused
+    - misspell
+    - gocyclo
+    - dupl
+    - gocritic
+  disable:
+    # На старте можно отключить «шумные»:
+    - revive
+    - funlen        # длина функций
+    - cyclop        # дублирует gocyclo
+    - nestif        # глубина if
+    - wsl           # пустые строки вокруг блоков
+
+linters-settings:
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        arguments:
+          - checkPrivateReceivers: false
+      - name: receiver-naming
+      - name: errorf
+      - name: if-return
+      - name: indent-error-flow
+      - name: time-naming
+  gocyclo:
+    min-complexity: 12
+  dupl:
+    threshold: 180
+  gofumpt:
+    extra-rules: true
+  goimports:
+    local-prefixes: your.module/path
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+    - path: (docs|migrations|generated|mock)
+      linters:
+        - dupl
+        - gocyclo
+        - revive
+    - linters:
+        - gosec
+      text: "G301|G304|G306" # пример подавления специфичных предупреждений, если включишь gosec
+
+# Опционально подключай безопасность позднее:
+# linters:
+#   enable:
+#     - gosec

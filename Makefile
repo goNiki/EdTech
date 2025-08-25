@@ -1,0 +1,5 @@
+include .env
+
+LOCAL_MIGRATION_DIR="./migration"
+LOCAL_MIGRATION_DSN=$(MIGRATION_DSN)
+
