@@ -15,6 +15,7 @@ import (
 type Config struct {
 	AppConfig AppConfig `mapstructure:"app"`
 	DBConfig  DBConfig  `mapstructure:"db"`
+	JWTConfig JWTConfig `mapstructure:"jwt"`
 }
 
 // AppConfig хранит конфигурацию приложения.
@@ -33,6 +34,13 @@ type DBConfig struct {
 	Password string `mapstructure:"password"`
 	Name     string `mapstructure:"name"`
 	SSLMode  string `mapstructure:"sslmode"`
+}
+
+// JWtConfig хранит конфигурацию для JWT токенов
+type JWTConfig struct {
+	Secret     string        `mapstructure:"secret"`
+	AccesExp   time.Duration `mapstructure:"accessexp"`
+	RefreshExp time.Duration `mapstructure:"refreshexp"`
 }
 
 // InitConfig загружает конфигурацию из файла и окружения и возвращает структуру Config.

@@ -11,3 +11,8 @@ db:
   password: postgres
   name:   postgres
   sslmode: disable
+
+jwt:
+  secret: filler
+  accessexp: 1h
+  refreshexp: 1h

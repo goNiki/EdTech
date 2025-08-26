@@ -2,10 +2,10 @@ package main
 
 import (
 	"bufio"
-	"edtech/Internal/infrastructure/config"
-	"edtech/Internal/infrastructure/db"
-	"edtech/Internal/infrastructure/logger"
-	"edtech/Internal/infrastructure/logger/sl"
+	"edtech/internal/infrastructure/config"
+	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/logger"
+	"edtech/internal/infrastructure/logger/sl"
 	"fmt"
 	"log/slog"
 	"os"

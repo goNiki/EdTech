@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"edtech/Internal/infrastructure/config"
+	"edtech/internal/infrastructure/config"
 	"fmt"
 	"time"
 
@@ -58,3 +58,4 @@ func (p *Postgres) Close() {
 		p.Pool.Close()
 	}
 }
+

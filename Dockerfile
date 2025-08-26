@@ -6,5 +6,5 @@ COPY go.mod go.sum ./
 
 RUN go mod download
 
-CMD [ "go", "run", "./cmd/api/main.go" ]
+CMD [ "go", "run", "./cmd/edtech/main.go" ]
 

@@ -1,7 +1,7 @@
 package mwlogger
 
 import (
-	"edtech/Internal/infrastructure/logger"
+	"edtech/internal/infrastructure/logger"
 	"log/slog"
 	"net/http"
 
@@ -25,6 +25,6 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 
 			entry.Info("Request finished")
 
-		})
+		})	
 	}
 }
