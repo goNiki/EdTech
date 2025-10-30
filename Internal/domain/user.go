@@ -14,6 +14,7 @@ type User struct {
 	ID           int64
 	Email        string
 	PasswordHash string
+	Username     string
 	Role         Role
 	CreateAt     time.Time
 	UpdateAt     time.Time

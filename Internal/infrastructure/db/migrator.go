@@ -75,6 +75,8 @@ func (m *Migrator) Down() error {
 		return fmt.Errorf("failed to set goose dialect: %w", err)
 	}
 
+	goose.SetTableName("goose_migrations")
+
 	if err = goose.Down(sqlDB, m.migDir); err != nil {
 		return fmt.Errorf("failed to down migration: %w", err)
 	}
@@ -96,6 +98,8 @@ func (m *Migrator) DownTo(version int64) error {
 	if err := goose.SetDialect("postgres"); err != nil {
 		return fmt.Errorf("failed to set goose dialect: %w", err)
 	}
+
+	goose.SetTableName("goose_migrations")
 
 	if err = goose.DownTo(sqlDB, m.migDir, version); err != nil {
 		return fmt.Errorf("failed to downto migration: %w", err)
@@ -144,6 +148,8 @@ func (m *Migrator) Status() error {
 		return fmt.Errorf("failed to set goose dialect: %w", err)
 	}
 
+	goose.SetTableName("goose_migrations")
+
 	migration, err := goose.GetDBVersion(sqlDB)
 	if err != nil {
 		return fmt.Errorf("failed GetDB Version: %w", err)
@@ -173,6 +179,8 @@ func (m *Migrator) UpTo(version int64) error {
 	if err := goose.SetDialect("postgres"); err != nil {
 		return fmt.Errorf("failed to set goose dialect: %w", err)
 	}
+
+	goose.SetTableName("goose_migrations")
 
 	if err = goose.UpTo(sqlDB, m.migDir, version); err != nil {
 		return fmt.Errorf("failed to UpTo migration: %w", err)

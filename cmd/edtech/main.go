@@ -8,9 +8,12 @@ import (
 	"edtech/internal/infrastructure/logger"
 	"edtech/internal/infrastructure/logger/sl"
 	authHandler "edtech/internal/interfaces/http/handlers/auth"
-	mwlogger "edtech/internal/interfaces/middleware"
+	mwauth "edtech/internal/interfaces/middleware/auth"
+	mwlogger "edtech/internal/interfaces/middleware/logger"
 	authRepo "edtech/internal/repository/auth"
+	refreshRepo "edtech/internal/repository/refresh"
 	authUC "edtech/internal/usecase/auth"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -41,14 +44,18 @@ func main() {
 	log.Info("successfully connected to database")
 
 	// инициализация hasher и jwtManager
-	hasher := hasher.NewBcryptHasher()
+	hasher := hasher.NewHasher()
 	jwtManager := jwt.NewJwtManager(&cfg.JWTConfig)
+
+	// иннициализация authmiddleware
+	mwauth := mwauth.NewAuthMiddleware(jwtManager)
 
 	// иннициализация репозитория пользователей
 	userrepo := authRepo.NewUserRepo(postgres.Pool)
+	refreshRepo := refreshRepo.NewRefreshRepo(postgres.Pool)
 
 	// иннициализация сервиса пользователей
-	userService := authUC.NewUserUseCase(userrepo, jwtManager, hasher)
+	userService := authUC.NewUserUseCase(userrepo, jwtManager, hasher, refreshRepo)
 
 	// инициализация маршрутизатора
 
@@ -60,6 +67,15 @@ func main() {
 	r.Use(mwlogger.New(log))
 
 	r.Post("/auth/register", authHandler.Register)
+	r.Post("/auth/login", authHandler.Login)
+	fmt.Println(mwauth)
+	// защищённые роуты
+	// 	r.Group(func(protected chi.Router) {
+	//     protected.Use(mwauth.JWTMiddleware)
+
+	//     protected.Get("/profile", userHandler.Profile)
+	//     protected.Post("/courses", courseHandler.Create)
+	// })
 
 	srv := http.Server{
 		Addr:         ":" + cfg.AppConfig.Port,

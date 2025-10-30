@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"os"
+
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 type ctxKey string
@@ -17,13 +19,17 @@ func Init() *slog.Logger {
 	return log
 }
 
-func GetLogger(ctx context.Context) *slog.Logger {
+func GetLogger(ctx context.Context, op string) *slog.Logger {
 	l, ok := ctx.Value(LoggerKey).(*slog.Logger)
-	if !ok {
-		return slog.Default()
-
+	if !ok || l == nil {
+		l = slog.Default()
 	}
-	return l
+
+	// создаём новый логгер с дополнительными полями
+	return l.With(
+		slog.String("op", op),
+		slog.String("request_id", middleware.GetReqID(ctx)),
+	)
 }
 
 func SetLogger(ctx context.Context, logger *slog.Logger) context.Context {
