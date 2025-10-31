@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TYPE course_status AS ENUM ('draft', 'published');
-CREATE TYPE course_visibility AS ENUM('public', 'private')
+CREATE TYPE course_visibility AS ENUM('public', 'private');
 
 CREATE TABLE courses (
     id BIGSERIAL PRIMARY KEY, 
