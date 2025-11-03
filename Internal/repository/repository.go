@@ -22,8 +22,9 @@ type CourseRepository interface {
 }
 
 type EnrolledRepository interface {
-	UserExistCourse(ctx context.Context, userID, courseid int) (bool, error)
+	UserExistCourse(ctx context.Context, userID, courseid int64) (bool, error)
 	EnrollUserToCourse(ctx context.Context, enroll domain.EnrolledInCourse) error
+	GetRoleUserInCourse(ctx context.Context, userID, courceID int64) (string, error)
 }
 
 type LessonRepository interface {
@@ -37,4 +38,9 @@ type LessonRepository interface {
 
 type RefreshRepository interface {
 	Save(ctx context.Context, reftoken string, id int64, expiresAt time.Time) error
+}
+
+type PermissionsRepository interface {
+	HasPermission(ctx context.Context, roleName string, resource string, action string) (bool, error)
+	GetRolePermissions(ctx context.Context, rolename string) ([]string, error)
 }

@@ -5,13 +5,31 @@ import (
 	"time"
 )
 
+const (
+	VisibilityPublic  = "public"
+	VisibilityPrivate = "private"
+)
+
+const (
+	StatusDraft     = "draft"
+	StatusPublished = "published"
+)
+
+type RoleCourses string
+
+const (
+	StudentRole RoleCourses = "student"
+	TeacherRole RoleCourses = "teacher"
+	CreatorRole RoleCourses = "creator"
+)
+
 type Course struct {
-	Id          int       `db:"id"`
+	Id          int64     `db:"id"`
 	Title       string    `db:"title"`
 	Slug        string    `db:"slug"`
 	Description string    `db:"description"`
 	CoverURL    string    `db:"cover_url"`
-	CreatedBy   int       `db:"created_by"`
+	CreatedBy   int64     `db:"created_by"`
 	Visibility  string    `db:"visibility"`
 	Status      string    `db:"status"`
 	CreatedAt   time.Time `db:"created_at"`
@@ -43,7 +61,7 @@ type CourseWithLessons struct {
 }
 
 type EnrolledInCourse struct {
-	UserID   int    `json:"userid"`
-	CourseID int    `json:"courseid"`
+	UserID   int64  `json:"userid"`
+	CourseID int64  `json:"courseid"`
 	Role     string `json:"role"`
 }

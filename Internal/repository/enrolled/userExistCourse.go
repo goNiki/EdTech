@@ -3,11 +3,9 @@ package enrolled
 import (
 	"context"
 	"fmt"
-
-	"github.com/jackc/pgx/v5"
 )
 
-func (r *repository) UserExistCourse(ctx context.Context, userID, courseid int) (bool, error) {
+func (r *repository) UserExistCourse(ctx context.Context, userID, courseid int64) (bool, error) {
 
 	const op = "repository.enrolled.userexistcourse"
 
@@ -17,10 +15,8 @@ func (r *repository) UserExistCourse(ctx context.Context, userID, courseid int) 
 
 	err := r.Pool.QueryRow(ctx, query, userID, courseid).Scan(&exist)
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			return false, nil
-		}
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
+
 	return true, nil
 }

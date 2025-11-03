@@ -22,16 +22,15 @@ func NewAuthMiddleware(jwtManager jwt.TokenManager) *middleware {
 	}
 }
 
-func GetUserID(ctx context.Context) int64 {
-	if v, ok := ctx.Value(userIDKey).(int64); ok {
-		return v
-	}
-	return 0
+type AuthMiddleware interface {
+	GetUserID(ctx context.Context) int64
+	GetUserRole(ctx context.Context) string
 }
 
-func GetUserRole(ctx context.Context) string {
-	if v, ok := ctx.Value(userRoleKey).(string); ok {
-		return v
-	}
-	return ""
+func (m *middleware) GetUserID(ctx context.Context) int64 {
+	return ctx.Value(userIDKey).(int64)
+}
+
+func (m *middleware) GetUserRole(ctx context.Context) string {
+	return ctx.Value(userRoleKey).(string)
 }
