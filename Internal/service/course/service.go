@@ -2,14 +2,17 @@ package course
 
 import (
 	"edtech/internal/repository"
+	services "edtech/internal/service"
 )
 
 type service struct {
-	repo repository.CourseRepository
+	repo          repository.CourseRepository
+	accessService services.AccessService
 }
 
-func NewCourseService(repo repository.CourseRepository) *service {
+func NewCourseService(repo repository.CourseRepository, accessService services.AccessService) *service {
 	return &service{
-		repo: repo,
+		repo:          repo,
+		accessService: accessService,
 	}
 }

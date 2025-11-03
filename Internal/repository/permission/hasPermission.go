@@ -1,8 +1,12 @@
 package permission
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 func (r *repository) HasPermission(ctx context.Context, roleName string, resource string, action string) (bool, error) {
+	const op = "repository.permission.haspermisssio"
 
 	query := `
 		SELECT EXISTS( 
@@ -19,7 +23,7 @@ func (r *repository) HasPermission(ctx context.Context, roleName string, resourc
 
 	err := r.Pool.QueryRow(ctx, query, roleName, resource, action).Scan(&exists)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("%s: %w", op, err)
 	}
 	return exists, nil
 

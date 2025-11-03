@@ -1,8 +1,13 @@
 package enrolled
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
-func (r *repository) GetRoleUserInCource(ctx context.Context, userID, courceID int64) (string, error) {
+func (r *repository) GetRoleUserInCourse(ctx context.Context, userID, courceID int64) (string, error) {
+
+	const op = "repository.enrolled.GetRoleUserInCourse"
 
 	query := `SELECT role FROM users_courses WHERE user_id = $1 AND course_id = $2`
 
@@ -10,7 +15,7 @@ func (r *repository) GetRoleUserInCource(ctx context.Context, userID, courceID i
 
 	err := r.Pool.QueryRow(ctx, query, userID, courceID).Scan(&role)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	return role, nil

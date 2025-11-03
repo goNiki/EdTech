@@ -1,1 +1,1 @@
-package course
+package resource

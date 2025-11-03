@@ -1,8 +1,13 @@
 package permission
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 func (r *repository) GetRolePermissions(ctx context.Context, rolename string) ([]string, error) {
+	const op = "repository.permission.getrolepermissions"
+
 	query := `
 		SELECT permissions.resource || ':' || permissions.action as permisions
 		FROM role_permissions
@@ -12,7 +17,7 @@ func (r *repository) GetRolePermissions(ctx context.Context, rolename string) ([
 	`
 	rows, err := r.Pool.Query(ctx, query, rolename)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	defer rows.Close()
@@ -22,7 +27,7 @@ func (r *repository) GetRolePermissions(ctx context.Context, rolename string) ([
 	for rows.Next() {
 		var perm string
 		if err := rows.Scan(&perm); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		permisions = append(permisions, perm)
 	}

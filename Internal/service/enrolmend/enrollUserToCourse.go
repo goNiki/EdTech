@@ -12,8 +12,10 @@ import (
 )
 
 type EnrolledServices interface {
+	EnrollUserToCourse(context.Context, dto.EnrolleRequest) error
 }
 
+// TODO изменить входной параметр на domain структуру
 func (s *service) EnrollUserToCourse(ctx context.Context, enrol dto.EnrolleRequest) error {
 	const op = "usecase.enrolled.enrollusertocourse"
 
@@ -30,11 +32,11 @@ func (s *service) EnrollUserToCourse(ctx context.Context, enrol dto.EnrolleReque
 			log.Error("user not found", sl.Error(err))
 			return errorsAPP.ErrUserNotFound
 		}
-		log.Error("nternal error", sl.Error(err))
+		log.Error("Internal error", sl.Error(err))
 		return errorsAPP.ErrInternalDB
 	}
 
-	if _, err := s.courserepo.GetCourseByID(ctx, int64(enrol.CourseID)); err != nil {
+	if _, err := s.courserepo.GetCourseByID(ctx, enrol.CourseID); err != nil {
 		if errors.Is(err, errorsAPP.ErrNotFoundCourse) {
 			log.Error("course not found", sl.Error(err))
 			return errorsAPP.ErrNotFoundCourse
@@ -43,7 +45,7 @@ func (s *service) EnrollUserToCourse(ctx context.Context, enrol dto.EnrolleReque
 		return errorsAPP.ErrInternalDB
 	}
 
-	exist, err := s.enrolledrepo.UserExistCourse(ctx, int(user.ID), enrol.CourseID)
+	exist, err := s.enrolledrepo.UserExistCourse(ctx, user.ID, enrol.CourseID)
 	if err != nil {
 		log.Error("internal error: ", sl.Error(err))
 		return errorsAPP.ErrInternalDB
@@ -54,7 +56,7 @@ func (s *service) EnrollUserToCourse(ctx context.Context, enrol dto.EnrolleReque
 	}
 
 	enroll := domain.EnrolledInCourse{
-		UserID:   int(user.ID),
+		UserID:   user.ID,
 		CourseID: enrol.CourseID,
 		Role:     enrol.Role,
 	}

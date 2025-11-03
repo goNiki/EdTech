@@ -28,6 +28,6 @@ type LoginResponce struct {
 
 type EnrolleRequest struct {
 	UserEmail string `json:"user_email"`
-	CourseID  int    `json:"courseid"`
+	CourseID  int64  `json:"courseid"`
 	Role      string `json:"role"`
 }

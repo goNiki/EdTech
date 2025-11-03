@@ -19,7 +19,7 @@ func (r *repository) CreateCourse(ctx context.Context, course *domain.Course) (i
 
 	query = `INSERT INTO users_courses (user_id, course_id, role) VALUES ($1, $2, $3)`
 
-	role := "creator"
+	role := "teacher"
 
 	cmgTag, err := r.Pool.Exec(ctx, query, course.CreatedBy, course.Id, role)
 
