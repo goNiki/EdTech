@@ -13,7 +13,7 @@ func (s *service) CanManageCourseUsers(ctx context.Context, course *domain.Cours
 		return true, nil
 	}
 
-	role, err := s.enrolledrepo.GetRoleUserInCource(ctx, userID, course.Id)
+	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, userID, course.Id)
 	if err != nil {
 		if errors.Is(err, errorsAPP.ErrUserNotFound) {
 			return false, nil
@@ -21,7 +21,7 @@ func (s *service) CanManageCourseUsers(ctx context.Context, course *domain.Cours
 		return false, err
 	}
 
-	access, err := s.permissionrepo.HasPermission(ctx, role, domain.ResourceCource, domain.ActionManageusers)
+	access, err := s.permissionrepo.HasPermission(ctx, role, domain.ResourceCourse, domain.ActionManageusers)
 	if err != nil {
 		return false, err
 	}

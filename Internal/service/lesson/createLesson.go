@@ -40,7 +40,7 @@ func (s *service) CreateLesson(ctx context.Context, lesson *domain.Lesson) (int6
 		return 0, errorsAPP.ErrInternalDB
 	}
 
-	lesson.Position = int(position) + 1
+	lesson.Position = position + 1
 
 	err = s.lessonrepo.CreateLesson(ctx, lesson)
 	if err != nil {

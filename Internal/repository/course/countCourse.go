@@ -9,7 +9,7 @@ func (r *repository) CountCourse(ctx context.Context) (int, error) {
 
 	const op = "repository.course.countcourse"
 
-	query := `SELECT count(*) FROM courses WHERE status = 'published'`
+	query := `SELECT count(*) FROM courses WHERE status = 'published', visibility = 'public'`
 
 	var total int
 

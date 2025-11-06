@@ -77,7 +77,7 @@ type ListCoursesResponse struct {
 
 type PaginatedCourses struct {
 	Courses  []domain.Course `json:"courses"`
-	Page     int             `json:"page"`
-	PageSize int             `json:"page_size"`
+	Page     int64           `json:"page"`
+	PageSize int64           `json:"page_size"`
 	Total    int64           `json:"total"`
 }

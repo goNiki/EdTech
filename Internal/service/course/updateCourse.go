@@ -3,41 +3,51 @@ package course
 import (
 	"context"
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/logger"
-	"edtech/internal/infrastructure/logger/sl"
 	errorsAPP "edtech/pkg/errors"
 	"edtech/pkg/utils"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *service) UpdateCourse(ctx context.Context, course *domain.Course) error {
-	const op = "usecase.course.updatecourse"
+func (s *service) UpdateCourse(ctx context.Context, course *domain.Course, userID int64) error {
 
-	log := logger.GetLogger(ctx, op)
-
-	if err := utils.ValidateCourse(course.Title, course.Slug, int64(course.CreatedBy), course.Visibility, course.Status); err != nil {
-		log.Error("error validate date", sl.Error(err))
+	if err := utils.ValidateCourse(course.Title, course.Slug, course.CreatedBy, course.Visibility, course.Status); err != nil {
 		return err
 	}
 
-	if _, err := s.repo.GetCourseByID(ctx, int64(course.Id)); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			log.Error("course is not found", sl.Error(errorsAPP.ErrNotFoundCourse))
-			return errorsAPP.ErrNotFoundCourse
-		}
-		log.Error("internal error BD:", sl.Error(err))
-		return errorsAPP.ErrInternalDB
+	canEdit, err := s.accessService.CanEditCourse(ctx, course, userID)
+	if err != nil {
+		return fmt.Errorf("%v: %w", errorsAPP.ErrCheckingPermissions, err)
 	}
 
-	if err := s.repo.UpdateCourse(ctx, course); err != nil {
+	if !canEdit {
+		return errorsAPP.ErrForbidden
+	}
+
+	oldcourse, err := s.courserepo.GetCourseByID(ctx, course.Id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errorsAPP.ErrNotFoundCourse
+		}
+		return fmt.Errorf("%w: %v", errorsAPP.ErrInternalDB, err)
+	}
+
+	if course.Slug != oldcourse.Slug {
+		if _, err := s.courserepo.GetCourseBySlug(ctx, course.Slug); !errors.Is(err, pgx.ErrNoRows) {
+			if err == nil {
+				return errorsAPP.ErrSlugAlreadyExists
+			}
+			return fmt.Errorf("%w: %v", errorsAPP.ErrInternalDB, err)
+		}
+	}
+
+	if err := s.courserepo.UpdateCourse(ctx, course); err != nil {
 		if errors.Is(err, errorsAPP.ErrNothingToUpdate) {
-			log.Error("nothing update", sl.Error(err))
 			return errorsAPP.ErrNothingToUpdate
 		}
-		log.Error("internal error DB", sl.Error(err))
-		return errorsAPP.ErrInternalDB
+		return fmt.Errorf("%w: %v", errorsAPP.ErrInternalDB, err)
 	}
 
 	return nil

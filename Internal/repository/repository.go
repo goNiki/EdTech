@@ -17,8 +17,9 @@ type CourseRepository interface {
 	GetCourseByID(ctx context.Context, id int64) (*domain.Course, error)
 	PublishCourse(ctx context.Context, course *domain.Course) error
 	UpdateCourse(ctx context.Context, course *domain.Course) error
-	ListCourses(ctx context.Context, pageSize int, offset int) ([]domain.Course, error)
-	CountCourse(ctx context.Context) (int, error)
+	ListCourses(ctx context.Context, pageSize int64, offset int64) ([]domain.Course, error)
+	CountCourse(ctx context.Context) (int64, error)
+	DeleteCourse(ctx context.Context, courseID int64) error
 }
 
 type EnrolledRepository interface {
@@ -30,10 +31,10 @@ type EnrolledRepository interface {
 type LessonRepository interface {
 	GetMaxPositionByCourseID(ctx context.Context, courseId int64) (int64, error)
 	CreateLesson(ctx context.Context, lesson *domain.Lesson) error
-	GetLessonByID(ctx context.Context, id int) (*domain.Lesson, error)
+	GetLessonByID(ctx context.Context, id int64) (*domain.Lesson, error)
 	UpdateLesson(ctx context.Context, lesson *domain.Lesson) error
 	DeleteLessonByID(ctx context.Context, lessonID int64) error
-	GetLessonsByCourseID(ctx context.Context, courseID int) ([]domain.Lesson, error)
+	GetLessonsByCourseID(ctx context.Context, courseID int64) ([]domain.Lesson, error)
 }
 
 type RefreshRepository interface {

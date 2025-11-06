@@ -3,11 +3,10 @@ package courses
 import (
 	"edtech/internal/dto"
 	"edtech/internal/infrastructure/logger"
-	"edtech/internal/infrastructure/logger/sl"
+	"edtech/internal/infrastructure/response"
+	errorsAPP "edtech/pkg/errors"
 	"net/http"
 	"strconv"
-
-	"github.com/go-chi/render"
 )
 
 // page (default: 1)
@@ -17,7 +16,10 @@ func (h *handler) ListCourses(w http.ResponseWriter, r *http.Request) {
 
 	log := logger.GetLogger(r.Context(), op)
 
-	page, pagesize := r.URL.Query().Get("page"), r.URL.Query().Get("pagesize")
+	page := r.URL.Query().Get("page")
+
+	pagesize := r.URL.Query().Get("pagesize")
+
 	if page == "" {
 		page = "1"
 	}
@@ -25,36 +27,32 @@ func (h *handler) ListCourses(w http.ResponseWriter, r *http.Request) {
 		pagesize = "10"
 	}
 	if pagesize > "100" || pagesize < "1" {
-		http.Error(w, "pagesize is too large", http.StatusBadRequest)
+		response.HandleError(w, r, log, errorsAPP.ErrInvalidURLQuery, op)
 		return
 	}
 	pageInt, err := strconv.Atoi(page)
 	if err != nil {
-		http.Error(w, "invalid page", http.StatusBadRequest)
+		response.HandleError(w, r, log, err, op)
 		return
 	}
 	pagesizeInt, err := strconv.Atoi(pagesize)
 	if err != nil {
-		http.Error(w, "invalid pagesize", http.StatusBadRequest)
+		response.HandleError(w, r, log, err, op)
 		return
 	}
 
-	courses, err := h.courseService.ListCourses(r.Context(), pageInt, pagesizeInt)
+	courses, err := h.courseService.ListCourses(r.Context(), int64(pageInt), int64(pagesizeInt))
 	if err != nil {
-		log.Error("failed list courses", sl.Error(err))
-		http.Error(w, "failed list courses", http.StatusInternalServerError)
+		response.HandleError(w, r, log, err, op)
 		return
 	}
 
 	respData := dto.PaginatedCourses{
 		Courses:  courses.Courses,
-		Page:     pageInt,
-		PageSize: pagesizeInt,
+		Page:     courses.Page,
+		PageSize: courses.PageSize,
 		Total:    courses.Total,
 	}
-	resp := dto.ListCoursesResponse{
-		Data: respData,
-	}
-	render.Status(r, http.StatusOK)
-	render.JSON(w, r, resp)
+
+	response.OK(w, r, respData)
 }

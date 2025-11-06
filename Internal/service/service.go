@@ -8,14 +8,16 @@ import (
 
 type CourseServices interface {
 	CreateCourse(ctx context.Context, course *domain.Course) (int64, error)
-	PublishCourse(ctx context.Context, id int64) error
+	PublishCourse(ctx context.Context, userID int64, courseID int64) error
 	GetCourseByID(ctx context.Context, id int64) (*domain.Course, error)
 	GetCourseBySlug(ctx context.Context, slug string) (*domain.Course, error)
-	ListCourses(ctx context.Context, page int, pageSize int) (dto.PaginatedCourses, error)
+	ListCourses(ctx context.Context, page int64, pageSize int64) (domain.PaginatedCourses, error)
+	DeleteCourse(ctx context.Context, courseID int64, userID int64) error
 }
 
 type EnrolledServices interface {
 	EnrollUserToCourse(context.Context, dto.EnrolleRequest) error
+	GetRoleUserInCource(ctx context.Context, userID, courseID int64) (string, error)
 }
 
 type LessonServices interface {

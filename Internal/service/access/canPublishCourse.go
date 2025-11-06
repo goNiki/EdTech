@@ -5,21 +5,27 @@ import (
 	"edtech/internal/domain"
 	errorsAPP "edtech/pkg/errors"
 	"errors"
+	"fmt"
+
+	"github.com/jackc/pgx/v5"
 )
 
 func (s *service) CanPublishCourse(ctx context.Context, course *domain.Course, userID int64) (bool, error) {
 
-	role, err := s.enrolledrepo.GetRoleUserInCource(ctx, userID, course.Id)
+	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, userID, course.Id)
 	if err != nil {
-		if errors.Is(err, errorsAPP.ErrUserNotFound) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil
 		}
-		return false, err
+		return false, fmt.Errorf("%w: %v", errorsAPP.ErrInternalDB, err)
 	}
 
 	access, err := s.permissionrepo.HasPermission(ctx, role, domain.ResourceCourse, domain.ActionPublish)
 	if err != nil {
-		return false, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("%w: %v", errorsAPP.ErrInternalDB, err)
 	}
 	return access, nil
 

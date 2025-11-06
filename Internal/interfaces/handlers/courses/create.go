@@ -4,7 +4,8 @@ import (
 	"edtech/internal/domain"
 	"edtech/internal/dto"
 	"edtech/internal/infrastructure/logger"
-	"edtech/internal/infrastructure/logger/sl"
+	"edtech/internal/infrastructure/response"
+	errorsAPP "edtech/pkg/errors"
 	"net/http"
 	"time"
 
@@ -20,19 +21,17 @@ func (h *handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 	userID := h.authMiddleware.GetUserID(r.Context())
 	userRole := h.authMiddleware.GetUserRole(r.Context())
 	if userRole != "teacher" {
-		http.Error(w, "forbidden", http.StatusForbidden)
+		response.HandleError(w, r, log, errorsAPP.ErrForbidden, op)
 		return
 	}
 
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
-		log.Error("failed decode json", sl.Error(err))
-		http.Error(w, "Internal Error", http.StatusInternalServerError)
+		response.HandleError(w, r, log, err, op)
 		return
 	}
 
 	if err := h.validator.Validate(req); err != nil {
-		log.Error("failed validate fields", sl.Error(err))
-		http.Error(w, "failed validate fields", http.StatusBadRequest)
+		response.HandleError(w, r, log, errorsAPP.ErrCourseValidation, op)
 		return
 	}
 
@@ -41,14 +40,13 @@ func (h *handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 		Slug:        req.Slug,
 		Description: req.Description,
 		CoverURL:    req.CoverURL,
-		CreatedBy:   int(userID),
+		CreatedBy:   userID,
 		Visibility:  req.Visibility,
 	}
 
 	courseID, err := h.courseService.CreateCourse(r.Context(), &course)
 	if err != nil {
-		log.Error("failed create course", sl.Error(err))
-		http.Error(w, "Internal Error", http.StatusInternalServerError)
+		response.HandleError(w, r, log, err, op)
 		return
 	}
 
@@ -62,7 +60,5 @@ func (h *handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 		},
 		Message: "Курс успешно создан",
 	}
-
-	render.Status(r, http.StatusCreated)
-	render.JSON(w, r, resp)
+	response.Created(w, r, resp.Data, resp.Message)
 }
