@@ -3,14 +3,12 @@ package courses
 import (
 	"edtech/internal/dto"
 	"edtech/internal/infrastructure/logger"
-	"edtech/internal/infrastructure/logger/sl"
+	"edtech/internal/infrastructure/response"
 	errorsAPP "edtech/pkg/errors"
-	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 )
 
 // Получение курса по ID
@@ -28,26 +26,39 @@ func (h *handler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 
 	log := logger.GetLogger(r.Context(), op)
 
-	courseID := chi.URLParam(r, "id")
+	courseID := chi.URLParam(r, "courseid")
 	courseIDInt, err := strconv.Atoi(courseID)
 	if err != nil {
-		http.Error(w, "invalid course id", http.StatusBadRequest)
+		response.HandleError(w, r, log, errorsAPP.ErrInvalidURLParam, op)
 		return
 	}
+	userID := h.authMiddleware.GetUserID(r.Context())
 
 	course, err := h.courseService.GetCourseByID(r.Context(), int64(courseIDInt))
 	if err != nil {
-		if errors.Is(err, errorsAPP.ErrNotFoundCourse) {
-			log.Error("course not found", sl.Error(err))
-			http.Error(w, "course not found", http.StatusNotFound)
-			return
-		}
-		log.Error("internal server error", sl.Error(err))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		response.HandleError(w, r, log, err, op)
 		return
 	}
 
-	resp := dto.Course{
+	canView, err := h.accessService.CanViewCourse(r.Context(), course, userID)
+	if err != nil {
+		response.HandleError(w, r, log, err, op)
+		return
+	}
+	if !canView {
+		response.HandleError(w, r, log, errorsAPP.ErrForbidden, op)
+		return
+	}
+
+	permission := h.BuildCoursePermissions(r.Context(), course, userID)
+
+	userRole, err := h.enrolmentService.GetRoleUserInCource(r.Context(), userID, course.Id)
+	if err != nil {
+		response.HandleError(w, r, log, err, op)
+		return
+	}
+
+	date := dto.Course{
 		ID:          course.Id,
 		Title:       course.Title,
 		Slug:        course.Slug,
@@ -59,8 +70,14 @@ func (h *handler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:   course.CreatedAt,
 		UpdatedAt:   course.UpdatedAt,
 	}
-	render.Status(r, http.StatusOK)
-	render.JSON(w, r, resp)
+
+	resp := dto.CourseDetailResponse{
+		Course:      date,
+		Permissions: permission,
+		UserRole:    userRole,
+	}
+
+	response.OK(w, r, resp)
 
 }
 
@@ -73,24 +90,31 @@ func (h *handler) GetCourseBySlug(w http.ResponseWriter, r *http.Request) {
 
 	course, err := h.courseService.GetCourseBySlug(r.Context(), courseSlug)
 	if err != nil {
-		if errors.Is(err, errorsAPP.ErrNotFoundCourse) {
-			log.Error("course not found", sl.Error(err))
-			http.Error(w, "course not found", http.StatusNotFound)
-			return
-		}
-		log.Error("internal server error", sl.Error(err))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		response.HandleError(w, r, log, err, op)
 		return
 	}
 	userID := h.authMiddleware.GetUserID(r.Context())
 
-	if course.Visibility == "private" && course.Status == "draft" && course.CreatedBy != int64(h.authMiddleware.GetUserID(r.Context())) {
-		log.Error("course is not published", sl.Error(err))
-		http.Error(w, "course is not published", http.StatusForbidden)
+	canView, err := h.accessService.CanViewCourse(r.Context(), course, userID)
+	if err != nil {
+		response.HandleError(w, r, log, err, op)
 		return
 	}
 
-	resp := dto.Course{
+	if !canView {
+		response.HandleError(w, r, log, errorsAPP.ErrForbidden, op)
+		return
+	}
+
+	permission := h.BuildCoursePermissions(r.Context(), course, userID)
+
+	userRole, err := h.enrolmentService.GetRoleUserInCource(r.Context(), userID, course.Id)
+	if err != nil {
+		response.HandleError(w, r, log, err, op)
+		return
+	}
+
+	date := dto.Course{
 		ID:          course.Id,
 		Title:       course.Title,
 		Slug:        course.Slug,
@@ -102,7 +126,13 @@ func (h *handler) GetCourseBySlug(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:   course.CreatedAt,
 		UpdatedAt:   course.UpdatedAt,
 	}
-	render.Status(r, http.StatusOK)
-	render.JSON(w, r, resp)
+
+	resp := dto.CourseDetailResponse{
+		Course:      date,
+		Permissions: permission,
+		UserRole:    userRole,
+	}
+
+	response.OK(w, r, resp)
 
 }

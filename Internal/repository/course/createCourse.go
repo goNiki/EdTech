@@ -16,7 +16,7 @@ func (r *repository) CreateCourse(ctx context.Context, course *domain.Course) (i
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
-
+	// TODO вынести добавление создателя курса в сервис enrolled как отдеьную функцию, которая будет вызываться в сервисе после создания курса.
 	query = `INSERT INTO users_courses (user_id, course_id, role) VALUES ($1, $2, $3)`
 
 	role := "teacher"

@@ -6,13 +6,13 @@ import (
 )
 
 type service struct {
-	repo          repository.CourseRepository
+	courserepo    repository.CourseRepository
 	accessService services.AccessService
 }
 
-func NewCourseService(repo repository.CourseRepository, accessService services.AccessService) *service {
+func NewCourseService(courserepo repository.CourseRepository, accessService services.AccessService) *service {
 	return &service{
-		repo:          repo,
+		courserepo:    courserepo,
 		accessService: accessService,
 	}
 }

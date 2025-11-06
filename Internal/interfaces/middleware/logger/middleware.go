@@ -2,12 +2,12 @@ package logger
 
 import "log/slog"
 
-type middleware struct {
+type middlewareloger struct {
 	logger *slog.Logger
 }
 
-func NewLoggerMiddleware(logger *slog.Logger) *middleware {
-	return &middleware{
+func NewLoggerMiddleware(logger *slog.Logger) *middlewareloger {
+	return &middlewareloger{
 		logger: logger,
 	}
 }

@@ -17,7 +17,7 @@ func (s *service) CanViewCourse(ctx context.Context, course *domain.Course, user
 		return true, nil
 	}
 
-	role, err := s.enrolledrepo.GetRoleUserInCource(ctx, userID, course.Id)
+	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, userID, course.Id)
 	if err != nil {
 		if errors.Is(err, errorsAPP.ErrUserNotFound) {
 			return false, nil

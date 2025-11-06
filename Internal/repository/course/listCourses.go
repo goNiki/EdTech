@@ -8,19 +8,19 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *repository) ListCourses(ctx context.Context, pageSize int, offset int) ([]domain.Course, error) {
+func (r *repository) ListCourses(ctx context.Context, pageSize int64, offset int64) ([]domain.Course, error) {
 
 	const op = "repository.course.listcourses"
 
 	query := `SELECT id, title, slug, description, cover_url, created_by, visibility, status,  created_at, updated_at FROM courses WHERE status = 'published' ORDER BY create_at DESC LIMIT $1 OFFSET $2`
 
 	rows, err := r.Pool.Query(ctx, query, pageSize, offset)
-
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	defer rows.Close()
+
 	var courses []domain.Course
 
 	for rows.Next() {

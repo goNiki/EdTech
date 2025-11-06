@@ -2,9 +2,8 @@ package errorsAPP
 
 import "errors"
 
-// Domain errors (бизнес-логика)
 var (
-	// User errors
+	// user Errors
 	ErrUserNotFound        = errors.New("user not found")
 	ErrInvalidCredentials  = errors.New("invalid credentials")
 	ErrUserAlreadyEnrolled = errors.New("user already enrolled")
@@ -25,9 +24,10 @@ var (
 	ErrFailEnroleValidate = errors.New("enrollment validation failed")
 
 	// Permission errors
-	ErrForbidden     = errors.New("access denied")
-	ErrUnauthorized  = errors.New("unauthorized")
-	ErrInvalidAction = errors.New("invalid action")
+	ErrForbidden           = errors.New("access denied")
+	ErrUnauthorized        = errors.New("unauthorized")
+	ErrInvalidAction       = errors.New("invalid action")
+	ErrCheckingPermissions = errors.New("error checking permissions")
 
 	// Validation errors
 	ErrValidationFailed = errors.New("validation failed")
@@ -41,4 +41,10 @@ var (
 	ErrFailedCreateJWT        = errors.New("failed to create jwt token")
 	ErrFailedCreateRefreshJwt = errors.New("failed to create refresh token")
 	ErrInvalidJWT             = errors.New("invalid jwt token")
+)
+
+// Handlers errors
+var (
+	ErrInvalidURLParam = errors.New("invalid URL param")
+	ErrInvalidURLQuery = errors.New("invalid URL query")
 )

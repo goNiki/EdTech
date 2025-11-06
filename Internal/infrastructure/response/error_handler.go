@@ -47,6 +47,11 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		errors.Is(err, errorsAPP.ErrFailEnroleValidate),
 		errors.Is(err, errorsAPP.ErrNothingToUpdate):
 		Error(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "Validation failed")
+	// 400 Bad Request - ошибки URL параметров
+	case errors.Is(err, errorsAPP.ErrInvalidURLParam):
+		Error(w, r, http.StatusBadRequest, "INVALID_URL_PARAM", "Invalid URL parametr")
+	case errors.Is(err, errorsAPP.ErrInvalidURLQuery):
+		Error(w, r, http.StatusBadRequest, "INVALID_URL_QUERY", "Invalid URL query")
 
 	// 401 Unauthorized - ошибки аутентификации
 	case errors.Is(err, errorsAPP.ErrInvalidCredentials):

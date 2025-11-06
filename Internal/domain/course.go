@@ -50,9 +50,9 @@ func (c *Course) Publish() error {
 
 type PaginatedCourses struct {
 	Courses  []Course `json:"courses"`
-	Page     int      `json:"page"`
-	PageSize int      `json:"pagesize"`
-	Total    int      `json:"total"`
+	Page     int64    `json:"page"`
+	PageSize int64    `json:"pagesize"`
+	Total    int64    `json:"total"`
 }
 
 type CourseWithLessons struct {
