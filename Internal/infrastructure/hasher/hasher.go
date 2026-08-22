@@ -4,8 +4,8 @@ import (
 	"crypto/sha256"
 	errorsAPP "edtech/pkg/errors"
 	"encoding/hex"
+	"errors"
 	"fmt"
-	"log"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -14,8 +14,8 @@ type Hasher struct{}
 
 type HasherManager interface {
 	Hash(password string) (string, error)
-	CheckPassword(passhash string, password string) bool
-	HashRefreshToken(token string) (string, error)
+	CheckPassword(passhash string, password string) (bool, error)
+	HashRefreshToken(token string) string
 }
 
 func NewHasher() *Hasher {
@@ -33,18 +33,17 @@ func (b *Hasher) Hash(password string) (string, error) {
 	return string(passhash), nil
 }
 
-func (b *Hasher) CheckPassword(passhash string, password string) bool {
+func (b *Hasher) CheckPassword(passhash string, password string) (bool, error) {
 	if err := bcrypt.CompareHashAndPassword([]byte(passhash), []byte(password)); err != nil {
-		if err == bcrypt.ErrMismatchedHashAndPassword {
-			return false
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return false, nil
 		}
-		log.Fatal("error check Password Internal")
-		return false
+		return false, fmt.Errorf("%w: %w", errorsAPP.ErrFailCheckingPassword, err)
 	}
-	return true
+	return true, nil
 }
 
-func (b *Hasher) HashRefreshToken(token string) (string, error) {
+func (b *Hasher) HashRefreshToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(sum[:]), nil
+	return hex.EncodeToString(sum[:])
 }

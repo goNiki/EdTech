@@ -5,25 +5,8 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-
-	"github.com/go-chi/render"
 )
 
-// ErrorResponse структура ответа с ошибкой
-type ErrorResponse struct {
-	Error   string `json:"error"`
-	Code    string `json:"code"`
-	Message string `json:"message,omitempty"`
-}
-
-// SuccessResponse структура успешного ответа
-type SuccessResponse struct {
-	Data    interface{} `json:"data"`
-	Message string      `json:"message,omitempty"`
-}
-
-// HandleError централизованная обработка ошибок
-// Логирует ошибку с полным контекстом и возвращает подходящий HTTP статус
 func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err error, operation string) {
 	if err == nil {
 		return
@@ -46,7 +29,7 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		errors.Is(err, errorsAPP.ErrFailValidate),
 		errors.Is(err, errorsAPP.ErrFailEnroleValidate),
 		errors.Is(err, errorsAPP.ErrNothingToUpdate):
-		Error(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "Validation failed")
+		Error(w, r, http.StatusBadRequest, ValidationError, "Validation failed")
 	// 400 Bad Request - ошибки URL параметров
 	case errors.Is(err, errorsAPP.ErrInvalidURLParam):
 		Error(w, r, http.StatusBadRequest, "INVALID_URL_PARAM", "Invalid URL parametr")
@@ -58,6 +41,10 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		Error(w, r, http.StatusUnauthorized, "INVALID_CREDENTIALS", "Invalid email or password")
 	case errors.Is(err, errorsAPP.ErrInvalidJWT):
 		Error(w, r, http.StatusUnauthorized, "INVALID_TOKEN", "Invalid or expired token")
+	case errors.Is(err, errorsAPP.ErrUnauthorized):
+		Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "Authentication required")
+	case errors.Is(err, errorsAPP.ErrUserNotFound):
+		Error(w, r, http.StatusNotFound, "USER_NOT_FOUND", "User not found")
 
 	// 403 Forbidden - ошибки доступа
 	case errors.Is(err, errorsAPP.ErrForbidden):
@@ -66,8 +53,6 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		Error(w, r, http.StatusForbidden, "INVALID_ACTION", "Action not allowed")
 
 	// 404 Not Found
-	case errors.Is(err, errorsAPP.ErrUserNotFound):
-		Error(w, r, http.StatusNotFound, "USER_NOT_FOUND", "User not found")
 	case errors.Is(err, errorsAPP.ErrNotFoundCourse):
 		Error(w, r, http.StatusNotFound, "COURSE_NOT_FOUND", "Course not found")
 	case errors.Is(err, errorsAPP.ErrNotFoundLesson):
@@ -80,7 +65,7 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		Error(w, r, http.StatusConflict, "ALREADY_ENROLLED", "User already enrolled in this course")
 	case errors.Is(err, errorsAPP.ErrCourseAlredyPublished):
 		Error(w, r, http.StatusConflict, "ALREADY_PUBLISHED", "Course is already published")
-	case errors.Is(err, errorsAPP.ErrEnrolledByCreated):
+	case errors.Is(err, errorsAPP.ErrEnrolled):
 		Error(w, r, http.StatusConflict, "ENROLLMENT_ERROR", "Failed to enroll user")
 
 	// 500 Internal Server Error - технические ошибки
@@ -97,48 +82,4 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		// НЕ раскрываем детали неизвестных ошибок
 		Error(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Internal server error")
 	}
-}
-
-// Error отправляет ответ с ошибкой
-func Error(w http.ResponseWriter, r *http.Request, status int, code, message string) {
-	render.Status(r, status)
-	render.JSON(w, r, ErrorResponse{
-		Error:   message,
-		Code:    code,
-		Message: message,
-	})
-}
-
-// ErrorWithDetails отправляет ответ с ошибкой и дополнительными деталями
-func ErrorWithDetails(w http.ResponseWriter, r *http.Request, status int, code, message, details string) {
-	render.Status(r, status)
-	render.JSON(w, r, ErrorResponse{
-		Error:   message,
-		Code:    code,
-		Message: details,
-	})
-}
-
-// Success отправляет успешный ответ
-func Success(w http.ResponseWriter, r *http.Request, status int, data interface{}, message string) {
-	render.Status(r, status)
-	render.JSON(w, r, SuccessResponse{
-		Data:    data,
-		Message: message,
-	})
-}
-
-// OK отправляет успешный ответ с кодом 200
-func OK(w http.ResponseWriter, r *http.Request, data interface{}) {
-	Success(w, r, http.StatusOK, data, "")
-}
-
-// Created отправляет успешный ответ с кодом 201
-func Created(w http.ResponseWriter, r *http.Request, data interface{}, message string) {
-	Success(w, r, http.StatusCreated, data, message)
-}
-
-// NoContent отправляет успешный ответ без тела с кодом 204
-func NoContent(w http.ResponseWriter, r *http.Request) {
-	render.Status(r, http.StatusNoContent)
 }

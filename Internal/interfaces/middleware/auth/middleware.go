@@ -28,9 +28,17 @@ type AuthMiddleware interface {
 }
 
 func (m *middleware) GetUserID(ctx context.Context) int64 {
-	return ctx.Value(userIDKey).(int64)
+	userID, ok := ctx.Value(userIDKey).(int64)
+	if !ok {
+		return 0
+	}
+	return userID
 }
 
 func (m *middleware) GetUserRole(ctx context.Context) string {
-	return ctx.Value(userRoleKey).(string)
+	userRole, ok := ctx.Value(userRoleKey).(string)
+	if !ok {
+		return ""
+	}
+	return userRole
 }

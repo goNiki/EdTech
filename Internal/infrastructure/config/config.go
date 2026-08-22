@@ -2,84 +2,51 @@
 package config
 
 import (
-	"log"
-	"os"
-	"strings"
-	"time"
+	"edtech/internal/infrastructure/config/env"
+	errorsAPP "edtech/pkg/errors"
+	"fmt"
 
-	"github.com/spf13/viper"
 	"github.com/subosito/gotenv"
 )
 
-// Config хранит все конфигурации приложения.
-type Config struct {
-	AppConfig AppConfig `mapstructure:"app"`
-	DBConfig  DBConfig  `mapstructure:"db"`
-	JWTConfig JWTConfig `mapstructure:"jwt"`
+type config struct {
+	Server   Server
+	Postgres Postgres
+	Logger   Logger
+	JWT      JWT
 }
 
-// AppConfig хранит конфигурацию приложения.
-type AppConfig struct {
-	Env         string        `mapstructure:"env"`
-	Port        string        `mapstructure:"port"`
-	TimeOut     time.Duration `mapstructure:"timeout"`
-	Idletimeout time.Duration `mapstructure:"idle_timeout"`
-}
+func Load(path string) (*config, error) {
 
-// DBConfig хранит конфигурацию подключения к базе данных.
-type DBConfig struct {
-	Host     string `mapstructure:"host"`
-	Port     string `mapstructure:"port"`
-	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"`
-	Name     string `mapstructure:"name"`
-	SSLMode  string `mapstructure:"sslmode"`
-}
-
-// JWtConfig хранит конфигурацию для JWT токенов
-type JWTConfig struct {
-	Secret     string        `mapstructure:"secret"`
-	AccesExp   time.Duration `mapstructure:"accessexp"`
-	RefreshExp time.Duration `mapstructure:"refreshexp"`
-}
-
-// InitConfig загружает конфигурацию из файла и окружения и возвращает структуру Config.
-func InitConfig() *Config {
-
-	configPath := getConfigPath()
-
-	viper.SetConfigFile(configPath)
-	viper.AutomaticEnv()
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("Error reading configfile: %v", err)
+	if err := gotenv.Load(path); err != nil {
+		return nil, fmt.Errorf("%w: %w", errorsAPP.ErrLoadEnv, err)
 	}
 
-	var cfg Config
-	if err := viper.Unmarshal(&cfg); err != nil {
-		log.Fatalf("Unable to decode config into struct: %v", err)
-	}
-
-	return &cfg
-
-}
-
-func getConfigPath() string {
-
-	err := gotenv.Load()
+	server, err := env.NewServerConfig()
 	if err != nil {
-		log.Fatal("failed to load .env file: ", err)
+		return nil, err
 	}
 
-	configPath := os.Getenv("CONFIG_PATH")
-
-	if configPath == "" {
-		log.Fatal("CONFIG_PATH IS NOT SET")
+	postgres, err := env.NewPostgresConfig()
+	if err != nil {
+		return nil, err
 	}
 
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		log.Fatalf("CONFIG FILE DOES NOT EXIST %s", configPath)
+	logger, err := env.NewLoggerConfig()
+	if err != nil {
+		return nil, err
 	}
-	return configPath
+
+	jwt, err := env.NewJwtConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return &config{
+		Server:   server,
+		Postgres: postgres,
+		Logger:   logger,
+		JWT:      jwt,
+	}, nil
+
 }

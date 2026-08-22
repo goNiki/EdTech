@@ -23,7 +23,7 @@ func (m *middleware) JWTMiddleware(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), userIDKey, id)
-		ctx = context.WithValue(r.Context(), userRoleKey, role)
+		ctx = context.WithValue(ctx, userRoleKey, role)
 
 		r = r.WithContext(ctx)
 
