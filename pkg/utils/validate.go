@@ -61,7 +61,7 @@ func ValidateLesson(courseid int64, title string, description string) error {
 	return nil
 }
 
-func ValidateEnrolle(enrol dto.EnrolleRequest) error {
+func ValidateEnrolle(enrol dto.EnrollRequest) error {
 	var fields []string
 
 	if enrol.UserEmail == "" {
@@ -82,3 +82,4 @@ func ValidateEnrolle(enrol dto.EnrolleRequest) error {
 
 	return nil
 }
+
