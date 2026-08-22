@@ -1,20 +1,31 @@
 -- +goose Up
--- +goose StatementBegin
-CREATE TABLE users(
-    id SERIAL PRIMARY KEY, 
-    email VARCHAR(255) UNIQUE NOT NULL, 
-    password_hash VARCHAR(255) NOT NULL, 
-    role VARCHAR(50) NOT NULL DEFAULT 'user', 
-    create_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, 
-    update_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-); 
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    avatar_url TEXT,
+    bio TEXT,
+    
+    role VARCHAR(50) NOT NULL DEFAULT 'student',
+    
+    email_verified BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_banned BOOLEAN DEFAULT FALSE,
+    
+    last_login_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ
+);
 
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-
--- +goose StatementEnd
+CREATE INDEX idx_users_email ON users(email) WHERE deleted_at IS NULL;
+CREATE INDEX idx_users_username ON users(username) WHERE deleted_at IS NULL;
+CREATE INDEX idx_users_role ON users(role) WHERE deleted_at IS NULL;
 
 -- +goose Down
--- +goose StatementBegin
-DROP INDEX IF EXISTS idx_users_email;
-DROP TABLE IF EXISTS users;
--- +goose StatementEnd
+DROP TABLE IF EXISTS users CASCADE;

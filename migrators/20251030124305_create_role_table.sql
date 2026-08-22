@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 
-CREATE TYPE role_type AS ENUM ('student', 'teacher', 'admin');
+CREATE TYPE role_type AS ENUM ('student', 'teacher', 'creator', 'admin');
 
 CREATE TABLE roles (
     id SERIAL PRIMARY KEY,
@@ -13,7 +13,8 @@ CREATE TABLE roles (
 INSERT INTO roles (name, type) VALUES 
 ('student', 'student'),
 ('teacher', 'teacher'),
-('admin', 'admin');
+('creator', 'creator'),
+('admin', 'admin')
 
 
 -- +goose StatementEnd

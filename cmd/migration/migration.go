@@ -6,38 +6,42 @@ import (
 	"edtech/internal/infrastructure/db"
 	"edtech/internal/infrastructure/logger"
 	"edtech/internal/infrastructure/logger/sl"
+	"edtech/internal/infrastructure/migrator"
 	"fmt"
 	"log/slog"
 	"os"
 )
 
 const MigDir = "./migrators"
+const configPath = "./.env"
 
 func main() {
 
 	log := logger.Init()
 
-	cfg := config.InitConfig()
-
-	log.Info("Конфиг иннициализирован")
-	fmt.Println(cfg)
-	fmt.Println(cfg.DBConfig)
-
-	postgres, err := db.New(cfg)
+	cfg, err := config.Load(configPath)
 	if err != nil {
-		log.Error("Ошибка в иннициализации База данных: %w", sl.Error(err))
-		return
+
 	}
 
+	log.Info("Конфиг иннициализирован")
+
+	postgres, err := db.New(cfg.Postgres)
+	if err != nil {
+		panic(err)
+	}
 	log.Info("Подключение к базе данных выполнено")
 
-	defer postgres.Close()
-	migrator := db.NewMigrator(postgres.Pool, MigDir)
+	defer postgres.Pool.Close()
+	migrator, err := migrator.NewMigrator(postgres.Pool, MigDir)
+	if err != nil {
+		panic(err)
+	}
 	Migration(log, migrator)
 
 }
 
-func Migration(log *slog.Logger, migrator *db.Migrator) {
+func Migration(log *slog.Logger, migrator *migrator.Migrator) {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for {

@@ -7,19 +7,26 @@ SELECT r.id, p.id FROM roles r
 CROSS JOIN permissions p
 WHERE r.name = 'admin';
 
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id FROM roles r
+CROSS JOIN permissions p
+WHERE r.name = 'creator'
+  AND p.resource IN ('course', 'lesson', 'resource');
+
+
 -- Учитель получает разрешения на курсы, уроки и ресурсы
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r
 CROSS JOIN permissions p
 WHERE r.name = 'teacher' 
-  AND p.resource IN ('course', 'lesson', 'resource');
+  AND p.resource IN ('course', 'lesson', 'resource') AND p.action IN('view', 'edit', 'enroll', 'manage_users');
 
 -- Студент получает только разрешения на просмотр
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r
 CROSS JOIN permissions p
 WHERE r.name = 'student' 
-  AND p.action = 'view' AND p.resource IN ('course', 'lesson', 'resource');
+  AND p.action in ('view', 'enroll') AND p.resource IN ('course', 'lesson', 'resource');
 
 -- +goose StatementEnd
 
