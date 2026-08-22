@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"regexp"
 	errorsAPP "edtech/pkg/errors"
 	"time"
 )
@@ -24,24 +25,36 @@ const (
 )
 
 type Course struct {
-	Id          int64     `db:"id"`
-	Title       string    `db:"title"`
-	Slug        string    `db:"slug"`
-	Description string    `db:"description"`
-	CoverURL    string    `db:"cover_url"`
-	CreatedBy   int64     `db:"created_by"`
-	Visibility  string    `db:"visibility"`
-	Status      string    `db:"status"`
-	CreatedAt   time.Time `db:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at"`
+	Id                int64
+	Title             string
+	Slug              string
+	ShortDescription  *string
+	Description       string
+	CoverURL          string
+	IntroVideoURL     *string
+	CreatedBy         int64
+	Visibility        string
+	Status            string
+	Difficulty        *string
+	Language          *string
+	EstimatedDuration *int
+	CategoryID        *int64
+	TotalLessons      int
+	TotalSections     int
+	EnrolledCount     int
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	PublishedAt       *time.Time
+	ArchivedAt        *time.Time
+	DeletedAt         *time.Time
 }
 
 func (c *Course) Publish() error {
-	if c.Status == "published" {
+	if c.Status == StatusPublished {
 		return errorsAPP.ErrCourseAlredyPublished
 	}
 
-	c.Status = "published"
+	c.Status = StatusPublished
 
 	c.UpdatedAt = time.Now()
 
@@ -64,4 +77,26 @@ type EnrolledInCourse struct {
 	UserID   int64  `json:"userid"`
 	CourseID int64  `json:"courseid"`
 	Role     string `json:"role"`
+}
+
+func (c *Course) Validate() error {
+	if c.Title == "" {
+		return errorsAPP.ErrEmptyTitle
+	}
+	
+	if len(c.Title) > 200 {
+		return errorsAPP.ErrTitleTooLong
+	}
+	
+	if c.Slug == "" {
+		return errorsAPP.ErrEmptySlug
+	}
+	
+	// Slug validation
+	slugRegex := regexp.MustCompile("^[a-z0-9-]+$")
+	if !slugRegex.MatchString(c.Slug) {
+		return errorsAPP.ErrInvalidSlug
+	}
+	
+	return nil
 }
