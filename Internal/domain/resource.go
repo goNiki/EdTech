@@ -3,19 +3,19 @@ package domain
 import "time"
 
 type Resource struct {
-	ID            int64     `db:"id"`
-	LessonID      *int64    `db:"lesson_id"`
-	CourseID      *int64    `db:"course_id"`
-	Title         *string   `db:"title"`
-	Description   *string   `db:"description"`
-	Type          string    `db:"type"`
-	Path          string    `db:"path"`
-	Mime          string    `db:"mime"`
-	Size          int64     `db:"size"`
-	ExternalURL   *string   `db:"external_url"`
-	Duration      *int      `db:"duration"`
-	OrderPosition int       `db:"order_position"`
-	IsRequired    bool      `db:"is_required"`
-	CreatedAt     time.Time `db:"created_at"`
-	DeletedAt     *time.Time `db:"deleted_at"`
+	ID            int64
+	LessonID      *int64
+	CourseID      *int64
+	Title         *string
+	Description   *string
+	Type          string
+	Path          string
+	Mime          string
+	Size          int64
+	ExternalURL   *string
+	Duration      *int
+	OrderPosition int
+	IsRequired    bool
+	CreatedAt     time.Time
+	DeletedAt     *time.Time
 }

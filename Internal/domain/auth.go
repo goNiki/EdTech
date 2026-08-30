@@ -22,7 +22,6 @@ func (r Role) IsValid() bool {
 	}
 }
 
-
 type User struct {
 	ID            int64
 	Email         string
@@ -123,4 +122,3 @@ func (u *User) UpdateProfile(input UpdateProfileInput) {
 		u.AvatarURL = input.AvatarURL
 	}
 }
-

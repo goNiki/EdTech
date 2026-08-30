@@ -11,26 +11,35 @@ const (
 )
 
 type LessonProgress struct {
-	ID          int64          `db:"id"`
-	UserID      int64          `db:"user_id"`
-	LessonID    int64          `db:"lesson_id"`
-	Status      ProgressStatus `db:"status"`
-	Score       *int           `db:"score"`
-	TimeSpent   int            `db:"time_spent"`
-	LastPos     int            `db:"last_position"`
-	StartedAt   *time.Time     `db:"started_at"`
-	CompletedAt *time.Time     `db:"completed_at"`
-	UpdatedAt   time.Time      `db:"updated_at"`
+	ID          int64
+	UserID      int64
+	LessonID    int64
+	CourseID    int64
+	Status      ProgressStatus
+	Score       *int
+	TimeSpent   int
+	LastPos     int
+	StartedAt   *time.Time
+	CompletedAt *time.Time
+	UpdatedAt   time.Time
 }
 
 type CourseProgress struct {
-	ID             int64          `db:"id"`
-	UserID         int64          `db:"user_id"`
-	CourseID       int64          `db:"course_id"`
-	Status         ProgressStatus `db:"status"`
-	Percent        int            `db:"completion_percentage"`
-	CompletedLess  int            `db:"completed_lessons"`
-	StartedAt      *time.Time     `db:"started_at"`
-	CompletedAt    *time.Time     `db:"completed_at"`
-	LastAccessedAt time.Time      `db:"last_accessed_at"`
+	ID             int64
+	UserID         int64
+	CourseID       int64
+	CompletedLess  int
+	TotalLessons   int
+	Percent        int
+	TotalWatchTime int
+	AverageScore   *float64
+	StartedAt      *time.Time
+	LastAccessedAt time.Time
+	CompletedAt    *time.Time
+}
+
+type UpdateProgressInput struct {
+	Status       ProgressStatus `json:"status"`
+	TimeSpent    int            `json:"time_spent"`
+	LastPosition int            `json:"last_position"`
 }

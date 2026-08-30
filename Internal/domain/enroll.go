@@ -1,7 +1,13 @@
 package domain
 
-type EnrollUserRequest struct {
-	UserEmail string
-	CourseID  int64
-	Role      string
+type SelfEnrollRequest struct {
+	UserID   int64
+	CourseID int64
+}
+
+type TeacherEnrollRequest struct {
+	TeacherID   int64
+	TargetEmail string
+	CourseID    int64
+	Role        string
 }

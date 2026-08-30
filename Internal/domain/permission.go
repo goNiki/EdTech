@@ -15,3 +15,12 @@ const (
 	ActionEnroll      = "enroll"
 	ActionPublish     = "publish"
 )
+
+type CoursePermissions struct {
+	CanView        bool `json:"can_view"`
+	CanEdit        bool `json:"can_edit"`
+	CanDelete      bool `json:"can_delete"`
+	CanPublish     bool `json:"can_publish"`
+	CanEnroll      bool `json:"can_enroll"`
+	CanManageUsers bool `json:"can_manage_users"`
+}

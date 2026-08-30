@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	errorsAPP "edtech/pkg/errors"
+	"time"
+)
 
 type QuizType string
 
@@ -11,51 +14,86 @@ const (
 )
 
 type Quiz struct {
-	ID          int64      `db:"id"`
-	LessonID    int64      `db:"lesson_id"`
-	Title       string     `db:"title"`
-	Description string     `db:"description"`
-	PassingScor int        `db:"passing_score"`
-	MaxAttempts *int       `db:"max_attempts"`
-	TimeLimit   *int       `db:"time_limit"`
-	CreatedAt   time.Time  `db:"created_at"`
-	UpdatedAt   time.Time  `db:"updated_at"`
-	DeletedAt   *time.Time `db:"deleted_at"`
+	ID          int64
+	LessonID    int64
+	Title       string
+	Description string
+	PassingScor int
+	MaxAttempts *int
+	TimeLimit   *int
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   *time.Time
+}
+
+func (q *Quiz) Validate() error {
+	if q.Title == "" {
+		return errorsAPP.ErrEmptyTitle
+	}
+	if q.LessonID <= 0 {
+		return errorsAPP.ErrQuizValidation
+	}
+	if q.PassingScor < 0 || q.PassingScor > 100 {
+		return errorsAPP.ErrQuizValidation
+	}
+	if q.MaxAttempts != nil && *q.MaxAttempts <= 0 {
+		return errorsAPP.ErrQuizValidation
+	}
+	if q.TimeLimit != nil && *q.TimeLimit <= 0 {
+		return errorsAPP.ErrQuizValidation
+	}
+	return nil
 }
 
 type QuizQuestion struct {
-	ID       int64    `db:"id"`
-	QuizID   int64    `db:"quiz_id"`
-	Type     QuizType `db:"type"`
-	Text     string   `db:"question_text"`
-	Points   int      `db:"points"`
-	Position int      `db:"position"`
+	ID       int64
+	QuizID   int64
+	Type     QuizType
+	Text     string
+	Points   int
+	Position int
 }
 
 type QuizAnswer struct {
-	ID         int64  `db:"id"`
-	QuestionID int64  `db:"question_id"`
-	Text       string `db:"answer_text"`
-	IsCorrect  bool   `db:"is_correct"`
-	Explain    string `db:"explanation"`
+	ID         int64
+	QuestionID int64
+	Text       string
+	IsCorrect  bool
+	Explain    string
 }
 
 type QuizAttempt struct {
-	ID          int64      `db:"id"`
-	QuizID      int64      `db:"quiz_id"`
-	UserID      int64      `db:"user_id"`
-	Score       int        `db:"score"`
-	Passed      bool       `db:"passed"`
-	StartedAt   time.Time  `db:"started_at"`
-	CompletedAt *time.Time `db:"completed_at"`
+	ID           int64
+	QuizID       int64
+	UserID       int64
+	Score        int
+	Passed       bool
+	NeedsGrading bool
+	StartedAt    time.Time
+	CompletedAt  *time.Time
+}
+
+func (a *QuizAttempt) CalculateScore(correctPoints, totalQuestions, passingScore int) {
+	if totalQuestions == 0 {
+		totalQuestions = 1
+	}
+	a.Score = (correctPoints * 100) / totalQuestions
+	if a.Score > 100 {
+		a.Score = 100
+	}
+	a.Passed = a.Score >= passingScore
+	a.NeedsGrading = false
+	now := time.Now()
+	a.CompletedAt = &now
 }
 
 type QuizAttemptAnswer struct {
-	ID         int64  `db:"id"`
-	AttemptID  int64  `db:"attempt_id"`
-	QuestionID int64  `db:"question_id"`
-	AnswerID   *int64 `db:"answer_id"`
-	TextValue  string `db:"text_value"`
-	IsCorrect  *bool  `db:"is_correct"`
-	Points     int    `db:"points_awarded"`
+	ID         int64
+	AttemptID  int64
+	QuestionID int64
+	AnswerID   *int64
+	TextValue  string
+	IsCorrect  *bool
+	Points     int
+	Feedback   *string
 }
