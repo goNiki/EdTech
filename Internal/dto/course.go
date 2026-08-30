@@ -71,15 +71,17 @@ type CreateCourseRequest struct {
 }
 
 type UpdateCourseRequest struct {
-	Title            *string `json:"title,omitempty" validate:"omitempty,min=3,max=255"`
-	Slug             *string `json:"slug,omitempty" validate:"omitempty,min=3,max=100"`
-	ShortDescription *string `json:"short_description,omitempty" validate:"omitempty,max=500"`
-	Description      *string `json:"description,omitempty" validate:"omitempty,min=10,max=10000"`
-	CoverURL         *string `json:"cover_url,omitempty" validate:"omitempty,http_url,max=500"`
-	Visibility       *string `json:"visibility,omitempty" validate:"omitempty,oneof=public private"`
-	Difficulty       *string `json:"difficulty,omitempty" validate:"omitempty,oneof=beginner intermediate advanced"`
-	Language         *string `json:"language,omitempty" validate:"omitempty,min=2,max=10"`
-	CategoryID       *int64  `json:"category_id,omitempty" validate:"omitempty,gt=0"`
+	Title             *string `json:"title,omitempty" validate:"omitempty,min=3,max=255"`
+	Slug              *string `json:"slug,omitempty" validate:"omitempty,min=3,max=100"`
+	ShortDescription  *string `json:"short_description,omitempty" validate:"omitempty,max=500"`
+	Description       *string `json:"description,omitempty" validate:"omitempty,min=10,max=10000"`
+	CoverURL          *string `json:"cover_url,omitempty" validate:"omitempty,http_url,max=500"`
+	IntroVideoURL     *string `json:"intro_video_url,omitempty" validate:"omitempty,http_url,max=500"`
+	Visibility        *string `json:"visibility,omitempty" validate:"omitempty,oneof=public private"`
+	Difficulty        *string `json:"difficulty,omitempty" validate:"omitempty,oneof=beginner intermediate advanced"`
+	Language          *string `json:"language,omitempty" validate:"omitempty,min=2,max=10"`
+	EstimatedDuration *int    `json:"estimated_duration,omitempty" validate:"omitempty,gte=0"`
+	CategoryID        *int64  `json:"category_id,omitempty" validate:"omitempty,gt=0"`
 }
 
 type CreateCourseResponseData struct {
@@ -103,4 +105,52 @@ type PaginatedCourses struct {
 	Page     int64    `json:"page"`
 	PageSize int64    `json:"page_size"`
 	Total    int64    `json:"total"`
+}
+
+type ParamName string
+
+const (
+	ParamPage       ParamName = "page"
+	ParamPageSize   ParamName = "page_size"
+	ParamLimit      ParamName = "limit"
+	ParamOffset     ParamName = "offset"
+	ParamSearch     ParamName = "search"
+	ParamCategoryID ParamName = "category_id"
+	ParamCreatedBy  ParamName = "created_by"
+	ParamDifficulty ParamName = "difficulty"
+	ParamLanguage   ParamName = "language"
+	ParamRole       ParamName = "role"
+	ParamSortBy     ParamName = "sort_by"
+	ParamSortOrder  ParamName = "sort_order"
+)
+
+func (p ParamName) String() string {
+	return string(p)
+}
+
+type PaginationRequest struct {
+	Page     int64 `json:"page"`
+	PageSize int64 `json:"page_size"`
+}
+
+type CourseFilterRequest struct {
+	Search     *string `json:"search,omitempty"`
+	CategoryID *int64  `json:"category_id,omitempty"`
+	CreatedBy  *int64  `json:"created_by,omitempty"`
+	Difficulty *string `json:"difficulty,omitempty"`
+	Language   *string `json:"language,omitempty"`
+	SortBy     string  `json:"sort_by,omitempty"`
+	SortOrder  string  `json:"sort_order,omitempty"`
+}
+
+type ListPublicCoursesRequest struct {
+	Pagination PaginationRequest
+	Filter     CourseFilterRequest
+}
+
+type ListMyCoursesRequest struct {
+	UserID     int64
+	Role       string
+	Pagination PaginationRequest
+	Filter     CourseFilterRequest
 }

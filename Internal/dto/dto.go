@@ -20,7 +20,7 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required,min=1,max=100"`
 }
 
-type LoginResponce struct {
+type LoginResponse struct {
 	ID           int64  `json:"id"`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`

@@ -3,13 +3,13 @@ package dto
 import "time"
 
 type Section struct {
-	ID          int64      `json:"id"`
-	CourseID    int64      `json:"course_id"`
-	Title       string     `json:"title"`
-	Description string     `json:"description"`
-	Position    int        `json:"position"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID          int64     `json:"id"`
+	CourseID    int64     `json:"course_id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Position    int       `json:"position"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type CreateSectionRequest struct {

@@ -20,15 +20,15 @@ type Lesson struct {
 }
 
 type CreateLessonRequest struct {
-	CourseID    int64   `json:"course_id" validate:"required,gt=0"`
-	SectionID   *int64  `json:"section_id,omitempty" validate:"omitempty,gt=0"`
-	Title       string  `json:"title" validate:"required,min=2,max=255"`
-	Description string  `json:"description,omitempty" validate:"omitempty,max=2000"`
-	CoverURL    string  `json:"cover_url,omitempty" validate:"omitempty,http_url,max=500"`
-	Content     string  `json:"content" validate:"required"`
-	Type        string  `json:"type" validate:"required,oneof=lecture exercise quiz assignment"`
-	Duration    *int    `json:"duration,omitempty" validate:"omitempty,gte=0"`
-	IsFree      bool    `json:"is_free"`
+	CourseID    int64  `json:"course_id" validate:"required,gt=0"`
+	SectionID   *int64 `json:"section_id,omitempty" validate:"omitempty,gt=0"`
+	Title       string `json:"title" validate:"required,min=2,max=255"`
+	Description string `json:"description,omitempty" validate:"omitempty,max=2000"`
+	CoverURL    string `json:"cover_url,omitempty" validate:"omitempty,http_url,max=500"`
+	Content     string `json:"content" validate:"required"`
+	Type        string `json:"type" validate:"required,oneof=lecture exercise quiz assignment"`
+	Duration    *int   `json:"duration,omitempty" validate:"omitempty,gte=0"`
+	IsFree      bool   `json:"is_free"`
 }
 
 type UpdateLessonRequest struct {

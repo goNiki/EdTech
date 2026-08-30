@@ -3,20 +3,20 @@ package dto
 import "time"
 
 type Resource struct {
-	ID            int64      `json:"id"`
-	LessonID      *int64     `json:"lesson_id,omitempty"`
-	CourseID      *int64     `json:"course_id,omitempty"`
-	Title         *string    `json:"title,omitempty"`
-	Description   *string    `json:"description,omitempty"`
-	Type          string     `json:"type"`
-	Path          string     `json:"path"`
-	Mime          string     `json:"mime"`
-	Size          int64      `json:"size"`
-	ExternalURL   *string    `json:"external_url,omitempty"`
-	Duration      *int       `json:"duration,omitempty"`
-	OrderPosition int        `json:"order_position"`
-	IsRequired    bool       `json:"is_required"`
-	CreatedAt     time.Time  `json:"created_at"`
+	ID            int64     `json:"id"`
+	LessonID      *int64    `json:"lesson_id,omitempty"`
+	CourseID      *int64    `json:"course_id,omitempty"`
+	Title         *string   `json:"title,omitempty"`
+	Description   *string   `json:"description,omitempty"`
+	Type          string    `json:"type"`
+	Path          string    `json:"path"`
+	Mime          string    `json:"mime"`
+	Size          int64     `json:"size"`
+	ExternalURL   *string   `json:"external_url,omitempty"`
+	Duration      *int      `json:"duration,omitempty"`
+	OrderPosition int       `json:"order_position"`
+	IsRequired    bool      `json:"is_required"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 type UploadResourceRequest struct {

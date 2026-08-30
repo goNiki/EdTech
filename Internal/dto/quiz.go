@@ -3,14 +3,14 @@ package dto
 import "time"
 
 type Quiz struct {
-	ID          int64      `json:"id"`
-	LessonID    int64      `json:"lesson_id"`
-	Title       string     `json:"title"`
-	Description string     `json:"description"`
-	PassingScor int        `json:"passing_score"`
-	MaxAttempts *int       `json:"max_attempts,omitempty"`
-	TimeLimit   *int       `json:"time_limit,omitempty"`
-	CreatedAt   time.Time  `json:"created_at"`
+	ID          int64     `json:"id"`
+	LessonID    int64     `json:"lesson_id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	PassingScor int       `json:"passing_score"`
+	MaxAttempts *int      `json:"max_attempts,omitempty"`
+	TimeLimit   *int      `json:"time_limit,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type QuizQuestion struct {
@@ -32,19 +32,19 @@ type QuizAnswer struct {
 }
 
 type CreateQuizRequest struct {
-	LessonID    int64   `json:"lesson_id" validate:"required,gt=0"`
-	Title       string  `json:"title" validate:"required,min=2,max=255"`
-	Description string  `json:"description,omitempty" validate:"omitempty,max=2000"`
-	PassingScor int     `json:"passing_score" validate:"required,min=0,max=100"`
-	MaxAttempts *int    `json:"max_attempts,omitempty" validate:"omitempty,gt=0"`
-	TimeLimit   *int    `json:"time_limit,omitempty" validate:"omitempty,gt=0"`
+	LessonID    int64  `json:"lesson_id" validate:"required,gt=0"`
+	Title       string `json:"title" validate:"required,min=2,max=255"`
+	Description string `json:"description,omitempty" validate:"omitempty,max=2000"`
+	PassingScor int    `json:"passing_score" validate:"required,min=0,max=100"`
+	MaxAttempts *int   `json:"max_attempts,omitempty" validate:"omitempty,gt=0"`
+	TimeLimit   *int   `json:"time_limit,omitempty" validate:"omitempty,gt=0"`
 }
 
 type AddQuestionRequest struct {
-	Type     string            `json:"type" validate:"required,oneof=single_choice multiple_choice open_text"`
-	Text     string            `json:"question_text" validate:"required,min=2,max=2000"`
-	Points   int               `json:"points" validate:"required,gt=0"`
-	Answers  []AddAnswerOption `json:"answers,omitempty" validate:"omitempty,dive"`
+	Type    string            `json:"type" validate:"required,oneof=single_choice multiple_choice open_text"`
+	Text    string            `json:"question_text" validate:"required,min=2,max=2000"`
+	Points  int               `json:"points" validate:"required,gt=0"`
+	Answers []AddAnswerOption `json:"answers,omitempty" validate:"omitempty,dive"`
 }
 
 type AddAnswerOption struct {
@@ -61,4 +61,27 @@ type SubmitAnswer struct {
 	QuestionID int64   `json:"question_id" validate:"required,gt=0"`
 	AnswerID   *int64  `json:"answer_id,omitempty" validate:"omitempty,gt=0"`
 	TextValue  *string `json:"text_value,omitempty" validate:"omitempty,max=5000"`
+}
+
+type GradeAttemptRequest struct {
+	Points   int     `json:"points" validate:"gte=0"`
+	Feedback *string `json:"feedback,omitempty" validate:"omitempty,max=2000"`
+}
+
+type QuizAttempt struct {
+	ID           int64      `json:"id"`
+	QuizID       int64      `json:"quiz_id"`
+	UserID       int64      `json:"user_id"`
+	Score        int        `json:"score"`
+	Passed       bool       `json:"passed"`
+	NeedsGrading bool       `json:"needs_grading"`
+	StartedAt    time.Time  `json:"started_at"`
+	CompletedAt  *time.Time `json:"completed_at,omitempty"`
+}
+
+type ListAttemptsResponse struct {
+	Attempts []QuizAttempt `json:"attempts"`
+	Total    int64         `json:"total"`
+	Page     int           `json:"page"`
+	PageSize int           `json:"page_size"`
 }
