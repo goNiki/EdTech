@@ -5,6 +5,7 @@ import (
 	"edtech/internal/infrastructure/config/env"
 	errorsAPP "edtech/pkg/errors"
 	"fmt"
+	"os"
 
 	"github.com/subosito/gotenv"
 )
@@ -18,8 +19,10 @@ type config struct {
 
 func Load(path string) (*config, error) {
 
-	if err := gotenv.Load(path); err != nil {
-		return nil, fmt.Errorf("%w: %w", errorsAPP.ErrLoadEnv, err)
+	if _, err := os.Stat(path); err == nil {
+		if err := gotenv.Load(path); err != nil {
+			return nil, fmt.Errorf("%w: %w", errorsAPP.ErrLoadEnv, err)
+		}
 	}
 
 	server, err := env.NewServerConfig()
