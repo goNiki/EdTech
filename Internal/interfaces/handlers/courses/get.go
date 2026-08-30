@@ -3,7 +3,8 @@ package courses
 import (
 	"edtech/internal/dto"
 	"edtech/internal/infrastructure/logger"
-	"edtech/internal/infrastructure/response"
+	"edtech/internal/interfaces/handlers/converter"
+	response "edtech/internal/interfaces/response"
 	errorsAPP "edtech/pkg/errors"
 	"net/http"
 	"strconv"
@@ -11,17 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// Получение курса по ID
-// Метод: GET /api/v1/courses/{id}
-// Доступ: Public (только published), Enrolled users (все)
-// Handler: GetCourseByID(w http.ResponseWriter, r *http.Request)
-// Response: 200 OK или 404 Not Found
-// 2.4 Получение курса по slug
-// Метод: GET /api/v1/courses/slug/{slug}
-// Доступ: Public
-// Handler: GetCourseBySlug(w http.ResponseWriter, r *http.Request)
-
-func (h *handler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
+func (h *CourseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 	const op = "http.handlers.courses.get"
 
 	log := logger.GetLogger(r.Context(), op)
@@ -33,6 +24,10 @@ func (h *handler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID := h.authMiddleware.GetUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
 
 	course, err := h.courseService.GetCourseByID(r.Context(), int64(courseIDInt))
 	if err != nil {
@@ -50,39 +45,34 @@ func (h *handler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	permission := h.BuildCoursePermissions(r.Context(), course, userID)
-
-	userRole, err := h.enrolmentService.GetRoleUserInCource(r.Context(), userID, course.Id)
+	permissionsDomain, err := h.accessService.BuildCoursePermissions(r.Context(), course, userID)
 	if err != nil {
 		response.HandleError(w, r, log, err, op)
 		return
 	}
 
-	date := dto.Course{
-		ID:          course.Id,
-		Title:       course.Title,
-		Slug:        course.Slug,
-		Description: course.Description,
-		CoverURL:    course.CoverURL,
-		CreatedBy:   course.CreatedBy,
-		Visibility:  course.Visibility,
-		Status:      course.Status,
-		CreatedAt:   course.CreatedAt,
-		UpdatedAt:   course.UpdatedAt,
+	userRole := ""
+	role, err := h.enrolmentService.GetRoleUserInCource(r.Context(), userID, course.Id)
+	if err != nil {
+		if err.Error() != "user not found" && err.Error() != "not found" && err.Error() != "no rows in result set" {
+			response.HandleError(w, r, log, err, op)
+			return
+		}
+	} else {
+		userRole = role
 	}
 
 	resp := dto.CourseDetailResponse{
-		Course:      date,
-		Permissions: permission,
+		Course:      converter.CourseToDTO(course),
+		Permissions: converter.CoursePermissionsToDTO(permissionsDomain),
 		UserRole:    userRole,
 	}
 
 	response.OK(w, r, resp)
-
 }
 
-func (h *handler) GetCourseBySlug(w http.ResponseWriter, r *http.Request) {
-	const op = "http.handlers.courses.get"
+func (h *CourseHandler) GetCourseBySlug(w http.ResponseWriter, r *http.Request) {
+	const op = "http.handlers.courses.GetCourseBySlug"
 
 	log := logger.GetLogger(r.Context(), op)
 
@@ -94,6 +84,10 @@ func (h *handler) GetCourseBySlug(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID := h.authMiddleware.GetUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
 
 	canView, err := h.accessService.CanViewCourse(r.Context(), course, userID)
 	if err != nil {
@@ -106,33 +100,49 @@ func (h *handler) GetCourseBySlug(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	permission := h.BuildCoursePermissions(r.Context(), course, userID)
-
-	userRole, err := h.enrolmentService.GetRoleUserInCource(r.Context(), userID, course.Id)
+	permissionsDomain, err := h.accessService.BuildCoursePermissions(r.Context(), course, userID)
 	if err != nil {
 		response.HandleError(w, r, log, err, op)
 		return
 	}
 
-	date := dto.Course{
-		ID:          course.Id,
-		Title:       course.Title,
-		Slug:        course.Slug,
-		Description: course.Description,
-		CoverURL:    course.CoverURL,
-		CreatedBy:   course.CreatedBy,
-		Visibility:  course.Visibility,
-		Status:      course.Status,
-		CreatedAt:   course.CreatedAt,
-		UpdatedAt:   course.UpdatedAt,
+	userRole := ""
+	role, err := h.enrolmentService.GetRoleUserInCource(r.Context(), userID, course.Id)
+	if err != nil {
+		if err.Error() != "user not found" && err.Error() != "not found" && err.Error() != "no rows in result set" {
+			response.HandleError(w, r, log, err, op)
+			return
+		}
+	} else {
+		userRole = role
 	}
 
 	resp := dto.CourseDetailResponse{
-		Course:      date,
-		Permissions: permission,
+		Course:      converter.CourseToDTO(course),
+		Permissions: converter.CoursePermissionsToDTO(permissionsDomain),
 		UserRole:    userRole,
 	}
 
 	response.OK(w, r, resp)
+}
 
+func (h *CourseHandler) GetCourseStructure(w http.ResponseWriter, r *http.Request) {
+	const op = "http.handlers.courses.GetCourseStructure"
+
+	log := logger.GetLogger(r.Context(), op)
+
+	courseIDStr := chi.URLParam(r, "courseid")
+	courseID, err := strconv.ParseInt(courseIDStr, 10, 64)
+	if err != nil {
+		response.HandleError(w, r, log, errorsAPP.ErrInvalidURLParam, op)
+		return
+	}
+
+	result, err := h.courseService.GetCourseStructure(r.Context(), courseID)
+	if err != nil {
+		response.HandleError(w, r, log, err, op)
+		return
+	}
+
+	response.OK(w, r, result)
 }

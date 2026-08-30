@@ -48,3 +48,67 @@ func CreateCourseRequestToDomain(req dto.CreateCourseRequest, userID int64) doma
 		CategoryID:       req.CategoryID,
 	}
 }
+
+func UpdateCourseRequestToDomain(req dto.UpdateCourseRequest) domain.UpdateCourseInput {
+	return domain.UpdateCourseInput{
+		Title:             req.Title,
+		Slug:              req.Slug,
+		ShortDescription:  req.ShortDescription,
+		Description:       req.Description,
+		CoverURL:          req.CoverURL,
+		IntroVideoURL:     req.IntroVideoURL,
+		Visibility:        req.Visibility,
+		Difficulty:        req.Difficulty,
+		Language:          req.Language,
+		EstimatedDuration: req.EstimatedDuration,
+		CategoryID:        req.CategoryID,
+	}
+}
+
+func ListPublicCoursesRequestToDomain(req dto.ListPublicCoursesRequest) (domain.Pagination, domain.CourseFilter) {
+	pagination := domain.Pagination{
+		Page:     req.Pagination.Page,
+		PageSize: req.Pagination.PageSize,
+	}
+	filter := domain.CourseFilter{
+		Search:     req.Filter.Search,
+		CategoryID: req.Filter.CategoryID,
+		CreatedBy:  req.Filter.CreatedBy,
+		Difficulty: req.Filter.Difficulty,
+		Language:   req.Filter.Language,
+		SortBy:     req.Filter.SortBy,
+		SortOrder:  req.Filter.SortOrder,
+	}
+	return pagination, filter
+}
+
+func ListMyCoursesRequestToDomain(req dto.ListMyCoursesRequest) *domain.InputListMyCourse {
+	return &domain.InputListMyCourse{
+		UserID: req.UserID,
+		Role:   req.Role,
+		Pagination: domain.Pagination{
+			Page:     req.Pagination.Page,
+			PageSize: req.Pagination.PageSize,
+		},
+		Filter: domain.CourseFilter{
+			Search:     req.Filter.Search,
+			CategoryID: req.Filter.CategoryID,
+			CreatedBy:  req.Filter.CreatedBy,
+			Difficulty: req.Filter.Difficulty,
+			Language:   req.Filter.Language,
+			SortBy:     req.Filter.SortBy,
+			SortOrder:  req.Filter.SortOrder,
+		},
+	}
+}
+
+func CoursePermissionsToDTO(p domain.CoursePermissions) dto.CoursePermissions {
+	return dto.CoursePermissions{
+		CanView:        p.CanView,
+		CanEdit:        p.CanEdit,
+		CanDelete:      p.CanDelete,
+		CanPublish:     p.CanPublish,
+		CanEnroll:      p.CanEnroll,
+		CanManageUsers: p.CanManageUsers,
+	}
+}

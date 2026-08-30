@@ -6,7 +6,7 @@ import (
 	"edtech/internal/service"
 )
 
-type handler struct {
+type CourseHandler struct {
 	courseService    service.CourseServices
 	lessonService    service.LessonServices
 	enrolmentService service.EnrolledServices
@@ -15,8 +15,8 @@ type handler struct {
 	accessService    service.AccessService
 }
 
-func NewCourseHandler(courseService service.CourseServices, lessonService service.LessonServices, enrolmentService service.EnrolledServices, authMiddleware auth.AuthMiddleware, accessService service.AccessService) *handler {
-	return &handler{
+func NewCourseHandler(courseService service.CourseServices, lessonService service.LessonServices, enrolmentService service.EnrolledServices, authMiddleware auth.AuthMiddleware, accessService service.AccessService) *CourseHandler {
+	return &CourseHandler{
 		courseService:    courseService,
 		lessonService:    lessonService,
 		enrolmentService: enrolmentService,

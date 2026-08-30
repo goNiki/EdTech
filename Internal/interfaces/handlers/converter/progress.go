@@ -25,10 +25,17 @@ func CourseProgressToDTO(d *domain.CourseProgress) dto.CourseProgress {
 	if d == nil {
 		return dto.CourseProgress{}
 	}
+	status := string(domain.ProgressStatusNotStarted)
+	if d.CompletedAt != nil || (d.TotalLessons > 0 && d.CompletedLess >= d.TotalLessons) {
+		status = string(domain.ProgressStatusCompleted)
+	} else if d.StartedAt != nil || d.Percent > 0 || d.CompletedLess > 0 {
+		status = string(domain.ProgressStatusInProgress)
+	}
+
 	return dto.CourseProgress{
 		ID:             d.ID,
 		CourseID:       d.CourseID,
-		Status:         string(d.Status),
+		Status:         status,
 		Percent:        d.Percent,
 		CompletedLess:  d.CompletedLess,
 		StartedAt:      d.StartedAt,

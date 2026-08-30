@@ -4,23 +4,26 @@ import (
 	"edtech/internal/domain"
 	"edtech/internal/dto"
 	"edtech/internal/infrastructure/logger"
-	"edtech/internal/infrastructure/response"
+	response "edtech/internal/interfaces/response"
 	errorsAPP "edtech/pkg/errors"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/render"
 )
 
-func (h *handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
+func (h *CourseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 	const op = "http.handlers.courses.create"
 
 	log := logger.GetLogger(r.Context(), op)
 
 	var req dto.CreateCourseRequest
 	userID := h.authMiddleware.GetUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
 	userRole := h.authMiddleware.GetUserRole(r.Context())
-	if userRole != "teacher" {
+	if userRole != string(domain.RoleTeacher) {
 		response.HandleError(w, r, log, errorsAPP.ErrForbidden, op)
 		return
 	}
@@ -44,7 +47,7 @@ func (h *handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 		Visibility:  req.Visibility,
 	}
 
-	courseID, err := h.courseService.CreateCourse(r.Context(), &course)
+	createdCourse, err := h.courseService.CreateCourse(r.Context(), &course)
 	if err != nil {
 		response.HandleError(w, r, log, err, op)
 		return
@@ -52,13 +55,12 @@ func (h *handler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 
 	resp := dto.CreateCourseResponse{
 		Data: dto.CreateCourseResponseData{
-			ID:        courseID,
-			Title:     req.Title,
-			Slug:      req.Slug,
-			Status:    req.Status,
-			CreatedAt: time.Now(),
+			ID:        createdCourse.Id,
+			Title:     createdCourse.Title,
+			Slug:      createdCourse.Slug,
+			Status:    createdCourse.Status,
+			CreatedAt: createdCourse.CreatedAt,
 		},
-		Message: "Курс успешно создан",
 	}
-	response.Created(w, r, resp.Data, resp.Message)
+	response.Created(w, r, resp.Data)
 }

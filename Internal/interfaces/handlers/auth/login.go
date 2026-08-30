@@ -6,7 +6,7 @@ import (
 
 	"edtech/internal/dto"
 	"edtech/internal/infrastructure/logger"
-	response "edtech/internal/interfaces/responce"
+	response "edtech/internal/interfaces/response"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/go-chi/render"
@@ -33,7 +33,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := dto.LoginResponce{
+	resp := dto.LoginResponse{
 		ID:           authTokens.ID,
 		AccessToken:  authTokens.AccessToken,
 		RefreshToken: authTokens.RefreshToken,

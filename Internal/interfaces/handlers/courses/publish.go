@@ -2,7 +2,7 @@ package courses
 
 import (
 	"edtech/internal/infrastructure/logger"
-	"edtech/internal/infrastructure/response"
+	response "edtech/internal/interfaces/response"
 	errorsAPP "edtech/pkg/errors"
 	"net/http"
 	"strconv"
@@ -10,7 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (h *handler) PublishCourse(w http.ResponseWriter, r *http.Request) {
+func (h *CourseHandler) PublishCourse(w http.ResponseWriter, r *http.Request) {
 	const op = "http.handler.course.publishcource"
 
 	log := logger.GetLogger(r.Context(), op)
@@ -23,6 +23,10 @@ func (h *handler) PublishCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID := h.authMiddleware.GetUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
 
 	if err := h.courseService.PublishCourse(r.Context(), userID, int64(courseID)); err != nil {
 		response.HandleError(w, r, log, err, op)

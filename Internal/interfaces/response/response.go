@@ -30,14 +30,14 @@ func Error(w http.ResponseWriter, r *http.Request, status int, code Code, err st
 	})
 }
 
-func OK(w http.ResponseWriter, r *http.Request, date interface{}) {
+func OK(w http.ResponseWriter, r *http.Request, data interface{}) {
 	render.Status(r, http.StatusOK)
-	render.JSON(w, r, date)
+	render.JSON(w, r, data)
 }
 
-func Created(w http.ResponseWriter, r *http.Request, date interface{}) {
+func Created(w http.ResponseWriter, r *http.Request, data interface{}) {
 	render.Status(r, http.StatusCreated)
-	render.JSON(w, r, date)
+	render.JSON(w, r, data)
 }
 
 func NoContent(w http.ResponseWriter, r *http.Request) {

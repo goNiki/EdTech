@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"edtech/internal/infrastructure/logger"
-	response "edtech/internal/interfaces/responce"
+	response "edtech/internal/interfaces/response"
 	errorsAPP "edtech/pkg/errors"
 )
 

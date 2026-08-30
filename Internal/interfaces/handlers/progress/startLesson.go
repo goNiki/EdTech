@@ -1,0 +1,34 @@
+package progress
+
+import (
+	"net/http"
+
+	"edtech/internal/infrastructure/logger"
+	response "edtech/internal/interfaces/response"
+	errorsAPP "edtech/pkg/errors"
+)
+
+// StartLesson handles POST /api/v1/lessons/{lesson_id}/start
+func (h *ProgressHandler) StartLesson(w http.ResponseWriter, r *http.Request) {
+	const op = "http.handlers.progress.StartLesson"
+	log := logger.GetLogger(r.Context(), op)
+
+	userID := h.getUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
+
+	lessonID, err := parseIDParam(r, "lesson_id", "lessonId", "id")
+	if err != nil {
+		response.HandleError(w, r, log, errorsAPP.ErrInvalidURLParam, op)
+		return
+	}
+
+	if err := h.progressService.StartLesson(r.Context(), userID, lessonID); err != nil {
+		response.HandleError(w, r, log, err, op)
+		return
+	}
+
+	response.OK(w, r, map[string]string{"message": "lesson started"})
+}

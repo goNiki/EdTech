@@ -43,7 +43,6 @@ func RegisterRequestToInput(req dto.RegisterRequest) domain.RegisterInput {
 	}
 }
 
-
 func UpdateProfileRequestToDomain(req dto.UpdateProfileRequest) domain.UpdateProfileInput {
 	return domain.UpdateProfileInput{
 		FirstName: req.FirstName,
@@ -52,4 +51,3 @@ func UpdateProfileRequestToDomain(req dto.UpdateProfileRequest) domain.UpdatePro
 		AvatarURL: req.AvatarURL,
 	}
 }
-

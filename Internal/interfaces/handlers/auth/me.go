@@ -5,7 +5,7 @@ import (
 
 	"edtech/internal/infrastructure/logger"
 	"edtech/internal/interfaces/handlers/converter"
-	response "edtech/internal/interfaces/responce"
+	response "edtech/internal/interfaces/response"
 	errorsAPP "edtech/pkg/errors"
 )
 

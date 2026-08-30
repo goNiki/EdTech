@@ -7,7 +7,7 @@ import (
 	"edtech/internal/dto"
 	"edtech/internal/infrastructure/logger"
 	"edtech/internal/interfaces/handlers/converter"
-	response "edtech/internal/interfaces/responce"
+	response "edtech/internal/interfaces/response"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/go-chi/render"
