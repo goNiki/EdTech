@@ -8,25 +8,46 @@ var (
 	ErrInvalidCredentials  = errors.New("invalid credentials")
 	ErrUserAlreadyEnrolled = errors.New("user already enrolled")
 
-
 	// Course errors
-	ErrNotFoundCourse        = errors.New("course not found")
-	ErrSlugAlreadyExists     = errors.New("slug already exists")
-	ErrCourseAlredyPublished = errors.New("course already published")
-	ErrCourseValidation      = errors.New("course validation failed")
-	ErrEmptyTitle            = errors.New("title cannot be empty")
-	ErrTitleTooLong          = errors.New("title is too long")
-	ErrEmptySlug             = errors.New("slug cannot be empty")
-	ErrInvalidSlug           = errors.New("invalid slug format")
+	ErrCourseNotFound           = errors.New("course not found")
+	ErrNotFoundCourse           = ErrCourseNotFound
+	ErrSlugAlreadyExists        = errors.New("slug already exists")
+	ErrCourseAlreadyPublished    = errors.New("course already published")
+	ErrCourseAlreadyArchived     = errors.New("course already archived")
+	ErrCannotPublishEmptyCourse = errors.New("cannot publish course without lessons")
+	ErrCourseValidation         = errors.New("course validation failed")
+	ErrEmptyTitle               = errors.New("title cannot be empty")
+	ErrTitleTooLong             = errors.New("title is too long")
+	ErrEmptySlug                = errors.New("slug cannot be empty")
+	ErrInvalidSlug              = errors.New("invalid slug format")
 
 	// Lesson errors
 	ErrNotFoundLesson   = errors.New("lesson not found")
 	ErrLessonValidation = errors.New("lesson validation failed")
 	ErrNothingToUpdate  = errors.New("nothing to update")
 
+	// Progress errors
+	ErrProgressNotFound       = errors.New("progress not found")
+	ErrCourseProgressNotFound = errors.New("course progress not found")
+	ErrLessonProgressNotFound = errors.New("lesson progress not found")
+
+	// Quiz errors
+	ErrQuizNotFound            = errors.New("quiz not found")
+	ErrNotFoundQuiz            = ErrQuizNotFound
+	ErrQuizValidation          = errors.New("quiz validation failed")
+	ErrAttemptNotFound         = errors.New("quiz attempt not found")
+	ErrNotFoundAttempt         = ErrAttemptNotFound
+	ErrMaxAttemptsReached      = errors.New("maximum quiz attempts reached")
+	ErrTimeLimitExceeded       = errors.New("quiz time limit exceeded")
+	ErrAttemptAlreadyCompleted = errors.New("quiz attempt already completed")
+	ErrAnswerNotFound          = errors.New("quiz answer not found")
+
 	// Enrollment errors
-	ErrEnrolled           = errors.New("failed to enroll")
-	ErrFailEnroleValidate = errors.New("enrollment validation failed")
+	ErrEnrolled                   = errors.New("failed to enroll")
+	ErrFailEnroleValidate         = errors.New("enrollment validation failed")
+	ErrNotEnrolled                = errors.New("user not enrolled in course")
+	ErrCreatorCannotUnenroll      = errors.New("creator cannot unenroll from course")
+	ErrCannotEnrollStudentInDraft = errors.New("cannot enroll student in a draft course")
 
 	// Permission errors
 	ErrForbidden           = errors.New("access denied")

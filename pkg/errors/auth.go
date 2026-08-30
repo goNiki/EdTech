@@ -13,4 +13,3 @@ var (
 	ErrInvalidRole           = errors.New("invalid role")
 	ErrCannotModifySelf      = errors.New("cannot modify own role or status")
 )
-

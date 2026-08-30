@@ -2,9 +2,9 @@
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
     
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    username VARCHAR(100) UNIQUE NOT NULL,
+    username VARCHAR(100) NOT NULL,
     
     first_name VARCHAR(100),
     last_name VARCHAR(100),
@@ -23,8 +23,8 @@ CREATE TABLE users (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_users_email ON users(email) WHERE deleted_at IS NULL;
-CREATE INDEX idx_users_username ON users(username) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX idx_users_email ON users(email) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX idx_users_username ON users(username) WHERE deleted_at IS NULL;
 CREATE INDEX idx_users_role ON users(role) WHERE deleted_at IS NULL;
 
 -- +goose Down

@@ -82,4 +82,3 @@ func ValidateEnrolle(enrol dto.EnrollRequest) error {
 
 	return nil
 }
-

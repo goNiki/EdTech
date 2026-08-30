@@ -7,7 +7,7 @@ CREATE TABLE courses (
     id BIGSERIAL PRIMARY KEY,
     
     title TEXT NOT NULL,
-    slug TEXT NOT NULL UNIQUE,
+    slug TEXT NOT NULL,
     short_description TEXT,
     description TEXT,
     
