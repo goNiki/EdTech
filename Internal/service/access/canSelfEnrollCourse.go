@@ -7,15 +7,7 @@ import (
 
 func (s *service) CanSelfEnrollCourse(ctx context.Context, course *domain.Course, userID int64) (bool, error) {
 
-	if course.Status != domain.StatusPublished {
-		return false, nil
-	}
-
-	if course.Visibility != domain.VisibilityPublic {
-		return false, nil
-	}
-
-	exists, err := s.enrolledrepo.UserExistCourse(ctx, userID, course.Id)
+	exists, err := s.enrolledrepo.UserExistCourse(ctx, s.db, userID, course.Id)
 	if err != nil {
 		return false, err
 	}

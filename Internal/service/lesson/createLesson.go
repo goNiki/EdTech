@@ -3,11 +3,10 @@ package lesson
 import (
 	"context"
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/logger"
-	"edtech/internal/infrastructure/logger/sl"
 	errorsAPP "edtech/pkg/errors"
 	"edtech/pkg/utils"
 	"errors"
+	"fmt"
 )
 
 //ограничения:
@@ -18,36 +17,30 @@ import (
 
 func (s *service) CreateLesson(ctx context.Context, lesson *domain.Lesson) (int64, error) {
 
-	const op = "usecase.course.createlesson"
-
-	log := logger.GetLogger(ctx, op)
+	const op = "service.lesson.CreateLesson"
 
 	if err := utils.ValidateLesson(int64(lesson.CourseID), lesson.Title, lesson.Description); err != nil {
-		log.Error("validate Error", sl.Error(err))
-		return 0, err
+		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if _, err := s.courserepo.GetCourseByID(ctx, int64(lesson.CourseID)); err != nil {
+	if _, err := s.courserepo.GetCourseByID(ctx, s.db, int64(lesson.CourseID)); err != nil {
 		if errors.Is(err, errorsAPP.ErrNotFoundCourse) {
-			log.Error("%w", sl.Error(err))
-			return 0, errorsAPP.ErrNotFoundCourse
+			return 0, fmt.Errorf("%s: %w", op, err)
 		}
+		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	position, err := s.lessonrepo.GetMaxPositionByCourseID(ctx, int64(lesson.CourseID))
+	position, err := s.lessonrepo.GetMaxPositionByCourseID(ctx, s.db, int64(lesson.CourseID))
 	if err != nil {
-		log.Error("internal database error: ", sl.Error(err))
-		return 0, errorsAPP.ErrInternalDB
+		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
 	lesson.Position = position + 1
 
-	err = s.lessonrepo.CreateLesson(ctx, lesson)
+	err = s.lessonrepo.CreateLesson(ctx, s.db, lesson)
 	if err != nil {
-		log.Error("internal database error", sl.Error(err))
-		return 0, errorsAPP.ErrInternalDB
+		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return int64(lesson.ID), nil
-
 }

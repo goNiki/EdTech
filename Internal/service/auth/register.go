@@ -3,46 +3,29 @@ package auth
 import (
 	"context"
 	"edtech/internal/domain"
-	"edtech/internal/dto"
-	"edtech/internal/infrastructure/logger"
-	"edtech/internal/infrastructure/logger/sl"
-	errorsAPP "edtech/pkg/errors"
-
-	"github.com/go-playground/validator/v10"
+	"fmt"
 )
 
-func (s *service) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.RegisterResponse, error) {
+func (s *service) Register(ctx context.Context, input domain.RegisterInput) (*domain.User, error) {
 	const op = "usercase.auth.Register"
-	log := logger.GetLogger(ctx, op)
 
-	validate := validator.New()
-
-	if err := validate.Struct(req); err != nil {
-		log.Error("failed validate fields", sl.Error(err))
-		return nil, errorsAPP.ErrFailValidate
-	}
-
-	PassHash, err := s.hasherManager.Hash(req.Password)
+	passHash, err := s.hasherManager.Hash(input.Password)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	user := domain.User{
-		Email:        req.Email,
-		PasswordHash: PassHash,
-		Username:     req.Username,
-		Role:         domain.Role(req.Role),
+	createUser := domain.CreateUser{
+		Email:        input.Email,
+		PasswordHash: passHash,
+		Username:     input.Username,
+		Role:         input.Role,
 	}
 
-	newUser, err := s.repo.CreateUser(ctx, &user)
+	newUser, err := s.repo.CreateUser(ctx, s.db, createUser)
 	if err != nil {
-		return nil, err
+		// we already handled ErrEmailAlreadyExists and ErrUserNameAlreadyExists in the repo
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	resp := dto.RegisterResponse{
-		ID:    newUser.ID,
-		Email: newUser.Email,
-	}
-
-	return &resp, nil
+	return newUser, nil
 }

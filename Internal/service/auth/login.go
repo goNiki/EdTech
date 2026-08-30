@@ -2,56 +2,76 @@ package auth
 
 import (
 	"context"
-	"edtech/internal/dto"
-	"edtech/internal/infrastructure/logger"
-	"edtech/internal/infrastructure/logger/sl"
+	"edtech/internal/domain"
+	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
+	"fmt"
+	"time"
 )
 
-// TODO подумать над тем где и как правильно делать логирование и проверку ошибок
-func (s *service) Login(ctx context.Context, email, password string) (*dto.LoginResponce, error) {
-	const op = "usercase.auth.Login"
+func (s *service) Login(ctx context.Context, email, password string) (domain.AuthTokens, error) {
+	const op = "service.auth.Login"
 
-	log := logger.GetLogger(ctx, op)
-
-	//TODO сделать обработку ошибок если пользователя нет, если ошибка с БД, и т.д.
-	user, err := s.repo.GetUserByEmail(ctx, email)
+	user, err := s.repo.GetUserByEmail(ctx, s.db, email)
 	if err != nil {
-		log.Error("Ошибка пользователя", sl.Error(err))
-		return nil, err
+		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if !s.hasherManager.CheckPassword(user.PasswordHash, password) {
-		return nil, errorsAPP.ErrInvalidCredentials
+	if err := user.CanLogin(); err != nil {
+		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	accessToken, err := s.jwtManager.GenerateAccessToken(user)
+	ok, err := s.hasherManager.CheckPassword(user.PasswordHash, password)
+
 	if err != nil {
-		log.Error("Error generate AccessToketn ", sl.Error(err))
-		return nil, err
+		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, err)
+	}
+	if !ok {
+		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, errorsAPP.ErrInvalidCredentials)
 	}
 
-	refreshToken, expiresAt, err := s.jwtManager.GenerateRefreshToken(user.ID)
+	now := time.Now()
+	tokens, err := s.generateAndSaveTokens(ctx, s.db, user, now)
 	if err != nil {
-		log.Error("Error generate RefreshToken", sl.Error(err))
-		return nil, err
+		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	hashRefreshToken, err := s.hasherManager.HashRefreshToken(refreshToken)
+	user.Login(now)
+
+	_ = s.repo.UpdateLastLogin(ctx, s.db, user.ID, now)
+
+	return tokens, nil
+
+}
+
+func (s *service) generateAndSaveTokens(ctx context.Context, q db.QueryExecutor, user *domain.User, now time.Time) (domain.AuthTokens, error) {
+	const op = "service.auth.generateAndSaveTokens"
+
+	accessToken, err := s.jwtManager.GenerateAccessToken(user, now)
 	if err != nil {
-		return nil, err
+		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	err = s.refreshRepo.Save(ctx, hashRefreshToken, user.ID, expiresAt)
+	refreshToken, expiresIn, err := s.jwtManager.GenerateRefreshToken(user.ID, now)
 	if err != nil {
-		return nil, err
+		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &dto.LoginResponce{
+	hashRefreshToken := s.hasherManager.HashRefreshToken(refreshToken)
+
+	if err := s.refreshRepo.DeleteAllByUserID(ctx, q, user.ID); err != nil {
+		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := s.refreshRepo.Save(ctx, q, hashRefreshToken, user.ID, expiresIn); err != nil {
+		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return domain.AuthTokens{
 		ID:           user.ID,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		ExpiresID:    s.jwtManager.GetAccessTokenExpiresIn(),
-	}, err
+		ExpiresIn:    s.jwtManager.GetAccessTokenExpiresIn(),
+	}, nil
 
 }

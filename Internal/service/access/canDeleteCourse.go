@@ -16,7 +16,7 @@ func (s *service) CanDeleteCourse(ctx context.Context, course *domain.Course, us
 		return true, nil
 	}
 
-	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, userID, course.Id)
+	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, s.db, userID, course.Id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil
@@ -24,7 +24,7 @@ func (s *service) CanDeleteCourse(ctx context.Context, course *domain.Course, us
 		return false, fmt.Errorf("%w: %v", errorsAPP.ErrInternalDB, err)
 	}
 
-	access, err := s.permissionrepo.HasPermission(ctx, role, domain.ResourceCourse, domain.ActionDelete)
+	access, err := s.permissionrepo.HasPermission(ctx, s.db, role, domain.ResourceCourse, domain.ActionDelete)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil

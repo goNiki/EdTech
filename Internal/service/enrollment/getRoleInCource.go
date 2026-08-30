@@ -1,8 +1,7 @@
-package enrolmend
+package enrollment
 
 import (
 	"context"
-	errorsAPP "edtech/pkg/errors"
 	"errors"
 	"fmt"
 
@@ -10,12 +9,14 @@ import (
 )
 
 func (s *service) GetRoleUserInCource(ctx context.Context, userID, courseID int64) (string, error) {
-	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, userID, courseID)
+	const op = "service.enrollment.GetRoleUserInCource"
+
+	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, s.db, userID, courseID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", nil
 		}
-		return "", fmt.Errorf("%w: %v", errorsAPP.ErrInternalDB, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	return role, nil

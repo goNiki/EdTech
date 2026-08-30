@@ -3,40 +3,30 @@ package lesson
 import (
 	"context"
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/logger"
-	"edtech/internal/infrastructure/logger/sl"
 	errorsAPP "edtech/pkg/errors"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 )
 
 func (s *service) ListLessonsByCourseID(ctx context.Context, slug string) (domain.CourseWithLessons, error) {
+	const op = "service.lesson.ListLessonsByCourseID"
 
-	const op = "usecase.course.listlessonsbycourseid"
-
-	log := logger.GetLogger(ctx, op)
-
-	course, err := s.courserepo.GetCourseBySlug(ctx, slug)
-
+	course, err := s.courserepo.GetCourseBySlug(ctx, s.db, slug)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			log.Error("course is not found", sl.Error(err))
-			return domain.CourseWithLessons{}, errorsAPP.ErrNotFoundCourse
+		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, errorsAPP.ErrCourseNotFound) {
+			return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, errorsAPP.ErrNotFoundCourse)
 		}
-		log.Error("DB error", sl.Error(err))
-		return domain.CourseWithLessons{}, errorsAPP.ErrInternalDB
+		return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	lessons, err := s.lessonrepo.GetLessonsByCourseID(ctx, course.Id)
-
+	lessons, err := s.lessonrepo.GetLessonsByCourseID(ctx, s.db, course.Id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			log.Error("lessons are not found", sl.Error(err))
-			return domain.CourseWithLessons{}, errorsAPP.ErrNotFoundLesson
+			return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, errorsAPP.ErrNotFoundLesson)
 		}
-		log.Error("DB error", sl.Error(err))
-		return domain.CourseWithLessons{}, errorsAPP.ErrInternalDB
+		return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	lessonsList := domain.CourseWithLessons{
