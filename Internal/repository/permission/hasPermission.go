@@ -2,10 +2,11 @@ package permission
 
 import (
 	"context"
+	"edtech/internal/infrastructure/db"
 	"fmt"
 )
 
-func (r *repository) HasPermission(ctx context.Context, roleName string, resource string, action string) (bool, error) {
+func (r *repository) HasPermission(ctx context.Context, q db.QueryExecutor, roleName string, resource string, action string) (bool, error) {
 	const op = "repository.permission.haspermisssio"
 
 	query := `
@@ -21,7 +22,7 @@ func (r *repository) HasPermission(ctx context.Context, roleName string, resourc
 
 	var exists bool
 
-	err := r.Pool.QueryRow(ctx, query, roleName, resource, action).Scan(&exists)
+	err := q.QueryRow(ctx, query, roleName, resource, action).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}

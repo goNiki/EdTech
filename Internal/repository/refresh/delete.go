@@ -41,4 +41,3 @@ func (r *repository) DeleteAllByUserID(ctx context.Context, q db.QueryExecutor, 
 
 	return nil
 }
-

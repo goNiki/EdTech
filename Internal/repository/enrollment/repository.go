@@ -1,4 +1,4 @@
-package enrolled
+package enrollment
 
 import "github.com/jackc/pgx/v5/pgxpool"
 

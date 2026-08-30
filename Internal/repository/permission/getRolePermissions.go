@@ -2,10 +2,11 @@ package permission
 
 import (
 	"context"
+	"edtech/internal/infrastructure/db"
 	"fmt"
 )
 
-func (r *repository) GetRolePermissions(ctx context.Context, rolename string) ([]string, error) {
+func (r *repository) GetRolePermissions(ctx context.Context, q db.QueryExecutor, rolename string) ([]string, error) {
 	const op = "repository.permission.getrolepermissions"
 
 	query := `
@@ -15,7 +16,7 @@ func (r *repository) GetRolePermissions(ctx context.Context, rolename string) ([
 		JOIN permissions ON permissions.id = role_permissions.permission_id
 		WHERE roles.name = $1
 	`
-	rows, err := r.Pool.Query(ctx, query, rolename)
+	rows, err := q.Query(ctx, query, rolename)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

@@ -6,7 +6,9 @@ import (
 )
 
 func LessonToDomain(m *models.Lesson) *domain.Lesson {
-	if m == nil { return nil }
+	if m == nil {
+		return nil
+	}
 	return &domain.Lesson{
 		ID:          m.ID,
 		CourseID:    m.CourseID,
@@ -27,7 +29,9 @@ func LessonToDomain(m *models.Lesson) *domain.Lesson {
 }
 
 func LessonToEntity(d *domain.Lesson) *models.Lesson {
-	if d == nil { return nil }
+	if d == nil {
+		return nil
+	}
 	return &models.Lesson{
 		ID:          d.ID,
 		CourseID:    d.CourseID,

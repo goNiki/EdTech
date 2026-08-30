@@ -24,20 +24,37 @@ type UserRepository interface {
 
 type CourseRepository interface {
 	GetCourseBySlug(ctx context.Context, q db.QueryExecutor, slug string) (*domain.Course, error)
-	CreateCourse(ctx context.Context, q db.QueryExecutor, course *domain.Course) (int64, error)
+	CreateCourse(ctx context.Context, q db.QueryExecutor, course *domain.Course) (*domain.Course, error)
 	GetCourseByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.Course, error)
+	ArchiveCourse(ctx context.Context, q db.QueryExecutor, course *domain.Course) error
 	PublishCourse(ctx context.Context, q db.QueryExecutor, course *domain.Course) error
 	UpdateCourse(ctx context.Context, q db.QueryExecutor, course *domain.Course) error
-	ListPublicCourses(ctx context.Context, q db.QueryExecutor, pageSize int64, offset int64) ([]domain.Course, error)
-	ListEnrolledCoursesAsStudent(ctx context.Context, q db.QueryExecutor, userID int64, pageSize int64, offset int64) ([]domain.Course, error)
-	CountCourse(ctx context.Context, q db.QueryExecutor) (int, error)
+	ListPublicCourses(ctx context.Context, q db.QueryExecutor, pagination domain.Pagination, filter domain.CourseFilter) ([]domain.Course, error)
+	ListEnrolledCourses(ctx context.Context, q db.QueryExecutor, input *domain.InputListMyCourse) ([]domain.Course, error)
+	CountEnrolledCourses(ctx context.Context, q db.QueryExecutor, input *domain.InputListMyCourse) (int64, error)
+	CountCourses(ctx context.Context, q db.QueryExecutor, filter domain.CourseFilter) (int64, error)
 	DeleteCourse(ctx context.Context, q db.QueryExecutor, courseID int64) error
+	ExistingBySlug(ctx context.Context, q db.QueryExecutor, slug string) (bool, error)
+	IncrementEnrolledCount(ctx context.Context, q db.QueryExecutor, courseID int64) error
+	DecrementEnrolledCount(ctx context.Context, q db.QueryExecutor, courseID int64) error
 }
 
 type EnrolledRepository interface {
 	UserExistCourse(ctx context.Context, q db.QueryExecutor, userID, courseid int64) (bool, error)
 	EnrollUserToCourse(ctx context.Context, q db.QueryExecutor, enroll domain.EnrolledInCourse) error
 	GetRoleUserInCourse(ctx context.Context, q db.QueryExecutor, userID, courceID int64) (string, error)
+	UnenrollUser(ctx context.Context, q db.QueryExecutor, userID, courseID int64) error
+	ListCourseStudents(ctx context.Context, q db.QueryExecutor, courseID int64, limit, offset int64) ([]domain.User, int, error)
+	ChangeUserRole(ctx context.Context, q db.QueryExecutor, courseID int64, targetUserID int64, newRole string) error
+}
+
+type SectionRepository interface {
+	CreateSection(ctx context.Context, q db.QueryExecutor, section *domain.Section) (*domain.Section, error)
+	GetSectionByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.Section, error)
+	ListSectionsByCourseID(ctx context.Context, q db.QueryExecutor, courseID int64) ([]domain.Section, error)
+	UpdateSection(ctx context.Context, q db.QueryExecutor, section *domain.Section) error
+	DeleteSection(ctx context.Context, q db.QueryExecutor, sectionID int64) error
+	GetMaxPositionByCourseID(ctx context.Context, q db.QueryExecutor, courseID int64) (int, error)
 }
 
 type LessonRepository interface {
@@ -59,4 +76,35 @@ type RefreshRepository interface {
 type PermissionsRepository interface {
 	HasPermission(ctx context.Context, q db.QueryExecutor, roleName string, resource string, action string) (bool, error)
 	GetRolePermissions(ctx context.Context, q db.QueryExecutor, rolename string) ([]string, error)
+}
+
+type ProgressRepository interface {
+	CreateLessonProgress(ctx context.Context, q db.QueryExecutor, progress *domain.LessonProgress) error
+	GetLessonProgress(ctx context.Context, q db.QueryExecutor, userID, lessonID int64) (*domain.LessonProgress, error)
+	UpdateLessonProgressTime(ctx context.Context, q db.QueryExecutor, userID, lessonID int64, additionalTime int, lastPos int) error
+	UpdateLessonProgressStatus(ctx context.Context, q db.QueryExecutor, userID, lessonID int64, status domain.ProgressStatus) error
+
+	CreateCourseProgress(ctx context.Context, q db.QueryExecutor, progress *domain.CourseProgress) error
+	GetCourseProgress(ctx context.Context, q db.QueryExecutor, userID, courseID int64) (*domain.CourseProgress, error)
+	GetAllLessonProgressByCourse(ctx context.Context, q db.QueryExecutor, userID, courseID int64) ([]domain.LessonProgress, error)
+}
+
+type QuizRepository interface {
+	CreateQuiz(ctx context.Context, q db.QueryExecutor, quiz *domain.Quiz) (*domain.Quiz, error)
+	GetQuizByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.Quiz, error)
+	CreateAttempt(ctx context.Context, q db.QueryExecutor, attempt *domain.QuizAttempt) (*domain.QuizAttempt, error)
+	GetAttemptByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.QuizAttempt, error)
+	UpdateAttempt(ctx context.Context, q db.QueryExecutor, attempt *domain.QuizAttempt) error
+	CountUserAttempts(ctx context.Context, q db.QueryExecutor, userID, quizID int64) (int, error)
+	CountUserAttemptsForUpdate(ctx context.Context, q db.QueryExecutor, userID, quizID int64) (int, error)
+	CreateBatchAnswers(ctx context.Context, q db.QueryExecutor, answers []domain.QuizAttemptAnswer) error
+	ListAttemptsForGrading(ctx context.Context, q db.QueryExecutor, courseID int64, quizID *int64, limit, offset int) ([]domain.QuizAttempt, int64, error)
+	GetAttemptForUpdate(ctx context.Context, q db.QueryExecutor, attemptID int64) (*domain.QuizAttempt, error)
+	UpdateAttemptAnswer(ctx context.Context, q db.QueryExecutor, answerID int64, points int, feedback *string, isCorrect bool) error
+	CountUngradedAnswers(ctx context.Context, q db.QueryExecutor, attemptID int64) (int, error)
+	SumAttemptPoints(ctx context.Context, q db.QueryExecutor, attemptID int64) (int, error)
+	GetAnswerPointsAndCorrectness(ctx context.Context, q db.QueryExecutor, answerID int64) (bool, int, error)
+	UpdateLessonProgressAfterQuiz(ctx context.Context, q db.QueryExecutor, userID, lessonID int64, score int) error
+	GetQuizTotalPoints(ctx context.Context, q db.QueryExecutor, quizID int64) (int, error)
+	AcquireAdvisoryLock(ctx context.Context, q db.QueryExecutor, userID int64, quizID int64) error
 }

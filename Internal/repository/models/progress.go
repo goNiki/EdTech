@@ -6,6 +6,7 @@ type LessonProgress struct {
 	ID          int64
 	UserID      int64
 	LessonID    int64
+	CourseID    int64
 	Status      string
 	Score       *int
 	TimeSpent   int
@@ -19,10 +20,12 @@ type CourseProgress struct {
 	ID             int64
 	UserID         int64
 	CourseID       int64
-	Status         string
-	Percent        int
 	CompletedLess  int
+	TotalLessons   int
+	Percent        int
+	TotalWatchTime int
+	AverageScore   *float64
 	StartedAt      *time.Time
-	CompletedAt    *time.Time
 	LastAccessedAt time.Time
+	CompletedAt    *time.Time
 }

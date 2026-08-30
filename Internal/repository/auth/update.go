@@ -149,4 +149,3 @@ func (r *repository) SetBannedStatus(ctx context.Context, q db.QueryExecutor, us
 
 	return nil
 }
-

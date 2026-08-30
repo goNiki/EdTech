@@ -3,21 +3,23 @@ package course
 import (
 	"context"
 	"fmt"
+
+	"edtech/internal/domain"
+	"edtech/internal/infrastructure/db"
+	errorsAPP "edtech/pkg/errors"
 )
 
-func (r *repository) CountCourse(ctx context.Context) (int, error) {
+func (r *repository) CountCourses(ctx context.Context, q db.QueryExecutor, filter domain.CourseFilter) (int64, error) {
+	const op = "repository.course.CountCourses"
 
-	const op = "repository.course.countcourse"
+	whereClause, args := buildCourseFilterQuery(filter)
+	query := "SELECT COUNT(*) FROM courses " + whereClause
 
-	query := `SELECT count(*) FROM courses WHERE status = 'published', visibility = 'public'`
-
-	var total int
-
-	err := r.Pool.QueryRow(ctx, query).Scan(&total)
+	var total int64
+	err := q.QueryRow(ctx, query, args...).Scan(&total)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
+		return 0, fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
 	}
 
 	return total, nil
-
 }

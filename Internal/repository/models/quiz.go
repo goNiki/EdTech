@@ -33,13 +33,14 @@ type QuizAnswer struct {
 }
 
 type QuizAttempt struct {
-	ID          int64
-	QuizID      int64
-	UserID      int64
-	Score       int
-	Passed      bool
-	StartedAt   time.Time
-	CompletedAt *time.Time
+	ID           int64
+	QuizID       int64
+	UserID       int64
+	Score        int
+	Passed       bool
+	NeedsGrading bool
+	StartedAt    time.Time
+	CompletedAt  *time.Time
 }
 
 type QuizAttemptAnswer struct {
@@ -50,4 +51,5 @@ type QuizAttemptAnswer struct {
 	TextValue  string
 	IsCorrect  *bool
 	Points     int
+	Feedback   *string
 }

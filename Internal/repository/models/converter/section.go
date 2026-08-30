@@ -6,7 +6,9 @@ import (
 )
 
 func SectionToDomain(m *models.Section) *domain.Section {
-	if m == nil { return nil }
+	if m == nil {
+		return nil
+	}
 	return &domain.Section{
 		ID:          m.ID,
 		CourseID:    m.CourseID,
@@ -20,7 +22,9 @@ func SectionToDomain(m *models.Section) *domain.Section {
 }
 
 func SectionToEntity(d *domain.Section) *models.Section {
-	if d == nil { return nil }
+	if d == nil {
+		return nil
+	}
 	return &models.Section{
 		ID:          d.ID,
 		CourseID:    d.CourseID,

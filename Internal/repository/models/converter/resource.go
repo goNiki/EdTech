@@ -6,7 +6,9 @@ import (
 )
 
 func ResourceToDomain(m *models.Resource) *domain.Resource {
-	if m == nil { return nil }
+	if m == nil {
+		return nil
+	}
 	return &domain.Resource{
 		ID:            m.ID,
 		LessonID:      m.LessonID,
@@ -27,7 +29,9 @@ func ResourceToDomain(m *models.Resource) *domain.Resource {
 }
 
 func ResourceToEntity(d *domain.Resource) *models.Resource {
-	if d == nil { return nil }
+	if d == nil {
+		return nil
+	}
 	return &models.Resource{
 		ID:            d.ID,
 		LessonID:      d.LessonID,

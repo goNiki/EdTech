@@ -5,7 +5,10 @@ import (
 	"edtech/internal/domain"
 	"edtech/internal/infrastructure/db"
 	repoconverter "edtech/internal/repository/models/converter"
+	errorsAPP "edtech/pkg/errors"
+	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func (r *repository) CreateUser(ctx context.Context, q db.QueryExecutor, createUser domain.CreateUser) (*domain.User, error) {
@@ -17,25 +20,25 @@ func (r *repository) CreateUser(ctx context.Context, q db.QueryExecutor, createU
 			email, 
 			password_hash, 
 			username,
-			role,  
-			) VALUES ($1, $2, $3, $4) 
-			RETURNING 
-				id, 
-				email, 
-				password_hash, 
-				username, 
-				first_name, 
-				last_name, 
-				avatar_url, 
-				bio, 
-				role, 
-				email_verified, 
-				is_active, 
-				is_banned, 
-				last_login_at, 
-				created_at, 
-				updated_at, 
-				deleted_at
+			role
+		) VALUES ($1, $2, $3, $4) 
+		RETURNING 
+			id, 
+			email, 
+			password_hash, 
+			username, 
+			first_name, 
+			last_name, 
+			avatar_url, 
+			bio, 
+			role, 
+			email_verified, 
+			is_active, 
+			is_banned, 
+			last_login_at, 
+			created_at, 
+			updated_at, 
+			deleted_at
 	`
 
 	user := repoconverter.CreateUserToEntity(createUser)
@@ -65,6 +68,13 @@ func (r *repository) CreateUser(ctx context.Context, q db.QueryExecutor, createU
 	)
 
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			if pgErr.ConstraintName == "idx_users_email" {
+				return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrEmailAlreadyExists)
+			}
+			return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrUserNameAlreadyExists)
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
