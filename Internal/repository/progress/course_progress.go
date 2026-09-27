@@ -72,6 +72,29 @@ func (r *repository) UpsertCourseProgress(ctx context.Context, q db.QueryExecuto
 	return nil
 }
 
+func (r *repository) UpsertCourseProgressWithScore(ctx context.Context, q db.QueryExecutor, userID, courseID int64, completedLessons, totalLessons int, percentage float64, averageScore float64) error {
+	const op = "repository.progress.UpsertCourseProgressWithScore"
+
+	query := `
+		INSERT INTO course_progress (user_id, course_id, completed_lessons, total_lessons, progress_percentage, average_score, started_at, last_accessed_at, completed_at)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), CASE WHEN $5 >= 100 THEN NOW() ELSE NULL END)
+		ON CONFLICT (user_id, course_id) DO UPDATE
+		SET completed_lessons = EXCLUDED.completed_lessons,
+		    total_lessons = EXCLUDED.total_lessons,
+		    progress_percentage = EXCLUDED.progress_percentage,
+		    average_score = EXCLUDED.average_score,
+		    last_accessed_at = NOW(),
+		    completed_at = CASE WHEN EXCLUDED.progress_percentage >= 100 AND course_progress.completed_at IS NULL THEN NOW() ELSE course_progress.completed_at END
+	`
+
+	_, err := q.Exec(ctx, query, userID, courseID, completedLessons, totalLessons, percentage, averageScore)
+	if err != nil {
+		return fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
+	}
+
+	return nil
+}
+
 func (r *repository) GetCourseProgress(ctx context.Context, q db.QueryExecutor, userID, courseID int64) (*domain.CourseProgress, error) {
 	const op = "repository.progress.GetCourseProgress"
 

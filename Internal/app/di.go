@@ -323,7 +323,7 @@ func (d *diContainer) EnrolledSvc() service.EnrolledServices {
 
 func (d *diContainer) ProgressSvc() service.ProgressServices {
 	if d.progressSvc == nil {
-		d.progressSvc = progressService.NewProgressService(d.ProgRepo(), d.LessonRepo(), d.TxManager(), d.DB().Pool)
+		d.progressSvc = progressService.NewProgressService(d.ProgRepo(), d.LessonRepo(), d.QuizRepo(), d.TxManager(), d.DB().Pool)
 	}
 	return d.progressSvc
 }

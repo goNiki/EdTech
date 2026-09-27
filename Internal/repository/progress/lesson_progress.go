@@ -140,3 +140,25 @@ func (r *repository) UpdateLessonProgressStatus(ctx context.Context, q db.QueryE
 
 	return nil
 }
+
+func (r *repository) UpdateLessonProgressScore(ctx context.Context, q db.QueryExecutor, userID, lessonID int64, score int) error {
+	const op = "repository.progress.UpdateLessonProgressScore"
+
+	query := `
+		UPDATE lesson_progress 
+		SET score = $1, 
+		    last_accessed_at = NOW() 
+		WHERE user_id = $2 AND lesson_id = $3
+	`
+
+	tag, err := q.Exec(ctx, query, score, userID, lessonID)
+	if err != nil {
+		return fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("%s: %w", op, errorsAPP.ErrLessonProgressNotFound)
+	}
+
+	return nil
+}

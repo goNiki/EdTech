@@ -94,7 +94,11 @@ func (s *service) TeacherEnrollCourse(ctx context.Context, req domain.TeacherEnr
 		Role:     role,
 	}
 
-	return s.executeEnrollmentTransaction(ctx, enroll)
+	if err := s.executeEnrollmentTransaction(ctx, enroll); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }
 
 func (s *service) executeEnrollmentTransaction(ctx context.Context, enroll domain.EnrolledInCourse) error {
