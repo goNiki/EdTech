@@ -15,15 +15,21 @@ func SectionToDTO(d *domain.Section) dto.Section {
 		Title:       d.Title,
 		Description: d.Description,
 		Position:    d.Position,
+		Status:      d.Status,
 		CreatedAt:   d.CreatedAt,
 		UpdatedAt:   d.UpdatedAt,
 	}
 }
 
 func CreateSectionRequestToDomain(req dto.CreateSectionRequest) domain.Section {
+	status := req.Status
+	if status == "" {
+		status = domain.StatusDraft
+	}
 	return domain.Section{
 		CourseID:    req.CourseID,
 		Title:       req.Title,
 		Description: req.Description,
+		Status:      status,
 	}
 }

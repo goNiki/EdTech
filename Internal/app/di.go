@@ -12,14 +12,19 @@ import (
 	"edtech/internal/infrastructure/logger"
 	"edtech/internal/infrastructure/txmanager"
 
+	analyticsHandler "edtech/internal/interfaces/handlers/analytics"
 	authHandler "edtech/internal/interfaces/handlers/auth"
 	courseHandler "edtech/internal/interfaces/handlers/courses"
+	enrollmentHandler "edtech/internal/interfaces/handlers/enrollment"
+	lessonHandler "edtech/internal/interfaces/handlers/lesson"
 	progressHandler "edtech/internal/interfaces/handlers/progress"
 	quizHandler "edtech/internal/interfaces/handlers/quiz"
+	sectionHandler "edtech/internal/interfaces/handlers/section"
 	mwauth "edtech/internal/interfaces/middleware/auth"
 	mwlogger "edtech/internal/interfaces/middleware/logger"
 
 	"edtech/internal/repository"
+	analyticsRepo "edtech/internal/repository/analytics"
 	authRepo "edtech/internal/repository/auth"
 	courseRepo "edtech/internal/repository/course"
 	enrolledRepo "edtech/internal/repository/enrollment"
@@ -32,15 +37,18 @@ import (
 
 	"edtech/internal/service"
 	accessService "edtech/internal/service/access"
+	analyticsService "edtech/internal/service/analytics"
 	authService "edtech/internal/service/auth"
 	courseService "edtech/internal/service/course"
 	enrolledService "edtech/internal/service/enrollment"
 	lessonService "edtech/internal/service/lesson"
 	progressService "edtech/internal/service/progress"
 	quizService "edtech/internal/service/quiz"
+	sectionService "edtech/internal/service/section"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-playground/validator/v10"
 )
 
 const configPath = ".env"
@@ -65,30 +73,37 @@ type diContainer struct {
 	router http.Handler
 
 	// handlers
-	authHdl     *authHandler.AuthHandler
-	courseHdl   *courseHandler.CourseHandler
-	progressHdl *progressHandler.ProgressHandler
-	quizHdl     *quizHandler.QuizHandler
+	authHdl       *authHandler.AuthHandler
+	courseHdl     *courseHandler.CourseHandler
+	lessonHdl     *lessonHandler.LessonHandler
+	sectionHdl    *sectionHandler.SectionHandler
+	progressHdl   *progressHandler.ProgressHandler
+	quizHdl       *quizHandler.QuizHandler
+	enrollmentHdl *enrollmentHandler.EnrollmentHandler
+	analyticsHdl  *analyticsHandler.AnalyticsHandler
 
 	// services
-	accessSvc   service.AccessService
-	authSvc     service.AuthService
-	courseSvc   service.CourseServices
-	enrolledSvc service.EnrolledServices
-	lessonSvc   service.LessonServices
-	progressSvc service.ProgressServices
-	quizSvc     service.QuizServices
+	accessSvc    service.AccessService
+	authSvc      service.AuthService
+	courseSvc    service.CourseServices
+	enrolledSvc  service.EnrolledServices
+	lessonSvc    service.LessonServices
+	sectionSvc   service.SectionServices
+	progressSvc  service.ProgressServices
+	quizSvc      service.QuizServices
+	analyticsSvc service.AnalyticsServices
 
 	// repositories
-	userRepo     repository.UserRepository
-	refreshRepo  repository.RefreshRepository
-	courseRepo   repository.CourseRepository
-	sectionRepo  repository.SectionRepository
-	lessonRepo   repository.LessonRepository
-	enrolledRepo repository.EnrolledRepository
-	permRepo     repository.PermissionsRepository
-	progRepo     repository.ProgressRepository
-	quizRepo     repository.QuizRepository
+	userRepo      repository.UserRepository
+	refreshRepo   repository.RefreshRepository
+	courseRepo    repository.CourseRepository
+	sectionRepo   repository.SectionRepository
+	lessonRepo    repository.LessonRepository
+	enrolledRepo  repository.EnrolledRepository
+	permRepo      repository.PermissionsRepository
+	progRepo      repository.ProgressRepository
+	quizRepo      repository.QuizRepository
+	analyticsRepo repository.AnalyticsRepository
 }
 
 func (d *diContainer) initConfig() {
@@ -123,7 +138,7 @@ func (d *diContainer) ServerCfg() config.Server {
 	return d.serverCfg
 }
 
-func (d *diContainer) JWTCfg() config.JWT {
+func (d *diContainer) JwtCfg() config.JWT {
 	d.initConfig()
 	return d.jwtCfg
 }
@@ -137,12 +152,12 @@ func (d *diContainer) Logger() *slog.Logger {
 
 func (d *diContainer) DB() *db.Postgres {
 	if d.db == nil {
-		database, err := db.New(d.PostgresCfg())
+		var err error
+		d.db, err = db.New(d.PostgresCfg())
 		if err != nil {
-			d.Logger().Error("failed to connect to postgres: " + err.Error())
+			slog.Error("failed to create database connection: ", "error", err)
 			os.Exit(1)
 		}
-		d.db = database
 	}
 	return d.db
 }
@@ -163,9 +178,15 @@ func (d *diContainer) Hasher() hasher.HasherManager {
 
 func (d *diContainer) JWTManager() *jwt.JwtManager {
 	if d.jwtManager == nil {
-		d.jwtManager = jwt.NewJwtManager(d.JWTCfg())
+		d.jwtManager = jwt.NewJwtManager(d.JwtCfg())
 	}
 	return d.jwtManager
+}
+
+func (d *diContainer) Close() {
+	if d.db != nil && d.db.Pool != nil {
+		d.db.Pool.Close()
+	}
 }
 
 // Middleware
@@ -249,7 +270,21 @@ func (d *diContainer) QuizRepo() repository.QuizRepository {
 	return d.quizRepo
 }
 
+func (d *diContainer) AnalyticsRepo() repository.AnalyticsRepository {
+	if d.analyticsRepo == nil {
+		d.analyticsRepo = analyticsRepo.NewAnalyticsRepo(d.DB().Pool)
+	}
+	return d.analyticsRepo
+}
+
 // Services
+
+func (d *diContainer) SectionSvc() service.SectionServices {
+	if d.sectionSvc == nil {
+		d.sectionSvc = sectionService.NewSectionService(d.SectionRepo(), d.LessonRepo(), d.TxManager())
+	}
+	return d.sectionSvc
+}
 
 func (d *diContainer) AccessSvc() service.AccessService {
 	if d.accessSvc == nil {
@@ -300,7 +335,28 @@ func (d *diContainer) QuizSvc() service.QuizServices {
 	return d.quizSvc
 }
 
+func (d *diContainer) AnalyticsSvc() service.AnalyticsServices {
+	if d.analyticsSvc == nil {
+		d.analyticsSvc = analyticsService.NewAnalyticsService(d.AnalyticsRepo(), d.CourseRepo(), d.AccessSvc(), d.TxManager(), d.DB().Pool)
+	}
+	return d.analyticsSvc
+}
+
 // Handlers
+
+func (d *diContainer) LessonHdl() *lessonHandler.LessonHandler {
+	if d.lessonHdl == nil {
+		d.lessonHdl = lessonHandler.NewLessonHandler(d.LessonSvc(), d.Logger(), validator.New())
+	}
+	return d.lessonHdl
+}
+
+func (d *diContainer) SectionHdl() *sectionHandler.SectionHandler {
+	if d.sectionHdl == nil {
+		d.sectionHdl = sectionHandler.NewSectionHandler(d.SectionSvc(), d.Logger(), validator.New())
+	}
+	return d.sectionHdl
+}
 
 func (d *diContainer) AuthHdl() *authHandler.AuthHandler {
 	if d.authHdl == nil {
@@ -330,11 +386,44 @@ func (d *diContainer) QuizHdl() *quizHandler.QuizHandler {
 	return d.quizHdl
 }
 
+func (d *diContainer) EnrollmentHdl() *enrollmentHandler.EnrollmentHandler {
+	if d.enrollmentHdl == nil {
+		d.enrollmentHdl = enrollmentHandler.NewEnrollmentHandler(d.EnrolledSvc(), d.MwAuth())
+	}
+	return d.enrollmentHdl
+}
+
+func (d *diContainer) AnalyticsHdl() *analyticsHandler.AnalyticsHandler {
+	if d.analyticsHdl == nil {
+		d.analyticsHdl = analyticsHandler.NewAnalyticsHandler(d.AnalyticsSvc(), d.MwAuth())
+	}
+	return d.analyticsHdl
+}
+
 // Router
 
 func (d *diContainer) Router() http.Handler {
 	if d.router == nil {
 		r := chi.NewRouter()
+
+		// CORS middleware
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token")
+				w.Header().Set("Access-Control-Expose-Headers", "Link")
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+				w.Header().Set("Access-Control-Max-Age", "300")
+
+				if req.Method == "OPTIONS" {
+					w.WriteHeader(http.StatusOK)
+					return
+				}
+
+				next.ServeHTTP(w, req)
+			})
+		})
 
 		r.Use(middleware.RequestID)
 		r.Use(d.MwLog())
@@ -359,10 +448,13 @@ func (d *diContainer) Router() http.Handler {
 
 		// Courses
 		r.Route("/api/v1/courses", func(r chi.Router) {
-			r.Get("/", d.CourseHdl().ListPublicCourses)
-			r.Get("/{courseid}", d.CourseHdl().GetCourseByID)
-			r.Get("/slug/{slug}", d.CourseHdl().GetCourseBySlug)
-			r.Get("/{courseid}/structure", d.CourseHdl().GetCourseStructure)
+			r.Group(func(r chi.Router) {
+				r.Use(d.MwAuth().OptionalJWTMiddleware)
+				r.Get("/", d.CourseHdl().ListPublicCourses)
+				r.Get("/{courseid}", d.CourseHdl().GetCourseByID)
+				r.Get("/slug/{slug}", d.CourseHdl().GetCourseBySlug)
+				r.Get("/{courseid}/structure", d.CourseHdl().GetCourseStructure)
+			})
 
 			r.Group(func(r chi.Router) {
 				r.Use(d.MwAuth().JWTMiddleware)
@@ -373,16 +465,48 @@ func (d *diContainer) Router() http.Handler {
 				r.Delete("/{courseid}", d.CourseHdl().DeleteCourse)
 				r.Post("/{courseid}/publish", d.CourseHdl().PublishCourse)
 				r.Post("/{courseid}/archive", d.CourseHdl().ArchiveCourse)
+				r.Patch("/{courseid}/status", d.CourseHdl().UpdateCourseStatus)
+				r.Put("/{courseid}/reorder-sections", d.CourseHdl().ReorderSections)
 
+				// Enrollment
+				r.Post("/{courseid}/enroll", d.EnrollmentHdl().SelfEnroll)
+				r.Delete("/{courseid}/enroll", d.EnrollmentHdl().UnenrollSelf)
+				r.Get("/{courseid}/students", d.EnrollmentHdl().ListCourseStudents)
+				r.Post("/{courseid}/students", d.EnrollmentHdl().TeacherEnroll)
+				r.Delete("/{courseid}/students/{userid}", d.EnrollmentHdl().TeacherUnenroll)
+
+				// Analytics & Grading
+				r.Get("/{courseid}/analytics", d.AnalyticsHdl().GetCourseAnalytics)
+				r.Get("/{courseid}/students/{userid}/drilldown", d.AnalyticsHdl().GetStudentDrilldown)
+				r.Get("/{courseid}/grading/pending", d.AnalyticsHdl().ListPendingHomeworks)
+
+				// Progress & Quizzes
 				r.Get("/{course_id}/progress", d.ProgressHdl().GetCourseProgress)
 				r.Get("/{course_id}/progress/lessons", d.ProgressHdl().GetAllLessonProgress)
 				r.Get("/{course_id}/quizzes/attempts", d.QuizHdl().ListAttemptsForGrading)
 			})
 		})
 
+		// Sections
+		r.Route("/api/v1/sections", func(r chi.Router) {
+			r.Use(d.MwAuth().JWTMiddleware)
+
+			r.Post("/", d.SectionHdl().CreateSection)
+			r.Patch("/{id}", d.SectionHdl().UpdateSection)
+			r.Patch("/{id}/status", d.SectionHdl().UpdateSectionStatus)
+			r.Put("/{id}/reorder-lessons", d.SectionHdl().ReorderLessons)
+			r.Delete("/{id}", d.SectionHdl().DeleteSection)
+		})
+
 		// Lessons
 		r.Route("/api/v1/lessons", func(r chi.Router) {
 			r.Use(d.MwAuth().JWTMiddleware)
+
+			r.Post("/", d.LessonHdl().CreateLesson)
+			r.Get("/{id}", d.LessonHdl().GetLesson)
+			r.Patch("/{id}", d.LessonHdl().UpdateLesson)
+			r.Patch("/{id}/status", d.LessonHdl().UpdateLessonStatus)
+			r.Delete("/{id}", d.LessonHdl().DeleteLesson)
 
 			r.Post("/{lesson_id}/start", d.ProgressHdl().StartLesson)
 			r.Patch("/{lesson_id}/progress", d.ProgressHdl().UpdateLessonProgress)
@@ -411,10 +535,4 @@ func (d *diContainer) Router() http.Handler {
 		d.router = r
 	}
 	return d.router
-}
-
-func (d *diContainer) Close() {
-	if d.db != nil {
-		d.db.Close()
-	}
 }

@@ -38,6 +38,8 @@ func CourseProgressToDTO(d *domain.CourseProgress) dto.CourseProgress {
 		Status:         status,
 		Percent:        d.Percent,
 		CompletedLess:  d.CompletedLess,
+		TotalLessons:   d.TotalLessons,
+		AverageScore:   d.AverageScore,
 		StartedAt:      d.StartedAt,
 		CompletedAt:    d.CompletedAt,
 		LastAccessedAt: d.LastAccessedAt,

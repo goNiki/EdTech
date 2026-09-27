@@ -24,10 +24,6 @@ func (h *CourseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID := h.authMiddleware.GetUserID(r.Context())
-	if userID == 0 {
-		response.HandleError(w, r, log, errorsAPP.ErrUnauthorized, op)
-		return
-	}
 
 	course, err := h.courseService.GetCourseByID(r.Context(), int64(courseIDInt))
 	if err != nil {
@@ -84,10 +80,6 @@ func (h *CourseHandler) GetCourseBySlug(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	userID := h.authMiddleware.GetUserID(r.Context())
-	if userID == 0 {
-		response.HandleError(w, r, log, errorsAPP.ErrUnauthorized, op)
-		return
-	}
 
 	canView, err := h.accessService.CanViewCourse(r.Context(), course, userID)
 	if err != nil {

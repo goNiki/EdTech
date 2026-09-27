@@ -21,6 +21,7 @@ func LessonToDTO(d *domain.Lesson) dto.Lesson {
 		Position:    d.Position,
 		Duration:    d.Duration,
 		IsFree:      d.IsFree,
+		Status:      d.Status,
 		CreatedAt:   d.CreatedAt,
 		UpdatedAt:   d.UpdatedAt,
 		PublishedAt: d.PublishedAt,
@@ -28,6 +29,10 @@ func LessonToDTO(d *domain.Lesson) dto.Lesson {
 }
 
 func CreateLessonRequestToDomain(req dto.CreateLessonRequest) domain.Lesson {
+	status := req.Status
+	if status == "" {
+		status = domain.StatusDraft
+	}
 	return domain.Lesson{
 		CourseID:    req.CourseID,
 		SectionID:   req.SectionID,
@@ -38,5 +43,6 @@ func CreateLessonRequestToDomain(req dto.CreateLessonRequest) domain.Lesson {
 		Type:        req.Type,
 		Duration:    req.Duration,
 		IsFree:      req.IsFree,
+		Status:      status,
 	}
 }

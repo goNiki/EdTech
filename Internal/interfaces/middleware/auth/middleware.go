@@ -27,6 +27,7 @@ type AuthMiddleware interface {
 	GetUserID(ctx context.Context) int64
 	GetUserRole(ctx context.Context) string
 	JWTMiddleware(next http.Handler) http.Handler
+	OptionalJWTMiddleware(next http.Handler) http.Handler
 	RequireRole(allowedRoles []string) func(http.Handler) http.Handler
 }
 
