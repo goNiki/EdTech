@@ -9,11 +9,15 @@ func QuizToDomain(m *models.Quiz) *domain.Quiz {
 	if m == nil {
 		return nil
 	}
+	var desc string
+	if m.Description != nil {
+		desc = *m.Description
+	}
 	return &domain.Quiz{
 		ID:          m.ID,
 		LessonID:    m.LessonID,
 		Title:       m.Title,
-		Description: m.Description,
+		Description: desc,
 		PassingScor: m.PassingScor,
 		MaxAttempts: m.MaxAttempts,
 		TimeLimit:   m.TimeLimit,
@@ -27,11 +31,15 @@ func QuizToEntity(d *domain.Quiz) *models.Quiz {
 	if d == nil {
 		return nil
 	}
+	var desc *string
+	if d.Description != "" {
+		desc = &d.Description
+	}
 	return &models.Quiz{
 		ID:          d.ID,
 		LessonID:    d.LessonID,
 		Title:       d.Title,
-		Description: d.Description,
+		Description: desc,
 		PassingScor: d.PassingScor,
 		MaxAttempts: d.MaxAttempts,
 		TimeLimit:   d.TimeLimit,
@@ -132,14 +140,18 @@ func QuizAttemptAnswerToDomain(m *models.QuizAttemptAnswer) *domain.QuizAttemptA
 		return nil
 	}
 	return &domain.QuizAttemptAnswer{
-		ID:         m.ID,
-		AttemptID:  m.AttemptID,
-		QuestionID: m.QuestionID,
-		AnswerID:   m.AnswerID,
-		TextValue:  m.TextValue,
-		IsCorrect:  m.IsCorrect,
-		Points:     m.Points,
-		Feedback:   m.Feedback,
+		ID:            m.ID,
+		AttemptID:     m.AttemptID,
+		QuestionID:    m.QuestionID,
+		AnswerID:      m.AnswerID,
+		TextValue:     m.TextValue,
+		IsCorrect:     m.IsCorrect,
+		Points:        m.Points,
+		Feedback:      m.Feedback,
+		AttachmentURL: m.AttachmentURL,
+		GradedBy:      m.GradedBy,
+		GradedAt:      m.GradedAt,
+		CreatedAt:     m.CreatedAt,
 	}
 }
 
@@ -148,13 +160,17 @@ func QuizAttemptAnswerToEntity(d *domain.QuizAttemptAnswer) *models.QuizAttemptA
 		return nil
 	}
 	return &models.QuizAttemptAnswer{
-		ID:         d.ID,
-		AttemptID:  d.AttemptID,
-		QuestionID: d.QuestionID,
-		AnswerID:   d.AnswerID,
-		TextValue:  d.TextValue,
-		IsCorrect:  d.IsCorrect,
-		Points:     d.Points,
-		Feedback:   d.Feedback,
+		ID:            d.ID,
+		AttemptID:     d.AttemptID,
+		QuestionID:    d.QuestionID,
+		AnswerID:      d.AnswerID,
+		TextValue:     d.TextValue,
+		IsCorrect:     d.IsCorrect,
+		Points:        d.Points,
+		Feedback:      d.Feedback,
+		AttachmentURL: d.AttachmentURL,
+		GradedBy:      d.GradedBy,
+		GradedAt:      d.GradedAt,
+		CreatedAt:     d.CreatedAt,
 	}
 }

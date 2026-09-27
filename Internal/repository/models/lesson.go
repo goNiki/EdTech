@@ -14,6 +14,7 @@ type Lesson struct {
 	Position    int64
 	Duration    *int
 	IsFree      bool
+	Status      string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	PublishedAt *time.Time

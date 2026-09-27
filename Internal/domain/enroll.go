@@ -6,8 +6,9 @@ type SelfEnrollRequest struct {
 }
 
 type TeacherEnrollRequest struct {
-	TeacherID   int64
-	TargetEmail string
-	CourseID    int64
-	Role        string
+	TeacherID    int64
+	CourseID     int64
+	Role         string
+	TargetEmail  string
+	TargetUserID *int64
 }

@@ -88,12 +88,16 @@ func (a *QuizAttempt) CalculateScore(correctPoints, totalQuestions, passingScore
 }
 
 type QuizAttemptAnswer struct {
-	ID         int64
-	AttemptID  int64
-	QuestionID int64
-	AnswerID   *int64
-	TextValue  string
-	IsCorrect  *bool
-	Points     int
-	Feedback   *string
+	ID            int64
+	AttemptID     int64
+	QuestionID    int64
+	AnswerID      *int64
+	TextValue     string
+	IsCorrect     *bool
+	Points        int
+	Feedback      *string
+	AttachmentURL *string
+	GradedBy      *int64
+	GradedAt      *time.Time
+	CreatedAt     time.Time
 }

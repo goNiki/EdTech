@@ -8,6 +8,7 @@ type Section struct {
 	Title       string
 	Description string
 	Position    int
+	Status      string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	DeletedAt   *time.Time

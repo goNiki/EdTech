@@ -67,11 +67,6 @@ func (c *Course) CanPublish() error {
 	if c.Status == StatusPublished {
 		return errorsAPP.ErrCourseAlreadyPublished
 	}
-
-	if c.TotalLessons < 1 {
-		return errorsAPP.ErrCannotPublishEmptyCourse
-	}
-
 	return nil
 }
 

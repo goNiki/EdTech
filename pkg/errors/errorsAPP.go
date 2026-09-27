@@ -21,10 +21,18 @@ var (
 	ErrEmptySlug                = errors.New("slug cannot be empty")
 	ErrInvalidSlug              = errors.New("invalid slug format")
 
+	// Section errors
+	ErrSectionNotFound          = errors.New("section not found")
+	ErrSectionAlreadyPublished  = errors.New("section already published")
+	ErrSectionAlreadyArchived   = errors.New("section already archived")
+
 	// Lesson errors
-	ErrNotFoundLesson   = errors.New("lesson not found")
-	ErrLessonValidation = errors.New("lesson validation failed")
-	ErrNothingToUpdate  = errors.New("nothing to update")
+	ErrLessonNotFound           = errors.New("lesson not found")
+	ErrNotFoundLesson           = ErrLessonNotFound
+	ErrLessonAlreadyPublished   = errors.New("lesson already published")
+	ErrLessonAlreadyArchived    = errors.New("lesson already archived")
+	ErrLessonValidation         = errors.New("lesson validation failed")
+	ErrNothingToUpdate          = errors.New("nothing to update")
 
 	// Progress errors
 	ErrProgressNotFound       = errors.New("progress not found")

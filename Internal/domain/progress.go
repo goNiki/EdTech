@@ -43,3 +43,9 @@ type UpdateProgressInput struct {
 	TimeSpent    int            `json:"time_spent"`
 	LastPosition int            `json:"last_position"`
 }
+
+type EssaySubmission struct {
+	QuestionText string
+	AnswerText   string
+	MaxPoints    int
+}

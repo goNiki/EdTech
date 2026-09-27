@@ -6,7 +6,7 @@ type Quiz struct {
 	ID          int64
 	LessonID    int64
 	Title       string
-	Description string
+	Description *string
 	PassingScor int
 	MaxAttempts *int
 	TimeLimit   *int
@@ -44,12 +44,16 @@ type QuizAttempt struct {
 }
 
 type QuizAttemptAnswer struct {
-	ID         int64
-	AttemptID  int64
-	QuestionID int64
-	AnswerID   *int64
-	TextValue  string
-	IsCorrect  *bool
-	Points     int
-	Feedback   *string
+	ID            int64
+	AttemptID     int64
+	QuestionID    int64
+	AnswerID      *int64
+	TextValue     string
+	IsCorrect     *bool
+	Points        int
+	Feedback      *string
+	AttachmentURL *string
+	GradedBy      *int64
+	GradedAt      *time.Time
+	CreatedAt     time.Time
 }
