@@ -11,18 +11,19 @@ func (r *repository) UserExistCourse(ctx context.Context, q db.QueryExecutor, us
 	const op = "repository.enrolled.userexistcourse"
 
 	query := `
-		SELECT 1 
-		FROM users_courses 
-		WHERE user_id = $1 AND course_id = $2 
-		LIMIT 1
+		SELECT EXISTS(
+			SELECT 1 
+			FROM users_courses 
+			WHERE user_id = $1 AND course_id = $2
+		)
 	`
 
-	var exist int
+	var exists bool
 
-	err := q.QueryRow(ctx, query, userID, courseid).Scan(&exist)
+	err := q.QueryRow(ctx, query, userID, courseid).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return true, nil
+	return exists, nil
 }

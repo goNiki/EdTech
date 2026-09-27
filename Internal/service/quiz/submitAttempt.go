@@ -122,7 +122,7 @@ func (s *service) finalizeAttemptScore(ctx context.Context, tx db.QueryExecutor,
 	attempt.CalculateScore(correctPoints, maxPoints, quiz.PassingScor)
 
 	if attempt.Passed {
-		_ = s.progressService.CompleteLesson(ctx, attempt.UserID, quiz.LessonID)
+		_ = s.progressService.CompleteLesson(ctx, attempt.UserID, quiz.LessonID, &attempt.Score, nil)
 		_ = s.quizRepo.UpdateLessonProgressAfterQuiz(ctx, tx, attempt.UserID, quiz.LessonID, attempt.Score)
 	}
 

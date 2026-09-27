@@ -28,6 +28,7 @@ type CourseRepository interface {
 	GetCourseByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.Course, error)
 	ArchiveCourse(ctx context.Context, q db.QueryExecutor, course *domain.Course) error
 	PublishCourse(ctx context.Context, q db.QueryExecutor, course *domain.Course) error
+	UpdateCourseStatus(ctx context.Context, q db.QueryExecutor, courseID int64, status string) error
 	UpdateCourse(ctx context.Context, q db.QueryExecutor, course *domain.Course) error
 	ListPublicCourses(ctx context.Context, q db.QueryExecutor, pagination domain.Pagination, filter domain.CourseFilter) ([]domain.Course, error)
 	ListEnrolledCourses(ctx context.Context, q db.QueryExecutor, input *domain.InputListMyCourse) ([]domain.Course, error)
@@ -45,6 +46,7 @@ type EnrolledRepository interface {
 	GetRoleUserInCourse(ctx context.Context, q db.QueryExecutor, userID, courceID int64) (string, error)
 	UnenrollUser(ctx context.Context, q db.QueryExecutor, userID, courseID int64) error
 	ListCourseStudents(ctx context.Context, q db.QueryExecutor, courseID int64, limit, offset int64) ([]domain.User, int, error)
+	ListCourseStudentsWithProgress(ctx context.Context, q db.QueryExecutor, courseID int64, limit, offset int64) ([]domain.CourseStudentItem, int64, error)
 	ChangeUserRole(ctx context.Context, q db.QueryExecutor, courseID int64, targetUserID int64, newRole string) error
 }
 
@@ -53,6 +55,9 @@ type SectionRepository interface {
 	GetSectionByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.Section, error)
 	ListSectionsByCourseID(ctx context.Context, q db.QueryExecutor, courseID int64) ([]domain.Section, error)
 	UpdateSection(ctx context.Context, q db.QueryExecutor, section *domain.Section) error
+	UpdateSectionStatus(ctx context.Context, q db.QueryExecutor, sectionID int64, status string) error
+	UpdateStatusByCourseID(ctx context.Context, q db.QueryExecutor, courseID int64, status string) error
+	ReorderSections(ctx context.Context, q db.QueryExecutor, courseID int64, sectionIDs []int64) error
 	DeleteSection(ctx context.Context, q db.QueryExecutor, sectionID int64) error
 	GetMaxPositionByCourseID(ctx context.Context, q db.QueryExecutor, courseID int64) (int, error)
 }
@@ -62,8 +67,18 @@ type LessonRepository interface {
 	CreateLesson(ctx context.Context, q db.QueryExecutor, lesson *domain.Lesson) error
 	GetLessonByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.Lesson, error)
 	UpdateLesson(ctx context.Context, q db.QueryExecutor, lesson *domain.Lesson) error
+	UpdateLessonStatus(ctx context.Context, q db.QueryExecutor, lessonID int64, status string) error
+	UpdateStatusByCourseID(ctx context.Context, q db.QueryExecutor, courseID int64, status string) error
+	UpdateStatusBySectionID(ctx context.Context, q db.QueryExecutor, sectionID int64, status string) error
+	ReorderLessons(ctx context.Context, q db.QueryExecutor, sectionID *int64, lessonIDs []int64) error
 	DeleteLessonByID(ctx context.Context, q db.QueryExecutor, lessonID int64) error
 	GetLessonsByCourseID(ctx context.Context, q db.QueryExecutor, courseID int64) ([]domain.Lesson, error)
+}
+
+type AnalyticsRepository interface {
+	GetCourseAnalyticsSummary(ctx context.Context, q db.QueryExecutor, courseID int64) (domain.CourseAnalyticsSummary, error)
+	ListPendingHomeworks(ctx context.Context, q db.QueryExecutor, courseID int64, limit, offset int64) ([]domain.PendingHomeworkItem, int64, error)
+	GetStudentDrilldown(ctx context.Context, q db.QueryExecutor, userID, courseID int64) (*domain.StudentDrilldownReport, error)
 }
 
 type RefreshRepository interface {
@@ -85,6 +100,7 @@ type ProgressRepository interface {
 	UpdateLessonProgressStatus(ctx context.Context, q db.QueryExecutor, userID, lessonID int64, status domain.ProgressStatus) error
 
 	CreateCourseProgress(ctx context.Context, q db.QueryExecutor, progress *domain.CourseProgress) error
+	UpsertCourseProgress(ctx context.Context, q db.QueryExecutor, userID, courseID int64, completedLessons, totalLessons int, percentage float64) error
 	GetCourseProgress(ctx context.Context, q db.QueryExecutor, userID, courseID int64) (*domain.CourseProgress, error)
 	GetAllLessonProgressByCourse(ctx context.Context, q db.QueryExecutor, userID, courseID int64) ([]domain.LessonProgress, error)
 }
@@ -98,13 +114,13 @@ type QuizRepository interface {
 	CountUserAttempts(ctx context.Context, q db.QueryExecutor, userID, quizID int64) (int, error)
 	CountUserAttemptsForUpdate(ctx context.Context, q db.QueryExecutor, userID, quizID int64) (int, error)
 	CreateBatchAnswers(ctx context.Context, q db.QueryExecutor, answers []domain.QuizAttemptAnswer) error
-	ListAttemptsForGrading(ctx context.Context, q db.QueryExecutor, courseID int64, quizID *int64, limit, offset int) ([]domain.QuizAttempt, int64, error)
-	GetAttemptForUpdate(ctx context.Context, q db.QueryExecutor, attemptID int64) (*domain.QuizAttempt, error)
 	UpdateAttemptAnswer(ctx context.Context, q db.QueryExecutor, answerID int64, points int, feedback *string, isCorrect bool) error
 	CountUngradedAnswers(ctx context.Context, q db.QueryExecutor, attemptID int64) (int, error)
-	SumAttemptPoints(ctx context.Context, q db.QueryExecutor, attemptID int64) (int, error)
 	GetAnswerPointsAndCorrectness(ctx context.Context, q db.QueryExecutor, answerID int64) (bool, int, error)
 	UpdateLessonProgressAfterQuiz(ctx context.Context, q db.QueryExecutor, userID, lessonID int64, score int) error
+	SumAttemptPoints(ctx context.Context, q db.QueryExecutor, attemptID int64) (int, error)
 	GetQuizTotalPoints(ctx context.Context, q db.QueryExecutor, quizID int64) (int, error)
+	GetAttemptForUpdate(ctx context.Context, q db.QueryExecutor, attemptID int64) (*domain.QuizAttempt, error)
 	AcquireAdvisoryLock(ctx context.Context, q db.QueryExecutor, userID int64, quizID int64) error
+	ListAttemptsForGrading(ctx context.Context, q db.QueryExecutor, courseID int64, quizID *int64, limit, offset int) ([]domain.QuizAttempt, int64, error)
 }

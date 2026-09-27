@@ -24,8 +24,11 @@ func (r *repository) CreateLessonProgress(ctx context.Context, q db.QueryExecuto
 
 	query := `
 		INSERT INTO lesson_progress (user_id, lesson_id, course_id, status, last_position, watch_time, score, started_at, completed_at, last_accessed_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-		ON CONFLICT (user_id, lesson_id) DO NOTHING
+		VALUES ($1, $2, $3, $4::progress_status, $5, $6, $7, $8, $9, NOW())
+		ON CONFLICT (user_id, lesson_id) DO UPDATE
+		SET status = EXCLUDED.status,
+		    completed_at = COALESCE(EXCLUDED.completed_at, lesson_progress.completed_at),
+		    last_accessed_at = NOW()
 		RETURNING id, last_accessed_at
 	`
 
@@ -35,7 +38,7 @@ func (r *repository) CreateLessonProgress(ctx context.Context, q db.QueryExecuto
 		progress.UserID,
 		progress.LessonID,
 		progress.CourseID,
-		status,
+		string(status),
 		progress.LastPos,
 		progress.TimeSpent,
 		progress.Score,
@@ -44,14 +47,6 @@ func (r *repository) CreateLessonProgress(ctx context.Context, q db.QueryExecuto
 	).Scan(&progress.ID, &progress.UpdatedAt)
 
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			// Record already existed, fetch its ID
-			fetchQuery := `SELECT id, last_accessed_at FROM lesson_progress WHERE user_id = $1 AND lesson_id = $2`
-			if fErr := q.QueryRow(ctx, fetchQuery, progress.UserID, progress.LessonID).Scan(&progress.ID, &progress.UpdatedAt); fErr != nil {
-				return fmt.Errorf("%s: fetch existing: %w", op, fErr)
-			}
-			return nil
-		}
 		return fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
 	}
 
@@ -127,9 +122,9 @@ func (r *repository) UpdateLessonProgressStatus(ctx context.Context, q db.QueryE
 
 	query := `
 		UPDATE lesson_progress 
-		SET status = $1,
-		    started_at = CASE WHEN $1 = 'in_progress' AND started_at IS NULL THEN NOW() ELSE started_at END,
-		    completed_at = CASE WHEN $1 = 'completed' AND completed_at IS NULL THEN NOW() ELSE completed_at END,
+		SET status = $1::progress_status,
+		    started_at = CASE WHEN $1::text = 'in_progress' AND started_at IS NULL THEN NOW() ELSE started_at END,
+		    completed_at = CASE WHEN $1::text = 'completed' AND completed_at IS NULL THEN NOW() ELSE completed_at END,
 		    last_accessed_at = NOW()
 		WHERE user_id = $2 AND lesson_id = $3
 	`

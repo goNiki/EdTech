@@ -6,38 +6,38 @@ import (
 	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
 	"fmt"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *service) PublishCourse(ctx context.Context, userID int64, courseID int64) error {
-	const op = "service.course.PublishCourse"
+func (s *service) UpdateCourseStatus(ctx context.Context, userID int64, courseID int64, status string) error {
+	const op = "service.course.UpdateCourseStatus"
+
+	if status == domain.StatusPublished {
+		return s.PublishCourse(ctx, userID, courseID)
+	}
 
 	course, err := s.courserepo.GetCourseByID(ctx, s.db, courseID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	canPublish, err := s.accessService.CanPublishCourse(ctx, course, userID)
+	canEdit, err := s.accessService.CanEditCourse(ctx, course, userID)
 	if err != nil {
 		return fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrCheckingPermissions, err)
 	}
-
-	if !canPublish {
+	if !canEdit {
 		return fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
 	}
 
-	course.Publish(time.Now())
-
 	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, q db.QueryExecutor) error {
-		if err := s.courserepo.PublishCourse(ctx, q, course); err != nil {
+		if err := s.courserepo.UpdateCourseStatus(ctx, q, courseID, status); err != nil {
 			return err
 		}
-		if err := s.sectionrepo.UpdateStatusByCourseID(ctx, q, courseID, domain.StatusPublished); err != nil {
+		if err := s.sectionrepo.UpdateStatusByCourseID(ctx, q, courseID, status); err != nil {
 			return err
 		}
-		return s.lessonrepo.UpdateStatusByCourseID(ctx, q, courseID, domain.StatusPublished)
+		return s.lessonrepo.UpdateStatusByCourseID(ctx, q, courseID, status)
 	})
 
 	if err != nil {

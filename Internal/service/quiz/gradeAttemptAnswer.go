@@ -102,7 +102,7 @@ func (s *service) finalizeGrading(ctx context.Context, tx db.QueryExecutor, quiz
 	}
 
 	if attempt.Passed {
-		_ = s.progressService.CompleteLesson(ctx, attempt.UserID, quiz.LessonID)
+		_ = s.progressService.CompleteLesson(ctx, attempt.UserID, quiz.LessonID, &attempt.Score, nil)
 		_ = s.quizRepo.UpdateLessonProgressAfterQuiz(ctx, tx, attempt.UserID, quiz.LessonID, attempt.Score)
 	}
 

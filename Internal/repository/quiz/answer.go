@@ -49,10 +49,10 @@ func (r *repositoryImpl) UpdateAttemptAnswer(ctx context.Context, q db.QueryExec
 
 	query := `
 		UPDATE quiz_attempt_answers 
-		SET is_correct = $2 
+		SET is_correct = $2, points = $3, feedback = $4, graded_at = NOW() 
 		WHERE id = $1`
 
-	tag, err := q.Exec(ctx, query, answerID, isCorrect)
+	tag, err := q.Exec(ctx, query, answerID, isCorrect, points, feedback)
 	if err != nil {
 		return fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
 	}

@@ -20,7 +20,12 @@ func (r *repository) CreateCourseProgress(ctx context.Context, q db.QueryExecuto
 	query := `
 		INSERT INTO course_progress (user_id, course_id, completed_lessons, total_lessons, progress_percentage, total_watch_time, average_score, started_at, last_accessed_at, completed_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, NOW()), NOW(), $9)
-		ON CONFLICT (user_id, course_id) DO NOTHING
+		ON CONFLICT (user_id, course_id) DO UPDATE
+		SET completed_lessons = EXCLUDED.completed_lessons,
+		    total_lessons = EXCLUDED.total_lessons,
+		    progress_percentage = EXCLUDED.progress_percentage,
+		    last_accessed_at = NOW(),
+		    completed_at = CASE WHEN EXCLUDED.progress_percentage >= 100 AND course_progress.completed_at IS NULL THEN NOW() ELSE course_progress.completed_at END
 		RETURNING id, last_accessed_at
 	`
 
@@ -39,13 +44,28 @@ func (r *repository) CreateCourseProgress(ctx context.Context, q db.QueryExecuto
 	).Scan(&progress.ID, &progress.LastAccessedAt)
 
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			fetchQuery := `SELECT id, last_accessed_at FROM course_progress WHERE user_id = $1 AND course_id = $2`
-			if fErr := q.QueryRow(ctx, fetchQuery, progress.UserID, progress.CourseID).Scan(&progress.ID, &progress.LastAccessedAt); fErr != nil {
-				return fmt.Errorf("%s: fetch existing: %w", op, fErr)
-			}
-			return nil
-		}
+		return fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
+	}
+
+	return nil
+}
+
+func (r *repository) UpsertCourseProgress(ctx context.Context, q db.QueryExecutor, userID, courseID int64, completedLessons, totalLessons int, percentage float64) error {
+	const op = "repository.progress.UpsertCourseProgress"
+
+	query := `
+		INSERT INTO course_progress (user_id, course_id, completed_lessons, total_lessons, progress_percentage, started_at, last_accessed_at, completed_at)
+		VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), CASE WHEN $5 >= 100 THEN NOW() ELSE NULL END)
+		ON CONFLICT (user_id, course_id) DO UPDATE
+		SET completed_lessons = EXCLUDED.completed_lessons,
+		    total_lessons = EXCLUDED.total_lessons,
+		    progress_percentage = EXCLUDED.progress_percentage,
+		    last_accessed_at = NOW(),
+		    completed_at = CASE WHEN EXCLUDED.progress_percentage >= 100 AND course_progress.completed_at IS NULL THEN NOW() ELSE course_progress.completed_at END
+	`
+
+	_, err := q.Exec(ctx, query, userID, courseID, completedLessons, totalLessons, percentage)
+	if err != nil {
 		return fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
 	}
 

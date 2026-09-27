@@ -23,6 +23,14 @@ func (s *service) SelfEnrollCourse(ctx context.Context, req domain.SelfEnrollReq
 		return fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
 	}
 
+	isEnrolled, err := s.enrolledrepo.UserExistCourse(ctx, s.db, req.UserID, req.CourseID)
+	if err != nil {
+		return fmt.Errorf("%s: check enrollment: %w", op, err)
+	}
+	if isEnrolled {
+		return fmt.Errorf("%s: %w", op, errorsAPP.ErrUserAlreadyEnrolled)
+	}
+
 	enroll := domain.EnrolledInCourse{
 		UserID:   req.UserID,
 		CourseID: req.CourseID,
@@ -50,19 +58,40 @@ func (s *service) TeacherEnrollCourse(ctx context.Context, req domain.TeacherEnr
 		return fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
 	}
 
-	if req.Role == string(domain.RoleStudent) && course.Status != domain.StatusPublished {
-		return fmt.Errorf("%s: %w", op, errorsAPP.ErrCannotEnrollStudentInDraft)
+	var targetUserID int64
+	if req.TargetUserID != nil && *req.TargetUserID > 0 {
+		targetUserID = *req.TargetUserID
+		_, err := s.userrepo.GetUserByID(ctx, s.db, targetUserID)
+		if err != nil {
+			return fmt.Errorf("%s: target user not found: %w", op, err)
+		}
+	} else if req.TargetEmail != "" {
+		targetUser, err := s.userrepo.GetUserByEmail(ctx, s.db, req.TargetEmail)
+		if err != nil {
+			return fmt.Errorf("%s: target user with email '%s' not found: %w", op, req.TargetEmail, err)
+		}
+		targetUserID = targetUser.ID
+	} else {
+		return fmt.Errorf("%s: %w: email or user_id is required", op, errorsAPP.ErrValidationFailed)
 	}
 
-	targetUser, err := s.userrepo.GetUserByEmail(ctx, s.db, req.TargetEmail)
+	isEnrolled, err := s.enrolledrepo.UserExistCourse(ctx, s.db, targetUserID, req.CourseID)
 	if err != nil {
-		return fmt.Errorf("%s: target user not found: %w", op, err)
+		return fmt.Errorf("%s: check enrollment: %w", op, err)
+	}
+	if isEnrolled {
+		return fmt.Errorf("%s: %w", op, errorsAPP.ErrUserAlreadyEnrolled)
+	}
+
+	role := req.Role
+	if role == "" {
+		role = string(domain.RoleStudent)
 	}
 
 	enroll := domain.EnrolledInCourse{
-		UserID:   targetUser.ID,
+		UserID:   targetUserID,
 		CourseID: req.CourseID,
-		Role:     req.Role,
+		Role:     role,
 	}
 
 	return s.executeEnrollmentTransaction(ctx, enroll)

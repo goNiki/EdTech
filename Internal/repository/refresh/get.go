@@ -22,7 +22,7 @@ func (r *repository) GetByToken(ctx context.Context, q db.QueryExecutor, refresh
 			token,
 			user_id,
 			expires_at,
-			created_at,
+			created_at
 		FROM refresh_tokens
 		WHERE token = $1
 	`

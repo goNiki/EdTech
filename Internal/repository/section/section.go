@@ -18,7 +18,7 @@ func (r *repositorySection) ListSectionsByCourseID(ctx context.Context, q db.Que
 	const op = "repository.section.ListSectionsByCourseID"
 
 	query := `
-		SELECT id, course_id, title, description, position, created_at, updated_at, deleted_at 
+		SELECT id, course_id, title, description, position, status, created_at, updated_at, deleted_at 
 		FROM sections 
 		WHERE course_id = $1 AND deleted_at IS NULL 
 		ORDER BY position ASC
@@ -39,6 +39,7 @@ func (r *repositorySection) ListSectionsByCourseID(ctx context.Context, q db.Que
 			&m.Title,
 			&m.Description,
 			&m.Position,
+			&m.Status,
 			&m.CreatedAt,
 			&m.UpdatedAt,
 			&m.DeletedAt,
@@ -63,7 +64,7 @@ func (r *repositorySection) GetSectionByID(ctx context.Context, q db.QueryExecut
 	const op = "repository.section.GetSectionByID"
 
 	query := `
-		SELECT id, course_id, title, description, position, created_at, updated_at, deleted_at 
+		SELECT id, course_id, title, description, position, status, created_at, updated_at, deleted_at 
 		FROM sections 
 		WHERE id = $1 AND deleted_at IS NULL
 	`
@@ -75,13 +76,14 @@ func (r *repositorySection) GetSectionByID(ctx context.Context, q db.QueryExecut
 		&m.Title,
 		&m.Description,
 		&m.Position,
+		&m.Status,
 		&m.CreatedAt,
 		&m.UpdatedAt,
 		&m.DeletedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrValidationFailed)
+			return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrSectionNotFound)
 		}
 		return nil, fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
 	}
@@ -93,11 +95,14 @@ func (r *repositorySection) CreateSection(ctx context.Context, q db.QueryExecuto
 	const op = "repository.section.CreateSection"
 
 	entity := converter.SectionToEntity(section)
+	if entity.Status == "" {
+		entity.Status = domain.StatusDraft
+	}
 
 	query := `
-		INSERT INTO sections (course_id, title, description, position)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, course_id, title, description, position, created_at, updated_at, deleted_at
+		INSERT INTO sections (course_id, title, description, position, status)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, course_id, title, description, position, status, created_at, updated_at, deleted_at
 	`
 
 	err := q.QueryRow(ctx, query,
@@ -105,12 +110,14 @@ func (r *repositorySection) CreateSection(ctx context.Context, q db.QueryExecuto
 		entity.Title,
 		entity.Description,
 		entity.Position,
+		entity.Status,
 	).Scan(
 		&entity.ID,
 		&entity.CourseID,
 		&entity.Title,
 		&entity.Description,
 		&entity.Position,
+		&entity.Status,
 		&entity.CreatedAt,
 		&entity.UpdatedAt,
 		&entity.DeletedAt,
@@ -127,16 +134,64 @@ func (r *repositorySection) UpdateSection(ctx context.Context, q db.QueryExecuto
 
 	query := `
 		UPDATE sections 
-		SET title = $1, description = $2, position = $3, updated_at = NOW() 
-		WHERE id = $4 AND deleted_at IS NULL
+		SET title = $1, description = $2, position = $3, status = $4, updated_at = NOW() 
+		WHERE id = $5 AND deleted_at IS NULL
 	`
 
-	tag, err := q.Exec(ctx, query, section.Title, section.Description, section.Position, section.ID)
+	status := section.Status
+	if status == "" {
+		status = domain.StatusDraft
+	}
+
+	tag, err := q.Exec(ctx, query, section.Title, section.Description, section.Position, status, section.ID)
 	if err != nil {
 		return fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
 	}
 	if tag.RowsAffected() == 0 {
 		return fmt.Errorf("%s: %w", op, errorsAPP.ErrNothingToUpdate)
+	}
+
+	return nil
+}
+
+func (r *repositorySection) UpdateSectionStatus(ctx context.Context, q db.QueryExecutor, sectionID int64, status string) error {
+	const op = "repository.section.UpdateSectionStatus"
+
+	query := `UPDATE sections SET status = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL`
+
+	tag, err := q.Exec(ctx, query, status, sectionID)
+	if err != nil {
+		return fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("%s: %w", op, errorsAPP.ErrSectionNotFound)
+	}
+	return nil
+}
+
+func (r *repositorySection) UpdateStatusByCourseID(ctx context.Context, q db.QueryExecutor, courseID int64, status string) error {
+	const op = "repository.section.UpdateStatusByCourseID"
+
+	query := `UPDATE sections SET status = $1, updated_at = NOW() WHERE course_id = $2 AND deleted_at IS NULL`
+
+	_, err := q.Exec(ctx, query, status, courseID)
+	if err != nil {
+		return fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
+	}
+	return nil
+}
+
+func (r *repositorySection) ReorderSections(ctx context.Context, q db.QueryExecutor, courseID int64, sectionIDs []int64) error {
+	const op = "repository.section.ReorderSections"
+
+	query := `UPDATE sections SET position = $1, updated_at = NOW() WHERE id = $2 AND course_id = $3 AND deleted_at IS NULL`
+
+	for idx, id := range sectionIDs {
+		pos := idx + 1
+		_, err := q.Exec(ctx, query, pos, id, courseID)
+		if err != nil {
+			return fmt.Errorf("%s: update position for section %d: %w: %w", op, id, errorsAPP.ErrInternalDB, err)
+		}
 	}
 
 	return nil
