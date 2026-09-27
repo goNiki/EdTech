@@ -1,0 +1,7 @@
+*.exe
+bin/
+.git/
+.env
+frontend/
+
+task/

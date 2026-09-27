@@ -10,13 +10,34 @@ services:
     env_file:
       - .env
     environment:
+      - SERVER_HOST=0.0.0.0
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=myDB
     depends_on:
-      - db
+      migrator:
+        condition: service_completed_successfully
+      db:
+        condition: service_started
+
+  migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=myDB
+    depends_on:
+      db:
+        condition: service_started
+    command: ["/app/migration", "up"]
 
   db:
     image: postgres:15

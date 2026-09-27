@@ -30,6 +30,7 @@ CREATE INDEX idx_course_progress_course ON course_progress(course_id);
 CREATE INDEX idx_course_progress_percentage ON course_progress(progress_percentage);
 
 -- Триггер для автоматического расчета прогресса
+-- +goose StatementBegin
 CREATE OR REPLACE FUNCTION update_course_progress()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -55,6 +56,7 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+-- +goose StatementEnd
 
 CREATE TRIGGER trigger_update_course_progress
     AFTER INSERT OR UPDATE ON lesson_progress

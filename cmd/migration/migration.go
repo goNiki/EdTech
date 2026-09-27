@@ -37,6 +37,26 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "up":
+			if err := migrator.Up(); err != nil {
+				log.Error("migration UP failed", sl.Error(err))
+				os.Exit(1)
+			}
+			log.Info("UP Migration applied")
+			return
+		case "down":
+			if err := migrator.Down(); err != nil {
+				log.Error("migration DOWN failed", sl.Error(err))
+				os.Exit(1)
+			}
+			log.Info("DOWN Migration applied")
+			return
+		}
+	}
+
 	Migration(log, migrator)
 
 }
