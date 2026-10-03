@@ -28,8 +28,6 @@ go.work.sum
 .cursor
 generate.go
 
-/frontend/
-
 # Local uploads
 uploads/*
 !uploads/.gitkeep

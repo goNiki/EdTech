@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ED Platform — Инновационная образовательная экосистема</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        },
+                        brand: {
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            dark: '#0f172a'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .hero-glow {
+            background: radial-gradient(circle at 50% 30%, rgba(99, 102, 241, 0.18) 0%, rgba(6, 182, 212, 0.08) 50%, transparent 80%);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Fixed Navigation Bar -->
+    <header class="sticky top-0 z-50 glass-nav border-b border-slate-200/80 transition-all duration-300 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Logo -->
+                <a href="#hero" class="flex items-center gap-3 group">
+                    <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
+                        ED
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-black text-xl tracking-tight text-slate-900 group-hover:text-indigo-600 transition-colors">ED.Learn</span>
+                        <span class="text-[10px] uppercase font-bold tracking-widest text-indigo-500">Курсы & Тестирование</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Nav Links -->
+                <nav class="hidden md:flex items-center gap-1 lg:gap-2">
+                    <a href="#about" class="px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/60 rounded-xl transition-colors">О платформе</a>
+                    <a href="#advantages" class="px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/60 rounded-xl transition-colors">Преимущества</a>
+                    <a href="#how-it-works" class="px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/60 rounded-xl transition-colors">Как пользоваться</a>
+                    <a href="#courses" class="px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/60 rounded-xl transition-colors">Курсы и тесты</a>
+                    <a href="#contacts" class="px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/60 rounded-xl transition-colors">Контакты</a>
+                </nav>
+
+                <!-- Auth Buttons -->
+                <div class="hidden sm:flex items-center gap-3">
+                    <button onclick="openAuthModal('login')" class="px-4 py-2.5 text-sm font-semibold text-slate-700 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition-all">
+                        Войти
+                    </button>
+                    <button onclick="openAuthModal('register')" class="px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-95 shadow-md shadow-indigo-600/30 rounded-xl transition-all flex items-center gap-2">
+                        <span>Регистрация</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </button>
+                </div>
+
+                <!-- Mobile menu button -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobileMenuBtn" class="p-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Drawer Menu -->
+        <div id="mobileMenu" class="hidden md:hidden bg-white/95 border-b border-slate-200 px-4 pt-2 pb-6 space-y-2 backdrop-blur-md">
+            <a href="#about" class="block px-4 py-3 rounded-xl text-base font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-600">О платформе</a>
+            <a href="#advantages" class="block px-4 py-3 rounded-xl text-base font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-600">Преимущества</a>
+            <a href="#how-it-works" class="block px-4 py-3 rounded-xl text-base font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-600">Как пользоваться</a>
+            <a href="#courses" class="block px-4 py-3 rounded-xl text-base font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-600">Курсы и тесты</a>
+            <a href="#contacts" class="block px-4 py-3 rounded-xl text-base font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-600">Контакты</a>
+            <div class="pt-4 flex flex-col gap-2.5 border-t border-slate-100">
+                <button onclick="openAuthModal('login')" class="w-full py-3 text-center font-medium text-slate-700 bg-slate-100 rounded-xl">Войти</button>
+                <button onclick="openAuthModal('register')" class="w-full py-3 text-center font-semibold text-white bg-indigo-600 rounded-xl shadow-md">Регистрация</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero / Main Banner Section -->
+    <section id="hero" class="relative pt-12 pb-20 lg:pt-20 lg:pb-28 overflow-hidden hero-glow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-12 gap-12 items-center">
+                <!-- Hero Left Column -->
+                <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+                    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200/70 text-indigo-700 text-xs sm:text-sm font-semibold tracking-wide">
+                        <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Умная система онлайн-тестирования и курсов
+                    </div>
+
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.15]">
+                        Платформа для <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500">создания курсов</span> и автоматической проверки знаний
+                    </h1>
+
+                    <p class="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
+                        Создавайте интерактивные обучающие материалы, проводите комплексные тестирования со срезом знаний и моментальной автопроверкой результатов.
+                    </p>
+
+                    <!-- Hero Action Group -->
+                    <div class="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                        <button onclick="openAuthModal('register')" class="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-2xl shadow-xl shadow-indigo-600/30 transition-all flex items-center justify-center gap-3 group">
+                            <span>Начать бесплатно</span>
+                            <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                        </button>
+                        <a href="#how-it-works" class="w-full sm:w-auto px-7 py-4 bg-white hover:bg-slate-100 border border-slate-300/80 text-slate-700 font-semibold rounded-2xl shadow-sm transition-all text-center">
+                            Как работает платформа?
+                        </a>
+                    </div>
+
+                    <!-- Micro Trust Metrics -->
+                    <div class="pt-6 grid grid-cols-3 gap-4 border-t border-slate-200/80 max-w-md mx-auto lg:mx-0">
+                        <div>
+                            <p class="text-2xl lg:text-3xl font-bold text-slate-900">45,000+</p>
+                            <p class="text-xs text-slate-500 font-medium">Пройденных тестов</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl lg:text-3xl font-bold text-indigo-600">600+</p>
+                            <p class="text-xs text-slate-500 font-medium">Курсов и программ</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl lg:text-3xl font-bold text-emerald-600">100%</p>
+                            <p class="text-xs text-slate-500 font-medium">Автоматический срез</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hero Right Interactive Mockup: Quiz / Testing UI -->
+                <div class="lg:col-span-5 relative">
+                    <div class="relative mx-auto max-w-md lg:max-w-none">
+                        <div class="bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-3xl p-1 shadow-2xl shadow-indigo-500/20">
+                            <div class="bg-slate-900 rounded-[22px] overflow-hidden p-6 text-white space-y-5">
+                                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                                        <span class="text-xs text-slate-400 font-medium">Тестирование: Модуль 3</span>
+                                    </div>
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        14:20 мин
+                                    </span>
+                                </div>
+
+                                <!-- Question Box -->
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center text-xs text-slate-400">
+                                        <span>Вопрос 4 из 10</span>
+                                        <span class="text-cyan-400 font-semibold">Сложность: Средняя</span>
+                                    </div>
+                                    <h4 class="text-sm font-semibold text-slate-100">Какой метод валидации наиболее эффективен для проверки остаточных знаний?</h4>
+                                </div>
+
+                                <!-- Interactive Option Choices -->
+                                <div class="space-y-2.5" id="heroQuizOptions">
+                                    <button onclick="selectHeroAnswer(this, false)" class="w-full text-left p-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-xs text-slate-300 transition-all flex items-center justify-between">
+                                        <span>A) Однократное устное собеседование</span>
+                                        <span class="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center"></span>
+                                    </button>
+                                    <button onclick="selectHeroAnswer(this, true)" class="w-full text-left p-3 rounded-xl bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-500/50 text-xs text-indigo-200 transition-all flex items-center justify-between">
+                                        <span>B) Интервальное онлайн-тестирование со срезом</span>
+                                        <span class="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
+                                    </button>
+                                    <button onclick="selectHeroAnswer(this, false)" class="w-full text-left p-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-xs text-slate-300 transition-all flex items-center justify-between">
+                                        <span>C) Пассивное чтение конспектов</span>
+                                        <span class="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center"></span>
+                                    </button>
+                                </div>
+
+                                <div class="space-y-2 pt-2">
+                                    <div class="flex justify-between text-xs font-medium text-slate-400">
+                                        <span>Прогресс прохождения</span>
+                                        <span class="text-indigo-400 font-bold">85% баллов</span>
+                                    </div>
+                                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                                        <div class="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full w-[85%] rounded-full"></div>
+                                    </div>
+                                </div>
+
+                                <button onclick="openAuthModal('register')" class="w-full py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-bold text-sm hover:opacity-95 transition-opacity">
+                                    Создать свой первый тест
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Floating Badge -->
+                        <div class="absolute -bottom-5 -left-5 bg-white p-4 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-3">
+                            <div class="p-2.5 bg-emerald-100 text-emerald-600 rounded-xl">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-500 font-medium">Мгновенная проверка</p>
+                                <p class="text-sm font-bold text-slate-900">0.2 сек на расчет баллов</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: About Us (О нас) -->
+    <section id="about" class="py-20 bg-white border-y border-slate-200/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-3xl mx-auto text-center space-y-4">
+                <span class="text-xs font-bold text-indigo-600 tracking-wider uppercase bg-indigo-50 px-3.5 py-1.5 rounded-full">О платформе ED</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900">Единое пространство для структурированных курсов и тестов</h2>
+                <p class="text-slate-600 text-base sm:text-lg">
+                    ED помогает авторам быстро собирать обучающие программы и тесты любой сложности, а ученикам — последовательно осваивать теорию и проверять знания на практике.
+                </p>
+            </div>
+
+            <div class="mt-14 grid md:grid-cols-3 gap-8">
+                <div class="p-8 rounded-3xl bg-slate-50 border border-slate-200/70 hover:shadow-lg transition-all">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xl mb-6">
+                        01
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Конструктор курсов и уроков</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        Структурируйте материал по главам и модулям, прикрепляйте практические файлы, ссылки и инструкции для пошагового прохождения.
+                    </p>
+                </div>
+
+                <div class="p-8 rounded-3xl bg-slate-50 border border-slate-200/70 hover:shadow-lg transition-all">
+                    <div class="w-12 h-12 rounded-2xl bg-cyan-100 text-cyan-600 flex items-center justify-center font-bold text-xl mb-6">
+                        02
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Генератор тестов и срезов</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        Тесты с одиночным и множественным выбором, вводом ответов, рандомизацией вопросов, таймерами и защитой от списывания.
+                    </p>
+                </div>
+
+                <div class="p-8 rounded-3xl bg-slate-50 border border-slate-200/70 hover:shadow-lg transition-all">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-xl mb-6">
+                        03
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Автопроверка и статистика</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        Мгновенный расчет баллов, подробный отчет об ошибках для студента и глубокая аналитика успеваемости для преподавателя.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: Why Choose Us / Advantages (Почему нужно выбрать нас) -->
+    <section id="advantages" class="py-20 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto space-y-4">
+                <span class="text-xs font-bold text-indigo-600 tracking-wider uppercase bg-indigo-100/70 px-3.5 py-1.5 rounded-full">Наши преимущества</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900">Почему для курсов и тестов выбирают ED</h2>
+                <p class="text-slate-600 text-base sm:text-lg">
+                    Инструменты, которые экономят часы преподавателей на проверку заданий и делают учебу понятной для студентов.
+                </p>
+            </div>
+
+            <div class="mt-14 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Card 1 -->
+                <div class="bg-white p-7 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group">
+                    <div class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Мгновенная автопроверка тестов</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        Никакого ручного пересчета баллов: студент видит свой результат, правильные пояснения и рекомендации сразу после завершения теста.
+                    </p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="bg-white p-7 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group">
+                    <div class="w-14 h-14 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center mb-6 group-hover:bg-cyan-600 group-hover:text-white transition-colors">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Банк вопросов и вариантов</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        Создавайте базы из сотен вопросов с автоперемешиванием — каждый ученик получает уникальный вариант теста.
+                    </p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="bg-white p-7 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group">
+                    <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Глубокая аналитика срезов</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        Детальные графики по каждому вопросу: вы сразу видите, какие темы вызывают наибольшие затруднения у группы.
+                    </p>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="bg-white p-7 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group">
+                    <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-6 group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Контроль честности прохождения</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        Ограничение по времени на тест или отдельный вопрос, блокировка переключения вкладок и фиксация попыток.
+                    </p>
+                </div>
+
+                <!-- Card 5 -->
+                <div class="bg-white p-7 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group">
+                    <div class="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Автогенерация сертификатов</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        При успешной сдаче итогового тестирования система автоматически формирует персонализированный именной сертификат.
+                    </p>
+                </div>
+
+                <!-- Card 6 -->
+                <div class="bg-white p-7 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group">
+                    <div class="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-6 group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Быстрый запуск без кода</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        Импорт вопросов из Excel/Word, интуитивный интерфейс и публикация курса для группы за пару минут.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: How it Works (Пользоваться платформой) -->
+    <section id="how-it-works" class="py-20 bg-white border-t border-slate-200/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto space-y-4">
+                <span class="text-xs font-bold text-indigo-600 tracking-wider uppercase bg-indigo-50 px-3.5 py-1.5 rounded-full">Простой процесс</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900">Как начать пользоваться платформой ED</h2>
+                <p class="text-slate-600 text-base sm:text-lg">
+                    Прозрачный процесс для эффективного обучения и точной оценки знаний.
+                </p>
+            </div>
+
+            <!-- Role Selector Tabs -->
+            <div class="mt-10 flex justify-center">
+                <div class="bg-slate-100 p-1.5 rounded-2xl inline-flex">
+                    <button id="tabStudent" onclick="switchRoleView('student')" class="px-6 py-2.5 rounded-xl font-semibold text-sm bg-white text-indigo-600 shadow-sm transition-all">
+                        Для студентов и учеников
+                    </button>
+                    <button id="tabTeacher" onclick="switchRoleView('teacher')" class="px-6 py-2.5 rounded-xl font-semibold text-sm text-slate-600 hover:text-slate-900 transition-all">
+                        Для авторов и преподавателей
+                    </button>
+                </div>
+            </div>
+
+            <!-- Steps Grid (Student View) -->
+            <div id="studentSteps" class="mt-12 grid md:grid-cols-4 gap-6">
+                <div class="relative bg-slate-50 p-6 rounded-3xl border border-slate-200/80">
+                    <span class="text-4xl font-extrabold text-indigo-200">01</span>
+                    <h4 class="text-lg font-bold text-slate-900 mt-3 mb-1">Регистрация профиля</h4>
+                    <p class="text-sm text-slate-600">Создайте аккаунт, чтобы сохранять прогресс и историю всех тестирований.</p>
+                </div>
+                <div class="relative bg-slate-50 p-6 rounded-3xl border border-slate-200/80">
+                    <span class="text-4xl font-extrabold text-indigo-200">02</span>
+                    <h4 class="text-lg font-bold text-slate-900 mt-3 mb-1">Изучение теории</h4>
+                    <p class="text-sm text-slate-600">Проходите интерактивные модули курса в удобном для вас темпе.</p>
+                </div>
+                <div class="relative bg-slate-50 p-6 rounded-3xl border border-slate-200/80">
+                    <span class="text-4xl font-extrabold text-indigo-200">03</span>
+                    <h4 class="text-lg font-bold text-slate-900 mt-3 mb-1">Сдача тестов и срезов</h4>
+                    <p class="text-sm text-slate-600">Отвечайте на вопросы, проверяйте знания и моментально получайте анализ ошибок.</p>
+                </div>
+                <div class="relative bg-slate-50 p-6 rounded-3xl border border-slate-200/80">
+                    <span class="text-4xl font-extrabold text-indigo-200">04</span>
+                    <h4 class="text-lg font-bold text-slate-900 mt-3 mb-1">Итоги и сертификат</h4>
+                    <p class="text-sm text-slate-600">Получите цифровой сертификат с баллом и рекомендациями по развитию.</p>
+                </div>
+            </div>
+
+            <!-- Steps Grid (Teacher View - Hidden by default) -->
+            <div id="teacherSteps" class="mt-12 hidden grid md:grid-cols-4 gap-6">
+                <div class="relative bg-slate-50 p-6 rounded-3xl border border-slate-200/80">
+                    <span class="text-4xl font-extrabold text-cyan-200">01</span>
+                    <h4 class="text-lg font-bold text-slate-900 mt-3 mb-1">Создание курса</h4>
+                    <p class="text-sm text-slate-600">Оформите разделы, уроки и загрузите методические материалы.</p>
+                </div>
+                <div class="relative bg-slate-50 p-6 rounded-3xl border border-slate-200/80">
+                    <span class="text-4xl font-extrabold text-cyan-200">02</span>
+                    <h4 class="text-lg font-bold text-slate-900 mt-3 mb-1">Настройка тестирования</h4>
+                    <p class="text-sm text-slate-600">Добавьте вопросы, шкалу оценивания, таймер и условия прохождения.</p>
+                </div>
+                <div class="relative bg-slate-50 p-6 rounded-3xl border border-slate-200/80">
+                    <span class="text-4xl font-extrabold text-cyan-200">03</span>
+                    <h4 class="text-lg font-bold text-slate-900 mt-3 mb-1">Назначение группам</h4>
+                    <p class="text-sm text-slate-600">Отправьте ссылку ученикам или добавьте их по списку группы.</p>
+                </div>
+                <div class="relative bg-slate-50 p-6 rounded-3xl border border-slate-200/80">
+                    <span class="text-4xl font-extrabold text-cyan-200">04</span>
+                    <h4 class="text-lg font-bold text-slate-900 mt-3 mb-1">Сводная ведомость</h4>
+                    <p class="text-sm text-slate-600">Скачивайте готовые отчеты с оценками и подробной статистикой среза.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: Popular Courses & Tests (Курсы и тесты) -->
+    <section id="courses" class="py-20 bg-slate-50 border-t border-slate-200/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+                <div>
+                    <span class="text-xs font-bold text-indigo-600 tracking-wider uppercase bg-indigo-100/70 px-3.5 py-1.5 rounded-full">Каталог программ</span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3">Популярные курсы и тесты</h2>
+                </div>
+                <button onclick="openAuthModal('register')" class="text-indigo-600 font-bold text-sm hover:text-indigo-700 flex items-center gap-1">
+                    Смотреть все 600+ программ &rarr;
+                </button>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Course 1 -->
+                <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col">
+                    <div class="h-48 bg-gradient-to-tr from-indigo-900 to-indigo-600 p-6 flex flex-col justify-between text-white relative">
+                        <div class="flex justify-between items-center">
+                            <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold">IT & Разработка</span>
+                            <span class="text-xs bg-indigo-800/80 px-2.5 py-1 rounded-full">12 тестов в курсе</span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-indigo-200">18 учебных модулей</span>
+                            <h3 class="text-xl font-bold">Основы Frontend и JavaScript с тестами</h3>
+                        </div>
+                    </div>
+                    <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
+                        <p class="text-sm text-slate-600">Пошаговый курс с интерактивными проверками кода, промежуточными квизами и итоговым квалификационным тестом.</p>
+                        <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                            <div>
+                                <span class="text-xs text-slate-400">Срезы знаний</span>
+                                <p class="text-sm font-bold text-slate-900">Сертификат по итогам</p>
+                            </div>
+                            <button onclick="openAuthModal('register')" class="px-4 py-2 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 font-semibold rounded-xl text-sm transition-colors">
+                                Пройти тест
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Course 2 -->
+                <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col">
+                    <div class="h-48 bg-gradient-to-tr from-cyan-900 to-cyan-600 p-6 flex flex-col justify-between text-white relative">
+                        <div class="flex justify-between items-center">
+                            <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold">Маркетинг & Анализ</span>
+                            <span class="text-xs bg-cyan-800/80 px-2.5 py-1 rounded-full">8 тестов в курсе</span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-cyan-200">10 учебных модулей</span>
+                            <h3 class="text-xl font-bold">Digital-маркетинг: Аттестационный курс</h3>
+                        </div>
+                    </div>
+                    <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
+                        <p class="text-sm text-slate-600">Практические тесты по аналитике трафика, таргетированной рекламе и расчету unit-экономики.</p>
+                        <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                            <div>
+                                <span class="text-xs text-slate-400">Срезы знаний</span>
+                                <p class="text-sm font-bold text-slate-900">Балльный рейтинг</p>
+                            </div>
+                            <button onclick="openAuthModal('register')" class="px-4 py-2 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 font-semibold rounded-xl text-sm transition-colors">
+                                Пройти тест
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Course 3 -->
+                <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col">
+                    <div class="h-48 bg-gradient-to-tr from-emerald-900 to-emerald-600 p-6 flex flex-col justify-between text-white relative">
+                        <div class="flex justify-between items-center">
+                            <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold">Data & Базы данных</span>
+                            <span class="text-xs bg-emerald-800/80 px-2.5 py-1 rounded-full">15 тестов в курсе</span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-emerald-200">14 учебных модулей</span>
+                            <h3 class="text-xl font-bold">SQL и Анализ данных: Практикум и тесты</h3>
+                        </div>
+                    </div>
+                    <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
+                        <p class="text-sm text-slate-600">Банк из 200+ тестовых вопросов по SQL-запросам, агрегации и аналитике данных с мгновенной верификацией ответов.</p>
+                        <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                            <div>
+                                <span class="text-xs text-slate-400">Срезы знаний</span>
+                                <p class="text-sm font-bold text-slate-900">Автопроверка</p>
+                            </div>
+                            <button onclick="openAuthModal('register')" class="px-4 py-2 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 font-semibold rounded-xl text-sm transition-colors">
+                                Пройти тест
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Registration Conversion CTA Section -->
+    <section class="py-16 bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-900 text-white relative overflow-hidden">
+        <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:16px_16px]"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="max-w-4xl mx-auto bg-gradient-to-r from-indigo-600 to-cyan-600 rounded-3xl p-8 sm:p-12 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8">
+                <div class="space-y-3 text-center md:text-left">
+                    <h3 class="text-2xl sm:text-3xl font-extrabold text-white">Готовы создать курс или пройти тестирование?</h3>
+                    <p class="text-indigo-100 text-sm sm:text-base max-w-md">
+                        Зарегистрируйтесь прямо сейчас, чтобы получить доступ к личному кабинету, каталогу тестов и конструктору курсов!
+                    </p>
+                </div>
+                <div class="w-full md:w-auto flex-shrink-0">
+                    <button onclick="openAuthModal('register')" class="w-full md:w-auto px-8 py-4 bg-white hover:bg-slate-100 text-indigo-900 font-extrabold rounded-2xl shadow-lg active:scale-95 transition-all text-base whitespace-nowrap">
+                        Зарегистрироваться бесплатно
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: Contacts & Footer (Контакты) -->
+    <footer id="contacts" class="bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-800">
+                <!-- Brand Info -->
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-indigo-500 flex items-center justify-center text-white font-extrabold text-lg">
+                            ED
+                        </div>
+                        <span class="font-black text-xl text-white tracking-tight">ED.Learn</span>
+                    </div>
+                    <p class="text-sm text-slate-400 max-w-sm leading-relaxed">
+                        Цифровая платформа для онлайн-курсов, организации тестирований и срезов знаний.
+                    </p>
+                    <div class="flex gap-3 pt-2">
+                        <a href="#hero" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-indigo-600 flex items-center justify-center text-slate-300 hover:text-white transition-colors">TG</a>
+                        <a href="#hero" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-indigo-600 flex items-center justify-center text-slate-300 hover:text-white transition-colors">VK</a>
+                        <a href="#hero" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-indigo-600 flex items-center justify-center text-slate-300 hover:text-white transition-colors">YT</a>
+                    </div>
+                </div>
+
+                <!-- Navigation Quick Links -->
+                <div class="space-y-3">
+                    <h4 class="text-white font-bold text-sm tracking-wider uppercase">Навигация</h4>
+                    <ul class="space-y-2 text-sm text-slate-400">
+                        <li><a href="#about" class="hover:text-white transition-colors">О платформе</a></li>
+                        <li><a href="#advantages" class="hover:text-white transition-colors">Преимущества</a></li>
+                        <li><a href="#how-it-works" class="hover:text-white transition-colors">Как пользоваться</a></li>
+                        <li><a href="#courses" class="hover:text-white transition-colors">Курсы и тесты</a></li>
+                    </ul>
+                </div>
+
+                <!-- For Users -->
+                <div class="space-y-3">
+                    <h4 class="text-white font-bold text-sm tracking-wider uppercase">Личный кабинет</h4>
+                    <ul class="space-y-2 text-sm text-slate-400">
+                        <li><button onclick="openAuthModal('login')" class="hover:text-white transition-colors">Вход в систему</button></li>
+                        <li><button onclick="openAuthModal('register')" class="hover:text-white transition-colors">Регистрация студента</button></li>
+                        <li><button onclick="openAuthModal('register')" class="hover:text-white transition-colors">Кабинет преподавателя</button></li>
+                        <li><a href="#hero" class="hover:text-white transition-colors">Помощь и FAQ</a></li>
+                    </ul>
+                </div>
+
+                <!-- Contacts Details -->
+                <div class="space-y-3">
+                    <h4 class="text-white font-bold text-sm tracking-wider uppercase">Контакты</h4>
+                    <ul class="space-y-2 text-sm text-slate-400">
+                        <li class="flex items-center gap-2">
+                            <span class="text-indigo-400">Email:</span>
+                            <span class="text-white">support@ed-platform.io</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-indigo-400">Телефон:</span>
+                            <span class="text-white">+7 (800) 555-35-35</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-indigo-400">Адрес:</span>
+                            <span>Москва, Пресненская наб., 12</span>
+                        </li>
+                        <li>
+                            <span class="inline-block mt-2 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg font-medium">Поддержка 24/7 онлайн</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Bottom Copyright -->
+            <div class="mt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
+                <p>&copy; 2026 ED Platform. Все права защищены.</p>
+                <div class="flex gap-6">
+                    <a href="#hero" class="hover:underline">Политика конфиденциальности</a>
+                    <a href="#hero" class="hover:underline">Пользовательское соглашение</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal Window: Login / Registration -->
+    <div id="authModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 relative transition-all transform">
+            <!-- Close Button -->
+            <button onclick="closeAuthModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-2 rounded-xl bg-slate-100/60 hover:bg-slate-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+
+            <!-- Modal Header / Tabs -->
+            <div class="flex items-center gap-3 border-b border-slate-100 pb-4 mb-6">
+                <div class="w-10 h-10 rounded-2xl bg-indigo-600 text-white font-extrabold flex items-center justify-center text-lg shadow-md shadow-indigo-600/30">
+                    ED
+                </div>
+                <div>
+                    <h3 id="modalTitle" class="text-xl font-bold text-slate-900">Добро пожаловать</h3>
+                    <p id="modalSubtitle" class="text-xs text-slate-500">Войдите или зарегистрируйтесь на платформе</p>
+                </div>
+            </div>
+
+            <!-- Switch Mode Buttons -->
+            <div class="flex bg-slate-100 p-1 rounded-2xl mb-6">
+                <button id="modalTabLogin" onclick="switchAuthTab('login')" class="flex-1 py-2 text-center text-sm font-semibold rounded-xl bg-white text-indigo-600 shadow-sm transition-all">
+                    Вход
+                </button>
+                <button id="modalTabRegister" onclick="switchAuthTab('register')" class="flex-1 py-2 text-center text-sm font-semibold rounded-xl text-slate-600 hover:text-slate-900 transition-all">
+                    Регистрация
+                </button>
+            </div>
+
+            <!-- Form -->
+            <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div id="nameField" class="hidden space-y-1">
+                    <label class="text-xs font-semibold text-slate-700">Имя и Фамилия</label>
+                    <input type="text" id="userName" placeholder="Иван Петров" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-700">Электронная почта</label>
+                    <input type="email" id="userEmail" required placeholder="example@ed.ru" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                </div>
+
+                <div class="space-y-1">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs font-semibold text-slate-700">Пароль</label>
+                        <a href="#hero" id="forgotPassLink" class="text-xs text-indigo-600 hover:underline">Забыли?</a>
+                    </div>
+                    <input type="password" id="userPass" required placeholder="••••••••" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                </div>
+
+                <div id="roleSelector" class="hidden pt-2 space-y-1">
+                    <label class="text-xs font-semibold text-slate-700">Роль в системе</label>
+                    <select class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                        <option value="student">Я хочу проходить тесты и курсы (Ученик)</option>
+                        <option value="teacher">Я создаю курсы и тесты (Преподаватель)</option>
+                    </select>
+                </div>
+
+                <button type="submit" id="authSubmitBtn" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition-all text-sm mt-2">
+                    Войти в аккаунт
+                </button>
+            </form>
+
+            <!-- Notification Banner inside Modal -->
+            <div id="modalNotice" class="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs hidden text-center">
+                Успешно! Перенаправляем в личный кабинет...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentAuthMode = 'login';
+
+        // Interactive quiz mockup selection in Hero
+        function selectHeroAnswer(btn, isCorrect) {
+            const buttons = document.querySelectorAll('#heroQuizOptions button');
+            buttons.forEach(b => {
+                b.className = 'w-full text-left p-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-xs text-slate-300 transition-all flex items-center justify-between';
+                const circle = b.querySelector('span:last-child');
+                circle.className = 'w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center';
+                circle.innerText = '';
+            });
+
+            if (isCorrect) {
+                btn.className = 'w-full text-left p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/60 text-xs text-emerald-200 transition-all flex items-center justify-between';
+                const circle = btn.querySelector('span:last-child');
+                circle.className = 'w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]';
+                circle.innerText = '✓';
+            } else {
+                btn.className = 'w-full text-left p-3 rounded-xl bg-rose-950/60 border border-rose-500/60 text-xs text-rose-200 transition-all flex items-center justify-between';
+                const circle = btn.querySelector('span:last-child');
+                circle.className = 'w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px]';
+                circle.innerText = '✕';
+            }
+        }
+
+        // Mobile Menu Toggle
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Close mobile menu on anchor click
+        document.querySelectorAll('#mobileMenu a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+
+        // Switch Role Tabs in "How It Works"
+        function switchRoleView(role) {
+            const studentBtn = document.getElementById('tabStudent');
+            const teacherBtn = document.getElementById('tabTeacher');
+            const studentSteps = document.getElementById('studentSteps');
+            const teacherSteps = document.getElementById('teacherSteps');
+
+            if (role === 'student') {
+                studentBtn.className = 'px-6 py-2.5 rounded-xl font-semibold text-sm bg-white text-indigo-600 shadow-sm transition-all';
+                teacherBtn.className = 'px-6 py-2.5 rounded-xl font-semibold text-sm text-slate-600 hover:text-slate-900 transition-all';
+                studentSteps.classList.remove('hidden');
+                teacherSteps.classList.add('hidden');
+            } else {
+                teacherBtn.className = 'px-6 py-2.5 rounded-xl font-semibold text-sm bg-white text-cyan-600 shadow-sm transition-all';
+                studentBtn.className = 'px-6 py-2.5 rounded-xl font-semibold text-sm text-slate-600 hover:text-slate-900 transition-all';
+                studentSteps.classList.add('hidden');
+                teacherSteps.classList.remove('hidden');
+            }
+        }
+
+        // Modal Functions
+        function openAuthModal(mode = 'login') {
+            const modal = document.getElementById('authModal');
+            modal.classList.remove('hidden');
+            switchAuthTab(mode);
+        }
+
+        function closeAuthModal() {
+            const modal = document.getElementById('authModal');
+            modal.classList.add('hidden');
+            document.getElementById('modalNotice').classList.add('hidden');
+        }
+
+        function switchAuthTab(mode) {
+            currentAuthMode = mode;
+            const loginTab = document.getElementById('modalTabLogin');
+            const regTab = document.getElementById('modalTabRegister');
+            const nameField = document.getElementById('nameField');
+            const roleSelector = document.getElementById('roleSelector');
+            const forgotPass = document.getElementById('forgotPassLink');
+            const submitBtn = document.getElementById('authSubmitBtn');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalSubtitle = document.getElementById('modalSubtitle');
+            const notice = document.getElementById('modalNotice');
+            notice.classList.add('hidden');
+
+            if (mode === 'login') {
+                loginTab.className = 'flex-1 py-2 text-center text-sm font-semibold rounded-xl bg-white text-indigo-600 shadow-sm transition-all';
+                regTab.className = 'flex-1 py-2 text-center text-sm font-semibold rounded-xl text-slate-600 hover:text-slate-900 transition-all';
+                nameField.classList.add('hidden');
+                roleSelector.classList.add('hidden');
+                forgotPass.classList.remove('hidden');
+                submitBtn.innerText = 'Войти в личный кабинет';
+                modalTitle.innerText = 'С возвращением!';
+                modalSubtitle.innerText = 'Введите свои данные для доступа к курсам и тестам';
+            } else {
+                regTab.className = 'flex-1 py-2 text-center text-sm font-semibold rounded-xl bg-white text-indigo-600 shadow-sm transition-all';
+                loginTab.className = 'flex-1 py-2 text-center text-sm font-semibold rounded-xl text-slate-600 hover:text-slate-900 transition-all';
+                nameField.classList.remove('hidden');
+                roleSelector.classList.remove('hidden');
+                forgotPass.classList.add('hidden');
+                submitBtn.innerText = 'Зарегистрироваться бесплатно';
+                modalTitle.innerText = 'Создать профиль';
+                modalSubtitle.innerText = 'Присоединяйтесь к платформе ED за 30 секунд';
+            }
+        }
+
+        // Form Submission Demo
+        function handleAuthSubmit(e) {
+            e.preventDefault();
+            const notice = document.getElementById('modalNotice');
+            const email = document.getElementById('userEmail').value;
+            
+            notice.innerText = currentAuthMode === 'login' 
+                ? `Вход выполнен успешно! Добро пожаловать, ${email}`
+                : `Регистрация завершена! Ссылка для входа отправлена на ${email}`;
+            
+            notice.classList.remove('hidden');
+            
+            setTimeout(() => {
+                closeAuthModal();
+            }, 2000);
+        }
+
+        // Close on clicking outside backdrop
+        document.getElementById('authModal').addEventListener('click', (e) => {
+            if (e.target.id === 'authModal') {
+                closeAuthModal();
+            }
+        });
+    </script>
+</body>
+</html>

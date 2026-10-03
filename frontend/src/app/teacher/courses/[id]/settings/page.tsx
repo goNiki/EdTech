@@ -1,0 +1,332 @@
+'use client';
+
+import React, { useEffect, useState, use } from 'react';
+import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
+import TopNavbar from '@/components/layout/TopNavbar';
+import { Save, ArrowLeft, Sparkles, CheckCircle2, Sliders, ExternalLink } from 'lucide-react';
+
+export default function CourseSettingsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const router = useRouter();
+
+  const [formData, setFormData] = useState({
+    title: '',
+    slug: '',
+    short_description: '',
+    description: '',
+    cover_url: '',
+    intro_video_url: '',
+    difficulty: 'beginner',
+    language: 'RU',
+    visibility: 'public',
+    status: 'draft',
+    category_id: 1,
+  });
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3000);
+  };
+
+  useEffect(() => {
+    const fetchCourse = async () => {
+      try {
+        const { data } = await api.get(`/courses/${id}`);
+        const c = data.data?.course || data.data?.Course || data.course || data.Course || data.data || data;
+
+        if (c) {
+          setFormData({
+            title: c.title || c.Title || '',
+            slug: c.slug || c.Slug || '',
+            short_description: c.short_description || c.ShortDescription || '',
+            description: c.description || c.Description || '',
+            cover_url: c.cover_url || c.CoverUrl || '',
+            intro_video_url: c.intro_video_url || c.IntroVideoUrl || '',
+            difficulty: (c.difficulty || c.Difficulty || 'beginner').toLowerCase(),
+            language: c.language || c.Language || 'RU',
+            visibility: (c.visibility || c.Visibility || 'public').toLowerCase(),
+            status: (c.status || c.Status || 'draft').toLowerCase(),
+            category_id: Number(c.category_id || c.CategoryID || 1),
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch course settings', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCourse();
+  }, [id]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.title.trim()) {
+      alert('Пожалуйста, укажите название курса');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // 1. Update general course parameters
+      await api.patch(`/courses/${id}`, {
+        title: formData.title.trim(),
+        slug: formData.slug.trim(),
+        short_description: formData.short_description.trim() || undefined,
+        description: formData.description.trim() || undefined,
+        cover_url: formData.cover_url.trim() || undefined,
+        intro_video_url: formData.intro_video_url.trim() || undefined,
+        difficulty: formData.difficulty,
+        language: formData.language,
+        visibility: formData.visibility,
+        category_id: Number(formData.category_id),
+      });
+
+      // 2. Update status if available
+      try {
+        await api.patch(`/courses/${id}/status`, {
+          status: formData.status,
+        });
+      } catch {
+        // Fallback if status endpoint is optional
+      }
+
+      showToast('Настройки курса успешно сохранены!');
+    } catch (err: any) {
+      console.error('Failed to save course settings', err);
+      alert(err.response?.data?.message || err.response?.data?.error || 'Ошибка при сохранении');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <TopNavbar title="Загрузка настроек курса..." />
+        <main className="p-8 max-w-4xl w-full mx-auto space-y-6 animate-pulse">
+          <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-xl w-1/3" />
+          <div className="h-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl" />
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <TopNavbar
+        title="Настройки курса"
+        subtitle="Управление метаданными, видимостью и параметрами курса"
+      />
+
+      <main className="p-8 max-w-4xl w-full mx-auto space-y-8 flex-1">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-sm space-y-6"
+        >
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                Основные параметры курса
+              </h2>
+              <p className="text-xs text-slate-500">
+                ID курса: #{id} • Изменения сразу вступают в силу после сохранения
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => router.push(`/teacher/courses/${id}/curriculum`)}
+              className="px-4 py-2 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 w-fit"
+            >
+              <Sliders size={14} />
+              <span>Перейти к программе курса</span>
+            </button>
+          </div>
+
+          {/* Title & Slug */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Название курса *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Название курса..."
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                URL Slug (для адресной строки) *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.slug}
+                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                placeholder="my-course-slug"
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Short Description */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Краткое описание (для карточки в каталоге)
+            </label>
+            <input
+              type="text"
+              value={formData.short_description}
+              onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
+              placeholder="О чем этот курс в двух словах..."
+              className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          {/* Full Description */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Подробное описание курса
+            </label>
+            <textarea
+              rows={4}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Расскажите студентам, что они изучат на курсе, какие требования и цели..."
+              className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          {/* Media Links */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Ссылка на обложку (Cover Image URL)
+              </label>
+              <input
+                type="url"
+                value={formData.cover_url}
+                onChange={(e) => setFormData({ ...formData, cover_url: e.target.value })}
+                placeholder="https://example.com/cover.jpg"
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Ссылка на интро-видео (YouTube URL)
+              </label>
+              <input
+                type="url"
+                value={formData.intro_video_url}
+                onChange={(e) => setFormData({ ...formData, intro_video_url: e.target.value })}
+                placeholder="https://www.youtube.com/watch?v=..."
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Selects: Difficulty, Language, Visibility, Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Сложность
+              </label>
+              <select
+                value={formData.difficulty}
+                onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+              >
+                <option value="beginner">Начальный (Beginner)</option>
+                <option value="intermediate">Средний (Intermediate)</option>
+                <option value="advanced">Продвинутый (Advanced)</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Язык
+              </label>
+              <select
+                value={formData.language}
+                onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+              >
+                <option value="RU">Русский (RU)</option>
+                <option value="EN">English (EN)</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Видимость
+              </label>
+              <select
+                value={formData.visibility}
+                onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+              >
+                <option value="public">Публичный (в каталоге)</option>
+                <option value="private">Приватный (по ссылке)</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Статус курса
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+              >
+                <option value="draft">Черновик (draft)</option>
+                <option value="published">Опубликован (published)</option>
+                <option value="archived">В архиве (archived)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex justify-between items-center pt-6 border-t border-slate-100 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => router.push(`/teacher/courses/${id}/curriculum`)}
+              className="text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors"
+            >
+              ← Вернуться к программе курса
+            </button>
+
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2"
+            >
+              <Save size={16} />
+              <span>{isSaving ? 'Сохранение...' : 'Сохранить настройки'}</span>
+            </button>
+          </div>
+        </form>
+      </main>
+
+      {/* Toast Notification */}
+      {toastMsg && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 animate-bounce">
+          <CheckCircle2 size={16} />
+          <span>{toastMsg}</span>
+        </div>
+      )}
+    </div>
+  );
+}
