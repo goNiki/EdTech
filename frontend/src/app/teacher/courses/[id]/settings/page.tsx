@@ -18,7 +18,9 @@ import {
   Trash2,
   RefreshCw,
   AlertCircle,
-  Tag
+  Tag,
+  AlertTriangle,
+  AlertOctagon
 } from 'lucide-react';
 
 export default function CourseSettingsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -46,6 +48,12 @@ export default function CourseSettingsPage({ params }: { params: Promise<{ id: s
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Danger Zone deletion state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -194,6 +202,34 @@ export default function CourseSettingsPage({ params }: { params: Promise<{ id: s
       alert(err.response?.data?.message || err.response?.data?.error || 'Ошибка при сохранении');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteCourse = async () => {
+    if (deleteConfirmationInput.trim() !== formData.title.trim()) {
+      setDeleteError('Введенное название не совпадает с точным названием курса');
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await api.delete(`/courses/${id}`);
+      showToast('Курс успешно удален');
+      setTimeout(() => {
+        router.push('/teacher/courses');
+      }, 700);
+    } catch (err: any) {
+      console.error('Failed to delete course', err);
+      const status = err.response?.status;
+      const msg = err.response?.data?.message || err.response?.data?.error;
+      if (status === 403) {
+        setDeleteError('У вас нет прав на удаление этого курса. Только автор курса может его удалить.');
+      } else {
+        setDeleteError(msg || 'Не удалось удалить курс. Попробуйте позже.');
+      }
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -543,7 +579,114 @@ export default function CourseSettingsPage({ params }: { params: Promise<{ id: s
             </button>
           </div>
         </form>
+
+        {/* Danger Zone */}
+        <div className="bg-rose-50/40 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-3xl p-8 space-y-4 shadow-sm">
+          <div className="flex items-center gap-2.5 text-rose-600 dark:text-rose-400">
+            <AlertTriangle size={20} />
+            <h3 className="text-base font-extrabold tracking-tight">Опасная зона</h3>
+          </div>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 pt-2">
+            <div className="space-y-1 max-w-xl">
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Удалить этот курс
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Удаление курса необратимо. Курс исчезнет из каталога, а студенты потеряют доступ к материалам.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteConfirmationInput('');
+                setDeleteError(null);
+                setIsDeleteModalOpen(true);
+              }}
+              className="px-5 py-2.5 rounded-xl border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white transition-all text-xs font-bold flex items-center gap-2 whitespace-nowrap cursor-pointer shadow-xs"
+            >
+              <Trash2 size={15} />
+              <span>Удалить этот курс</span>
+            </button>
+          </div>
+        </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5">
+            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
+              <div className="p-2.5 bg-rose-100 dark:bg-rose-950/60 rounded-2xl">
+                <AlertOctagon size={24} />
+              </div>
+              <div>
+                <h4 className="text-base font-extrabold text-slate-900 dark:text-white">
+                  Вы абсолютно уверены?
+                </h4>
+                <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold">
+                  Это действие нельзя будет отменить
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Это действие приведет к безвозвратному удалению курса и всех связанных материалов. Курс перестанет отображаться в каталоге.
+            </p>
+
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-2">
+              <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                Пожалуйста, введите название курса <strong className="text-slate-900 dark:text-white font-mono break-all font-bold">«{formData.title}»</strong> для подтверждения удаления:
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmationInput}
+                onChange={(e) => {
+                  setDeleteConfirmationInput(e.target.value);
+                  if (deleteError) setDeleteError(null);
+                }}
+                placeholder="Введите название курса..."
+                className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                autoFocus
+              />
+            </div>
+
+            {deleteError && (
+              <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold">
+                {deleteError}
+              </p>
+            )}
+
+            <div className="flex justify-end items-center gap-2.5 pt-2">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                disabled={deleteConfirmationInput.trim() !== formData.title.trim() || isDeleting}
+                onClick={handleDeleteCourse}
+                className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:hover:bg-rose-600 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed shadow-md shadow-rose-600/20"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Удаление...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    <span>Я понимаю последствия, удалить курс</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toastMsg && (
