@@ -5,6 +5,7 @@ import { parseSmartDropdownTemplate } from '@/lib/puck-config';
 import { api } from '@/lib/api';
 import {
   CheckCircle,
+  CheckCircle2,
   XCircle,
   Upload,
   Send,
@@ -38,12 +39,14 @@ interface PuckLessonViewerProps {
   contentJson: string | object;
   onComplete?: (payload?: LessonCompletionPayload) => void;
   onNavigateBack?: () => void;
+  initialProgress?: any;
 }
 
 export default function PuckLessonViewer({
   contentJson,
   onComplete,
   onNavigateBack,
+  initialProgress,
 }: PuckLessonViewerProps) {
   let parsedContent: any = { content: [] };
   try {
@@ -1120,13 +1123,28 @@ export default function PuckLessonViewer({
       })}
 
       {/* Completion Button */}
-      <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+      <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {initialProgress && (initialProgress.status === 'completed' || initialProgress.Status === 'completed') ? (
+          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-4 py-2.5 rounded-2xl border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs">
+            <CheckCircle2 size={16} className="text-emerald-500" />
+            <span>Урок уже сдан • Набранный балл: {initialProgress.score ?? 100}%</span>
+          </div>
+        ) : (
+          <div className="text-xs text-slate-400">
+            Завершите все задания урока перед отправкой результата
+          </div>
+        )}
+
         <button
           onClick={handleFinish}
           className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-2xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
         >
           <Sparkles size={16} />
-          <span>Завершить урок и перейти к следующему</span>
+          <span>
+            {initialProgress && (initialProgress.status === 'completed' || initialProgress.Status === 'completed')
+              ? 'Обновить результат и сохранить'
+              : 'Завершить урок и перейти к следующему'}
+          </span>
         </button>
       </div>
 
