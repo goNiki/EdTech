@@ -4,6 +4,7 @@ import (
 	"edtech/internal/domain"
 	"edtech/internal/dto"
 	"edtech/internal/interfaces/handlers/converter"
+	"edtech/internal/interfaces/middleware/auth"
 	"edtech/internal/interfaces/response"
 	"edtech/internal/service"
 	errorsAPP "edtech/pkg/errors"
@@ -17,21 +18,29 @@ import (
 )
 
 type LessonHandler struct {
-	lessonService service.LessonServices
-	log           *slog.Logger
-	validator     *validator.Validate
+	lessonService  service.LessonServices
+	log            *slog.Logger
+	validator      *validator.Validate
+	authMiddleware auth.AuthMiddleware
 }
 
-func NewLessonHandler(lessonService service.LessonServices, log *slog.Logger, validator *validator.Validate) *LessonHandler {
+func NewLessonHandler(lessonService service.LessonServices, log *slog.Logger, validator *validator.Validate, authMiddleware auth.AuthMiddleware) *LessonHandler {
 	return &LessonHandler{
-		lessonService: lessonService,
-		log:           log,
-		validator:     validator,
+		lessonService:  lessonService,
+		log:            log,
+		validator:      validator,
+		authMiddleware: authMiddleware,
 	}
 }
 
 func (h *LessonHandler) CreateLesson(w http.ResponseWriter, r *http.Request) {
 	const op = "http.handlers.lesson.CreateLesson"
+
+	userID := h.authMiddleware.GetUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, h.log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
 
 	var req dto.CreateLessonRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
@@ -46,7 +55,7 @@ func (h *LessonHandler) CreateLesson(w http.ResponseWriter, r *http.Request) {
 
 	lessonDomain := converter.CreateLessonRequestToDomain(req)
 
-	createdID, err := h.lessonService.CreateLesson(r.Context(), &lessonDomain)
+	createdID, err := h.lessonService.CreateLesson(r.Context(), userID, &lessonDomain)
 	if err != nil {
 		response.HandleError(w, r, h.log, err, op)
 		return
@@ -57,6 +66,12 @@ func (h *LessonHandler) CreateLesson(w http.ResponseWriter, r *http.Request) {
 
 func (h *LessonHandler) UpdateLesson(w http.ResponseWriter, r *http.Request) {
 	const op = "http.handlers.lesson.UpdateLesson"
+
+	userID := h.authMiddleware.GetUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, h.log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
 
 	idStr := chi.URLParam(r, "id")
 	lessonID, err := strconv.ParseInt(idStr, 10, 64)
@@ -105,7 +120,7 @@ func (h *LessonHandler) UpdateLesson(w http.ResponseWriter, r *http.Request) {
 		lessonDomain.IsFree = *req.IsFree
 	}
 
-	if err := h.lessonService.UpdateLesson(r.Context(), lessonDomain); err != nil {
+	if err := h.lessonService.UpdateLesson(r.Context(), userID, lessonDomain); err != nil {
 		response.HandleError(w, r, h.log, err, op)
 		return
 	}
@@ -116,6 +131,12 @@ func (h *LessonHandler) UpdateLesson(w http.ResponseWriter, r *http.Request) {
 func (h *LessonHandler) DeleteLesson(w http.ResponseWriter, r *http.Request) {
 	const op = "http.handlers.lesson.DeleteLesson"
 
+	userID := h.authMiddleware.GetUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, h.log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
+
 	idStr := chi.URLParam(r, "id")
 	lessonID, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -123,7 +144,7 @@ func (h *LessonHandler) DeleteLesson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.lessonService.DeleteLesson(r.Context(), lessonID); err != nil {
+	if err := h.lessonService.DeleteLesson(r.Context(), userID, lessonID); err != nil {
 		response.HandleError(w, r, h.log, err, op)
 		return
 	}

@@ -18,6 +18,12 @@ func (h *SectionHandler) ReorderLessons(w http.ResponseWriter, r *http.Request) 
 
 	log := logger.GetLogger(r.Context(), op)
 
+	userID := h.authMiddleware.GetUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
+
 	sectionIDStr := chi.URLParam(r, "id")
 	sectionID, err := strconv.ParseInt(sectionIDStr, 10, 64)
 	if err != nil {
@@ -36,7 +42,7 @@ func (h *SectionHandler) ReorderLessons(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.sectionService.ReorderLessons(r.Context(), sectionID, req.ItemIDs); err != nil {
+	if err := h.sectionService.ReorderLessons(r.Context(), userID, sectionID, req.ItemIDs); err != nil {
 		response.HandleError(w, r, log, err, op)
 		return
 	}

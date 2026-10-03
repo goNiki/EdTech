@@ -3,20 +3,42 @@ package section
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"edtech/internal/domain"
 	"edtech/internal/infrastructure/db"
+	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *sectionService) UpdateSection(ctx context.Context, section *domain.Section) error {
+func (s *sectionService) UpdateSection(ctx context.Context, userID int64, section *domain.Section) error {
 	const op = "service.section.UpdateSection"
 
 	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, q db.QueryExecutor) error {
 		existing, err := s.sectionRepo.GetSectionByID(ctx, q, section.ID)
 		if err != nil {
 			return err
+		}
+
+		// RBAC: check that user can edit the course this section belongs to
+		course, err := s.courseRepo.GetCourseByID(ctx, q, existing.CourseID)
+		if err != nil {
+			return err
+		}
+
+		canEdit, err := s.accessService.CanEditCourse(ctx, course, userID)
+		if err != nil {
+			return err
+		}
+		if !canEdit {
+			slog.Warn("unauthorized section update attempt",
+				"userID", userID,
+				"courseID", existing.CourseID,
+				"sectionID", section.ID,
+				"action", "UpdateSection",
+			)
+			return errorsAPP.ErrForbidden
 		}
 
 		if section.Title != "" {

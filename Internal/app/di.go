@@ -281,7 +281,7 @@ func (d *diContainer) AnalyticsRepo() repository.AnalyticsRepository {
 
 func (d *diContainer) SectionSvc() service.SectionServices {
 	if d.sectionSvc == nil {
-		d.sectionSvc = sectionService.NewSectionService(d.SectionRepo(), d.LessonRepo(), d.TxManager())
+		d.sectionSvc = sectionService.NewSectionService(d.SectionRepo(), d.LessonRepo(), d.CourseRepo(), d.AccessSvc(), d.TxManager(), d.DB().Pool)
 	}
 	return d.sectionSvc
 }
@@ -309,7 +309,7 @@ func (d *diContainer) CourseSvc() service.CourseServices {
 
 func (d *diContainer) LessonSvc() service.LessonServices {
 	if d.lessonSvc == nil {
-		d.lessonSvc = lessonService.NewLessonService(d.CourseRepo(), d.LessonRepo(), d.DB().Pool)
+		d.lessonSvc = lessonService.NewLessonService(d.CourseRepo(), d.LessonRepo(), d.SectionRepo(), d.AccessSvc(), d.DB().Pool)
 	}
 	return d.lessonSvc
 }
@@ -346,14 +346,14 @@ func (d *diContainer) AnalyticsSvc() service.AnalyticsServices {
 
 func (d *diContainer) LessonHdl() *lessonHandler.LessonHandler {
 	if d.lessonHdl == nil {
-		d.lessonHdl = lessonHandler.NewLessonHandler(d.LessonSvc(), d.Logger(), validator.New())
+		d.lessonHdl = lessonHandler.NewLessonHandler(d.LessonSvc(), d.Logger(), validator.New(), d.MwAuth())
 	}
 	return d.lessonHdl
 }
 
 func (d *diContainer) SectionHdl() *sectionHandler.SectionHandler {
 	if d.sectionHdl == nil {
-		d.sectionHdl = sectionHandler.NewSectionHandler(d.SectionSvc(), d.Logger(), validator.New())
+		d.sectionHdl = sectionHandler.NewSectionHandler(d.SectionSvc(), d.Logger(), validator.New(), d.MwAuth())
 	}
 	return d.sectionHdl
 }

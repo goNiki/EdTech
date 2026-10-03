@@ -4,6 +4,7 @@ import (
 	"edtech/internal/domain"
 	"edtech/internal/dto"
 	"edtech/internal/interfaces/handlers/converter"
+	"edtech/internal/interfaces/middleware/auth"
 	"edtech/internal/interfaces/response"
 	"edtech/internal/service"
 	errorsAPP "edtech/pkg/errors"
@@ -20,18 +21,26 @@ type SectionHandler struct {
 	sectionService service.SectionServices
 	log            *slog.Logger
 	validator      *validator.Validate
+	authMiddleware auth.AuthMiddleware
 }
 
-func NewSectionHandler(sectionService service.SectionServices, log *slog.Logger, validator *validator.Validate) *SectionHandler {
+func NewSectionHandler(sectionService service.SectionServices, log *slog.Logger, validator *validator.Validate, authMiddleware auth.AuthMiddleware) *SectionHandler {
 	return &SectionHandler{
 		sectionService: sectionService,
 		log:            log,
 		validator:      validator,
+		authMiddleware: authMiddleware,
 	}
 }
 
 func (h *SectionHandler) CreateSection(w http.ResponseWriter, r *http.Request) {
 	const op = "http.handlers.section.CreateSection"
+
+	userID := h.authMiddleware.GetUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, h.log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
 
 	var req dto.CreateSectionRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
@@ -46,7 +55,7 @@ func (h *SectionHandler) CreateSection(w http.ResponseWriter, r *http.Request) {
 
 	sectionDomain := converter.CreateSectionRequestToDomain(req)
 
-	createdSection, err := h.sectionService.CreateSection(r.Context(), &sectionDomain)
+	createdSection, err := h.sectionService.CreateSection(r.Context(), userID, &sectionDomain)
 	if err != nil {
 		response.HandleError(w, r, h.log, err, op)
 		return
@@ -57,6 +66,12 @@ func (h *SectionHandler) CreateSection(w http.ResponseWriter, r *http.Request) {
 
 func (h *SectionHandler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 	const op = "http.handlers.section.UpdateSection"
+
+	userID := h.authMiddleware.GetUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, h.log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
 
 	idStr := chi.URLParam(r, "id")
 	sectionID, err := strconv.ParseInt(idStr, 10, 64)
@@ -87,7 +102,7 @@ func (h *SectionHandler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 		sectionDomain.Description = *req.Description
 	}
 
-	if err := h.sectionService.UpdateSection(r.Context(), sectionDomain); err != nil {
+	if err := h.sectionService.UpdateSection(r.Context(), userID, sectionDomain); err != nil {
 		response.HandleError(w, r, h.log, err, op)
 		return
 	}
@@ -98,6 +113,12 @@ func (h *SectionHandler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 func (h *SectionHandler) DeleteSection(w http.ResponseWriter, r *http.Request) {
 	const op = "http.handlers.section.DeleteSection"
 
+	userID := h.authMiddleware.GetUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, h.log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
+
 	idStr := chi.URLParam(r, "id")
 	sectionID, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -105,7 +126,7 @@ func (h *SectionHandler) DeleteSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.sectionService.DeleteSection(r.Context(), sectionID); err != nil {
+	if err := h.sectionService.DeleteSection(r.Context(), userID, sectionID); err != nil {
 		response.HandleError(w, r, h.log, err, op)
 		return
 	}

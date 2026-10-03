@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *service) ListLessonsByCourseID(ctx context.Context, slug string) (domain.CourseWithLessons, error) {
+func (s *lessonService) ListLessonsByCourseID(ctx context.Context, slug string) (domain.CourseWithLessons, error) {
 	const op = "service.lesson.ListLessonsByCourseID"
 
 	course, err := s.courserepo.GetCourseBySlug(ctx, s.db, slug)

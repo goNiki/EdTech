@@ -18,6 +18,12 @@ func (h *LessonHandler) UpdateLessonStatus(w http.ResponseWriter, r *http.Reques
 
 	log := logger.GetLogger(r.Context(), op)
 
+	userID := h.authMiddleware.GetUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
+
 	lessonIDStr := chi.URLParam(r, "id")
 	lessonID, err := strconv.ParseInt(lessonIDStr, 10, 64)
 	if err != nil {
@@ -36,7 +42,7 @@ func (h *LessonHandler) UpdateLessonStatus(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := h.lessonService.UpdateLessonStatus(r.Context(), lessonID, req.Status); err != nil {
+	if err := h.lessonService.UpdateLessonStatus(r.Context(), userID, lessonID, req.Status); err != nil {
 		response.HandleError(w, r, log, err, op)
 		return
 	}

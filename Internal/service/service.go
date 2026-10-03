@@ -41,11 +41,11 @@ type EnrolledServices interface {
 }
 
 type LessonServices interface {
-	CreateLesson(ctx context.Context, lesson *domain.Lesson) (int64, error)
+	CreateLesson(ctx context.Context, userID int64, lesson *domain.Lesson) (int64, error)
 	GetLesson(ctx context.Context, lessonID int64) (*domain.Lesson, error)
-	DeleteLesson(ctx context.Context, lessonID int64) error
-	UpdateLesson(ctx context.Context, lesson *domain.Lesson) error
-	UpdateLessonStatus(ctx context.Context, lessonID int64, status string) error
+	DeleteLesson(ctx context.Context, userID int64, lessonID int64) error
+	UpdateLesson(ctx context.Context, userID int64, lesson *domain.Lesson) error
+	UpdateLessonStatus(ctx context.Context, userID int64, lessonID int64, status string) error
 }
 
 type AnalyticsServices interface {
@@ -96,9 +96,9 @@ type QuizServices interface {
 }
 
 type SectionServices interface {
-	CreateSection(ctx context.Context, section *domain.Section) (*domain.Section, error)
-	UpdateSection(ctx context.Context, section *domain.Section) error
-	UpdateSectionStatus(ctx context.Context, sectionID int64, status string) error
-	ReorderLessons(ctx context.Context, sectionID int64, lessonIDs []int64) error
-	DeleteSection(ctx context.Context, sectionID int64) error
+	CreateSection(ctx context.Context, userID int64, section *domain.Section) (*domain.Section, error)
+	UpdateSection(ctx context.Context, userID int64, section *domain.Section) error
+	UpdateSectionStatus(ctx context.Context, userID int64, sectionID int64, status string) error
+	ReorderLessons(ctx context.Context, userID int64, sectionID int64, lessonIDs []int64) error
+	DeleteSection(ctx context.Context, userID int64, sectionID int64) error
 }

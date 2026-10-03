@@ -3,19 +3,40 @@ package section
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"edtech/internal/domain"
 	"edtech/internal/infrastructure/db"
+	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *sectionService) CreateSection(ctx context.Context, section *domain.Section) (*domain.Section, error) {
+func (s *sectionService) CreateSection(ctx context.Context, userID int64, section *domain.Section) (*domain.Section, error) {
 	const op = "service.section.CreateSection"
+
+	// RBAC: check that user can edit the course
+	course, err := s.courseRepo.GetCourseByID(ctx, s.db, section.CourseID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	canEdit, err := s.accessService.CanEditCourse(ctx, course, userID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if !canEdit {
+		slog.Warn("unauthorized section creation attempt",
+			"userID", userID,
+			"courseID", section.CourseID,
+			"action", "CreateSection",
+		)
+		return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
+	}
 
 	var createdSection *domain.Section
 
-	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, q db.QueryExecutor) error {
+	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, q db.QueryExecutor) error {
 		if section.Position == 0 {
 			maxPos, err := s.sectionRepo.GetMaxPositionByCourseID(ctx, q, section.CourseID)
 			if err != nil {

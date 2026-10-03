@@ -18,6 +18,12 @@ func (h *SectionHandler) UpdateSectionStatus(w http.ResponseWriter, r *http.Requ
 
 	log := logger.GetLogger(r.Context(), op)
 
+	userID := h.authMiddleware.GetUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
+
 	sectionIDStr := chi.URLParam(r, "id")
 	sectionID, err := strconv.ParseInt(sectionIDStr, 10, 64)
 	if err != nil {
@@ -36,7 +42,7 @@ func (h *SectionHandler) UpdateSectionStatus(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.sectionService.UpdateSectionStatus(r.Context(), sectionID, req.Status); err != nil {
+	if err := h.sectionService.UpdateSectionStatus(r.Context(), userID, sectionID, req.Status); err != nil {
 		response.HandleError(w, r, log, err, op)
 		return
 	}

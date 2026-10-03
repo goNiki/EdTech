@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-func (s *service) GetLesson(ctx context.Context, id int64) (*domain.Lesson, error) {
+func (s *lessonService) GetLesson(ctx context.Context, id int64) (*domain.Lesson, error) {
 	const op = "service.lesson.GetLesson"
 
 	lesson, err := s.lessonrepo.GetLessonByID(ctx, s.db, id)
