@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { parseSmartDropdownTemplate } from '@/lib/puck-config';
+import { api } from '@/lib/api';
 import {
   CheckCircle,
   XCircle,
@@ -18,7 +19,10 @@ import {
   ArrowRight,
   Award,
   BookOpen,
-  X
+  X,
+  Loader2,
+  Trash2,
+  Paperclip
 } from 'lucide-react';
 
 export interface LessonCompletionPayload {
@@ -64,6 +68,16 @@ export default function PuckLessonViewer({
   const [sequenceOrders, setSequenceOrders] = useState<Record<string, string[]>>({});
   const [submittedBlocks, setSubmittedBlocks] = useState<Record<string, boolean>>({});
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // File Upload states
+  const [uploadedFiles, setUploadedFiles] = useState<
+    Record<string, { name: string; size: number; url: string }>
+  >({});
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [isUploading, setIsUploading] = useState<Record<string, boolean>>({});
+  const [dragOverBlocks, setDragOverBlocks] = useState<Record<string, boolean>>({});
+  const [fileErrors, setFileErrors] = useState<Record<string, string>>({});
+
   const [completionResult, setCompletionResult] = useState<{
     score: number;
     earnedPoints: number;
@@ -74,7 +88,78 @@ export default function PuckLessonViewer({
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 3000);
+    setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  const handleFileUpload = async (blockId: string, file: File, maxSizeMB: number = 25) => {
+    if (file.size > maxSizeMB * 1024 * 1024) {
+      const errText = `Файл превышает допустимый размер ${maxSizeMB} МБ`;
+      setFileErrors((prev) => ({ ...prev, [blockId]: errText }));
+      showToast(errText);
+      return;
+    }
+
+    setFileErrors((prev) => {
+      const copy = { ...prev };
+      delete copy[blockId];
+      return copy;
+    });
+    setIsUploading((prev) => ({ ...prev, [blockId]: true }));
+    setUploadProgress((prev) => ({ ...prev, [blockId]: 10 }));
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', 'homework');
+
+      const res = await api.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (evt) => {
+          if (evt.total) {
+            const pct = Math.round((evt.loaded * 100) / evt.total);
+            setUploadProgress((prev) => ({ ...prev, [blockId]: pct }));
+          }
+        },
+      });
+
+      const data = res.data?.data || res.data;
+      const fileUrl = data.file_url || data.url || data.path;
+
+      setUploadedFiles((prev) => ({
+        ...prev,
+        [blockId]: {
+          name: file.name,
+          size: file.size,
+          url: fileUrl,
+        },
+      }));
+      showToast(`Файл «${file.name}» успешно загружен!`);
+    } catch (err: any) {
+      console.error('Failed to upload homework file', err);
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Ошибка при загрузке файла';
+      setFileErrors((prev) => ({ ...prev, [blockId]: msg }));
+      showToast(msg);
+    } finally {
+      setIsUploading((prev) => ({ ...prev, [blockId]: false }));
+    }
+  };
+
+  const handleRemoveFile = (blockId: string) => {
+    setUploadedFiles((prev) => {
+      const copy = { ...prev };
+      delete copy[blockId];
+      return copy;
+    });
+    setUploadProgress((prev) => {
+      const copy = { ...prev };
+      delete copy[blockId];
+      return copy;
+    });
+    setFileErrors((prev) => {
+      const copy = { ...prev };
+      delete copy[blockId];
+      return copy;
+    });
   };
 
   const handleSingleSelect = (blockId: string, optIdx: number) => {
@@ -221,9 +306,12 @@ export default function PuckLessonViewer({
         }
 
         case 'FileUploadBlock': {
+          const uploaded = uploadedFiles[blockId];
           submittedEssays.push({
             question_text: props.title || 'Загрузка практической работы',
-            answer_text: 'Документ прикреплен к практическому заданию',
+            answer_text: uploaded
+              ? `Файл решения: ${uploaded.name} (скачать: ${uploaded.url})`
+              : 'Файл решения не был прикреплен',
             max_points: Number(props.points) || 50,
           });
           break;
@@ -888,6 +976,14 @@ export default function PuckLessonViewer({
           }
 
           case 'FileUploadBlock': {
+            const uploaded = uploadedFiles[blockId];
+            const uploading = isUploading[blockId];
+            const progress = uploadProgress[blockId] || 0;
+            const err = fileErrors[blockId];
+            const isDragOver = dragOverBlocks[blockId];
+            const maxMB = Number(props.maxSizeMB) || 25;
+            const allowed = props.allowedTypes || '.zip,.pdf';
+
             return (
               <div
                 key={blockId}
@@ -902,16 +998,118 @@ export default function PuckLessonViewer({
                   </span>
                 </div>
                 <h4 className="text-sm font-bold text-slate-900 dark:text-white">{props.title}</h4>
-                <p className="text-xs text-slate-600 dark:text-slate-400">{props.instructions}</p>
-                <div className="p-8 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl text-center space-y-2 cursor-pointer hover:border-indigo-500 transition-colors">
-                  <Upload className="mx-auto text-slate-400" size={24} />
-                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 block">
-                    Нажмите для выбора архива или документа
-                  </span>
-                  <span className="text-[10px] text-slate-400 block">
-                    Разрешено: {props.allowedTypes || '.zip, .pdf'} (до {props.maxSizeMB || 25} МБ)
-                  </span>
-                </div>
+                {props.instructions && (
+                  <p className="text-xs text-slate-600 dark:text-slate-400">{props.instructions}</p>
+                )}
+
+                {/* Error message */}
+                {err && (
+                  <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                    <XCircle size={15} />
+                    <span>{err}</span>
+                  </div>
+                )}
+
+                {/* Uploading State */}
+                {uploading ? (
+                  <div className="p-8 border-2 border-dashed border-indigo-300 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-2xl text-center space-y-3">
+                    <Loader2 className="mx-auto text-indigo-600 animate-spin" size={28} />
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-indigo-900 dark:text-indigo-200">
+                        Загрузка файла {progress}%...
+                      </p>
+                      <div className="w-48 mx-auto bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : uploaded ? (
+                  /* Success State: File Plaque */
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-300 flex items-center justify-center flex-shrink-0">
+                        <Paperclip size={20} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-xs">
+                            {uploaded.name}
+                          </p>
+                          <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-extrabold bg-emerald-100/60 dark:bg-emerald-900/60 px-2 py-0.5 rounded">
+                            Загружен
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">
+                          {(uploaded.size / (1024 * 1024)).toFixed(2)} МБ •{' '}
+                          <a
+                            href={uploaded.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-indigo-600 hover:underline font-semibold"
+                          >
+                            Просмотреть / Скачать
+                          </a>
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(blockId)}
+                      className="px-3 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-bold transition-colors flex items-center gap-1.5 w-fit"
+                    >
+                      <Trash2 size={13} />
+                      <span>Заменить файл</span>
+                    </button>
+                  </div>
+                ) : (
+                  /* Dropzone / Idle State */
+                  <div>
+                    <input
+                      type="file"
+                      id={`file-input-${blockId}`}
+                      className="hidden"
+                      accept={allowed}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(blockId, file, maxMB);
+                      }}
+                    />
+                    <label
+                      htmlFor={`file-input-${blockId}`}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setDragOverBlocks((prev) => ({ ...prev, [blockId]: true }));
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        setDragOverBlocks((prev) => ({ ...prev, [blockId]: false }));
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDragOverBlocks((prev) => ({ ...prev, [blockId]: false }));
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) handleFileUpload(blockId, file, maxMB);
+                      }}
+                      className={`p-8 border-2 border-dashed rounded-2xl text-center space-y-2 cursor-pointer transition-all block ${
+                        isDragOver
+                          ? 'border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/40 scale-[1.01]'
+                          : 'border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-slate-50/50 dark:hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <Upload className="mx-auto text-slate-400" size={24} />
+                      <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 block">
+                        Нажмите для выбора или перетащите файл сюда
+                      </span>
+                      <span className="text-[10px] text-slate-400 block">
+                        Разрешено: {allowed} (до {maxMB} МБ)
+                      </span>
+                    </label>
+                  </div>
+                )}
               </div>
             );
           }

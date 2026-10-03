@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/store/useAuth';
 import { api } from '@/lib/api';
 import { useTheme } from 'next-themes';
@@ -17,7 +17,11 @@ import {
   Sun,
   Laptop,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  Camera,
+  Upload,
+  Loader2,
+  Trash2
 } from 'lucide-react';
 
 export default function ProfileAndSettingsPage() {
@@ -34,6 +38,55 @@ export default function ProfileAndSettingsPage() {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const resolveUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8082/api/v1').replace(/\/api\/v1\/?$/, '');
+    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError('Размер фото не должен превышать 5 МБ');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setAvatarError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', 'avatar');
+
+      const res = await api.post('/upload', formData, {
+        params: { category: 'avatar' },
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const data = res.data.data || res.data;
+      const uploadedUrl = data.file_url || data.url || data.FileUrl;
+      if (uploadedUrl) {
+        const fullUrl = resolveUrl(uploadedUrl);
+        setAvatarUrl(fullUrl);
+      }
+    } catch (err: any) {
+      console.error('Avatar upload failed', err);
+      setAvatarError(err.response?.data?.message || err.response?.data?.error || 'Не удалось загрузить фото');
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -118,7 +171,11 @@ export default function ProfileAndSettingsPage() {
             {/* Header with Avatar */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-5">
-                <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-extrabold text-2xl shadow-md flex-shrink-0">
+                <div
+                  className="relative group w-20 h-20 rounded-3xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-extrabold text-2xl shadow-md flex-shrink-0 overflow-hidden cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Нажмите, чтобы загрузить новое фото"
+                >
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover rounded-3xl" />
                   ) : (
@@ -127,7 +184,28 @@ export default function ProfileAndSettingsPage() {
                       {user?.last_name?.[0] || ''}
                     </span>
                   )}
+
+                  {/* Hover / Upload overlay */}
+                  <div className="absolute inset-0 bg-black/55 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl">
+                    {isUploadingAvatar ? (
+                      <Loader2 size={20} className="animate-spin text-white" />
+                    ) : (
+                      <>
+                        <Camera size={18} />
+                        <span className="text-[9px] font-bold mt-1">Фото</span>
+                      </>
+                    )}
+                  </div>
                 </div>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleAvatarFileChange}
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                />
+
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
@@ -194,14 +272,49 @@ export default function ProfileAndSettingsPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Ссылка на аватарку (URL)</label>
-                  <input
-                    type="url"
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                    placeholder="https://example.com/avatar.jpg"
-                    className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  />
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Аватар профиля</label>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingAvatar}
+                      className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5"
+                    >
+                      {isUploadingAvatar ? (
+                        <>
+                          <Loader2 size={13} className="animate-spin" />
+                          <span>Загрузка...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={13} />
+                          <span>Загрузить фото с диска</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={avatarUrl}
+                      onChange={(e) => setAvatarUrl(e.target.value)}
+                      placeholder="https://example.com/avatar.jpg или выберите файл"
+                      className="flex-1 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    />
+                    {avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setAvatarUrl('')}
+                        className="px-3 py-2 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors flex items-center gap-1 text-xs font-bold"
+                        title="Удалить фото"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                  {avatarError && (
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold">{avatarError}</p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">

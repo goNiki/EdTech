@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import TopNavbar from '@/components/layout/TopNavbar';
-import { PlusCircle, Sparkles, Save, ArrowRight } from 'lucide-react';
+import { PlusCircle, Sparkles, Save, ArrowRight, Upload, Image as ImageIcon, Loader2, Trash2 } from 'lucide-react';
 
 export default function CreateCoursePage() {
   const router = useRouter();
