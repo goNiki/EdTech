@@ -26,7 +26,7 @@ func (r *repository) IncrementEnrolledCount(ctx context.Context, q db.QueryExecu
 func (r *repository) DecrementEnrolledCount(ctx context.Context, q db.QueryExecutor, courseID int64) error {
 	const op = "repository.course.DecrementEnrolledCount"
 
-	query := `UPDATE courses SET enrolled_count = enrolled_count - 1 WHERE id = $1`
+	query := `UPDATE courses SET enrolled_count = GREATEST(enrolled_count - 1, 0) WHERE id = $1`
 
 	tag, err := q.Exec(ctx, query, courseID)
 	if err != nil {

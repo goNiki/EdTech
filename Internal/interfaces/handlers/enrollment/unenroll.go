@@ -59,7 +59,13 @@ func (h *EnrollmentHandler) TeacherUnenroll(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := h.enrollmentService.UnenrollUser(r.Context(), targetUserID, courseID); err != nil {
+	teacherID := h.authMiddleware.GetUserID(r.Context())
+	if teacherID == 0 {
+		response.HandleError(w, r, log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
+
+	if err := h.enrollmentService.TeacherUnenrollUser(r.Context(), teacherID, targetUserID, courseID); err != nil {
 		response.HandleError(w, r, log, err, op)
 		return
 	}

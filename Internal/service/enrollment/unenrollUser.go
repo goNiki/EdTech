@@ -45,3 +45,23 @@ func (s *service) UnenrollUser(ctx context.Context, userID int64, courseID int64
 
 	return nil
 }
+
+func (s *service) TeacherUnenrollUser(ctx context.Context, teacherID int64, targetUserID int64, courseID int64) error {
+	const op = "service.enrollment.TeacherUnenrollUser"
+
+	course, err := s.courserepo.GetCourseByID(ctx, s.db, courseID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	canManage, err := s.accessService.CanManageCourseUsers(ctx, course, teacherID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if !canManage {
+		return fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
+	}
+
+	return s.UnenrollUser(ctx, targetUserID, courseID)
+}
+

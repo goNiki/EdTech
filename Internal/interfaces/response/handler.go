@@ -41,6 +41,8 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		Error(w, r, http.StatusBadRequest, "INVALID_FILE_TYPE", "Unsupported or forbidden file type")
 	case errors.Is(err, errorsAPP.ErrEmptyFile):
 		Error(w, r, http.StatusBadRequest, "EMPTY_FILE", "Uploaded file cannot be empty")
+	case errors.Is(err, errorsAPP.ErrCreatorCannotUnenroll):
+		Error(w, r, http.StatusBadRequest, "CREATOR_CANNOT_UNENROLL", "Course creator cannot be unenrolled")
 	// 400 Bad Request - ошибки URL параметров
 	case errors.Is(err, errorsAPP.ErrInvalidURLParam):
 		Error(w, r, http.StatusBadRequest, "INVALID_URL_PARAM", "Invalid URL parametr")

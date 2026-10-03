@@ -35,6 +35,7 @@ type EnrolledServices interface {
 	SelfEnrollCourse(ctx context.Context, req domain.SelfEnrollRequest) error
 	TeacherEnrollCourse(ctx context.Context, req domain.TeacherEnrollRequest) error
 	UnenrollUser(ctx context.Context, userID int64, courseID int64) error
+	TeacherUnenrollUser(ctx context.Context, teacherID int64, targetUserID int64, courseID int64) error
 	GetRoleUserInCource(ctx context.Context, userID, courseID int64) (string, error)
 	ListCourseStudents(ctx context.Context, courseID int64, page int64, pageSize int64) ([]domain.User, int, error)
 	ListCourseStudentsWithProgress(ctx context.Context, teacherID, courseID int64, page, pageSize int64) ([]domain.CourseStudentItem, int64, error)
