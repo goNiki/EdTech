@@ -63,6 +63,12 @@ var (
 	ErrInvalidAction       = errors.New("invalid action")
 	ErrCheckingPermissions = errors.New("error checking permissions")
 
+	// Upload errors
+	ErrFileTooLarge     = errors.New("file size exceeds maximum allowed limit")
+	ErrInvalidFileType  = errors.New("unsupported or dangerous file type")
+	ErrEmptyFile        = errors.New("uploaded file cannot be empty")
+	ErrUploadFailed     = errors.New("failed to upload file")
+
 	// Validation errors
 	ErrValidationFailed = errors.New("validation failed")
 	ErrFailValidate     = errors.New("failed to validate fields")

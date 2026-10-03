@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"edtech/internal/domain"
+	"io"
 )
 
 type CategoryServices interface {
@@ -101,4 +102,8 @@ type SectionServices interface {
 	UpdateSectionStatus(ctx context.Context, userID int64, sectionID int64, status string) error
 	ReorderLessons(ctx context.Context, userID int64, sectionID int64, lessonIDs []int64) error
 	DeleteSection(ctx context.Context, userID int64, sectionID int64) error
+}
+
+type UploadServices interface {
+	UploadFile(ctx context.Context, file io.Reader, filename string, size int64, category string) (*domain.FileUploadResult, error)
 }

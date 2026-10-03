@@ -1,0 +1,199 @@
+# 🗺 Глобальный каталог бизнес-функционала платформы (Feature Catalog)
+
+> **Назначение:** Полный мастер-реестр реализованных бизнес-возможностей клиентской части образовательной платформы ED.Learn (Next.js 16, React 19, Zustand, Puck Editor, Axios).  
+> **Целевая аудитория:** Продакт-менеджеры, системные и бизнес-аналитики, постановщики продуктовых задач и QA-инженеры.  
+> **Дата актуализации:** 2026-10-04  
+
+---
+
+## 📑 Сводная матрица доменов и функциональных спецификаций
+
+| Домен платформы | Описание бизнес-области | Ссылка на детальную спецификацию |
+|---|---|---|
+| **Сессия и профиль (Store)** | Управление жизненным циклом сессии пользователя, JWT-токенами, автоматическое определение роли (`student`/`teacher`) и сохранение контекста в браузере. | [frontend/src/store/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/store/FUNCTIONAL_SPEC.md) |
+| **Ядро и контент (Lib)** | Axios HTTP-транспорт с прозрачным перехватом 401 и ротацией токенов; парсер интерактивных шаблонов пропусков `{Ответ; Дистракторы}`; декларативная схема 12 типов блоков Puck. | [frontend/src/lib/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/lib/FUNCTIONAL_SPEC.md) |
+| **Общие UI-компоненты и плеер** | RBAC-защита маршрутов `ProtectedRoute`, адаптивный `Sidebar` с переключением ролей интерфейса, интерактивный плеер уроков `PuckLessonViewer` и модальные окна учителя. | [frontend/src/components/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/FUNCTIONAL_SPEC.md) |
+| **Аутентификация (Auth)** | Формы входа и регистрации с автогенерацией никнеймов, клиентской валидацией, переключением видимости паролей и ролевой маршрутизацией. | [frontend/src/app/(auth)/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/%28auth%29/FUNCTIONAL_SPEC.md) |
+| **Каталог и лендинг курсов** | Витрина курсов с поиском, фильтрами по уровню и языку, модальным окном видео-трейлера, быстрой записью на курс в 1 клик и детальной программой обучения. | [frontend/src/app/courses/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/courses/FUNCTIONAL_SPEC.md) |
+| **Кабинет студента (Dashboard)** | Список изучаемых программ с прогресс-барами освоения, интерактивное дерево курса с индикацией завершения уроков и средним баллом, профиль и темы оформления. | [frontend/src/app/dashboard/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/dashboard/FUNCTIONAL_SPEC.md) |
+| **Интерактивный урок (Lessons)** | Полноэкранный плеер прохождения урока, регистрация начала сессии (`/start`), сбор ответов на квизы и отправка эссе на сервер (`/complete`). | [frontend/src/app/lessons/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/lessons/FUNCTIONAL_SPEC.md) |
+| **Кабинет преподавателя (Teacher)** | Мастер создания курса со слагом, конструктор учебного плана (секций и уроков) с реордерингом, визуальный конструктор Puck (Content-as-Data), аналитика и проверка ДЗ. | [frontend/src/app/teacher/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/FUNCTIONAL_SPEC.md) |
+| **Файловое хранилище (Uploads)** | Загрузка бинарных файлов (обложки, аватарки, домашние задания, архивы), проверка magic bytes, ограничение 25 МБ, раздача статики. | [internal/service/upload/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/upload/FUNCTIONAL_SPEC.md) |
+
+---
+
+## 🏛 Реестр реализованных возможностей по доменам
+
+### 1. Домен: Сессия и состояние пользователя (`frontend/src/store`)
+* 📄 **Спецификация:** [store/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/store/FUNCTIONAL_SPEC.md)
+* **Реализованный функционал:**
+  * ✅ Инициализация и сохранение авторизационных JWT-ключей (`access_token`, `refresh_token`) в `localStorage`.
+  * ✅ Безопасный логаут с полной очисткой учетных данных и сбросом режима интерфейса на `'student'`.
+  * ✅ Автоопределение режима отображения: для ролей `teacher`, `author`, `admin` при входе автоматически включается режим интерфейса «Учитель».
+  * ✅ Ручное переключение ViewMode (`student` ⇄ `teacher`) через боковую панель.
+  * ✅ Мгновенное обновление профиля пользователя в локальном состоянии без перезагрузки страниц (`setUser`).
+
+### 2. Домен: Сетевой транспорт и конфигурация Puck Editor (`frontend/src/lib`)
+* 📄 **Спецификация:** [lib/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/lib/FUNCTIONAL_SPEC.md)
+* **Реализованный функционал:**
+  * ✅ Автоматическая подстановка `Authorization: Bearer <token>` во все HTTP-запросы.
+  * ✅ Прозрачная обработка ошибки 401: фоновое обновление токена через `POST /auth/refresh` и повтор оригинального запроса без прерывания пользовательского процесса.
+  * ✅ Защита от бесконечного цикла рефреша и аварийный сброс авторизации с перенаправлением на `/login`.
+  * ✅ DSL-парсер интерактивных шаблонов пропусков `{Правильный; Ошибка1, Ошибка2}` для быстрого составления квизов авторами.
+  * ✅ Декларативная регистрация 12 типов блоков Puck (теория, Word WYSIWYG, видео, 8 типов тестов, загрузка домашних заданий).
+
+### 3. Домен: Общие интерфейсные компоненты (`frontend/src/components`)
+* 📄 **Спецификация:** [components/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/FUNCTIONAL_SPEC.md)
+* **Реализованный функционал:**
+  * ✅ Ролевой барьер `ProtectedRoute`: проверка JWT, гидратация профиля, редирект гостей и экран 403 «Доступ запрещен».
+  * ✅ Боковое меню `Sidebar`: адаптивное сворачивание (80px / 256px), динамические ссылки для студента/преподавателя, диалог подтверждения выхода.
+  * ✅ Верхняя панель `TopNavbar`: навигация «Назад», заголовки и тумблер смены темы (светлая/темная).
+  * ✅ Интерактивный плеер `PuckLessonViewer`: решение 8 типов контрольных заданий, мгновенная проверка ответов с подсветкой и комментариями автора, расчет баллов в процентах, модальное окно итогов урока.
+  * ✅ Инлайн-редактор контента Puck `InlineEditable`: прямое редактирование текста на канвасе и текстовый процессор Word-типа.
+  * ✅ Модальные окна преподавателя: создание/редактирование модулей, уроков, ручное зачисление студентов по Email/ID, детальная успеваемость студента (Drilldown) и оценка домашних заданий с обратной связью.
+
+### 4. Домен: Авторизация и регистрация (`frontend/src/app/(auth)`)
+* 📄 **Спецификация:** [(auth)/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/%28auth%29/FUNCTIONAL_SPEC.md)
+* **Реализованный функционал:**
+  * ✅ Экран входа `/login`: валидация email и пароля, обработка сетевых сбоев, умный редирект (учитель ➔ `/teacher/courses`, студент ➔ `/dashboard`).
+  * ✅ Экран регистрации `/register`: проверка согласия с условиями сервиса, автогенерация никнейма, создание аккаунта и бесшовный автоматический вход.
+  * ✅ Переключение видимости символов пароля («глаз»).
+
+### 5. Домен: Каталог и витрина курсов (`frontend/src/app/courses`)
+* 📄 **Спецификация:** [courses/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/courses/FUNCTIONAL_SPEC.md)
+* **Реализованный функционал:**
+  * ✅ Полнотекстовый поиск курсов с дебаунсом 250 мс.
+  * ✅ Фильтрация курсов по уровню сложности (начальный, средний, продвинутый), языку и сортировка (дата, популярность).
+  * ✅ Индикация статуса «Вы записаны» на карточках витрины на основе сопоставления с `/courses/my`.
+  * ✅ Быстрая запись на курс в один клик без перехода на страницу лендинга.
+  * ✅ Модальный просмотр промо-видеоролика курса.
+  * ✅ Универсальная страница курса `/courses/[slug]`: поддержка строковых слагов и числовых ID, просмотр полного учебного плана и контекстное действие («Записаться» или «Продолжить обучение»).
+
+### 6. Домен: Кабинет студента (`frontend/src/app/dashboard`)
+* 📄 **Спецификация:** [dashboard/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/dashboard/FUNCTIONAL_SPEC.md)
+* **Реализованный функционал:**
+  * ✅ Главная панель `/dashboard`: карточки начатых курсов и empty-state с приглашением в каталог.
+  * ✅ Раздел «Мои курсы» `/dashboard/courses`: прогресс-бары освоения программ в процентах, количество пройденных уроков и средний балл.
+  * ✅ Учебный кабинет курса `/dashboard/courses/[id]`: интерактивный аккордеон модулей, статус завершения уроков (✓), бейджи типов занятий, вычисление среднего балла за тесты курса и кнопка быстрого перехода к следующему непройденному уроку.
+  * ✅ Настройки профиля `/dashboard/settings`: редактирование имени, фамилии, биографии, аватара и выбор цветовой темы приложения.
+
+### 7. Домен: Интерактивный плеер урока (`frontend/src/app/lessons`)
+* 📄 **Спецификация:** [lessons/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/lessons/FUNCTIONAL_SPEC.md)
+* **Реализованный функционал:**
+  * ✅ Фоновая фиксация начала занятия: вызов `POST /lessons/{id}/start`.
+  * ✅ Полноэкранный просмотр лекций, видеоматериалов и интерактивных тестов.
+  * ✅ Отправка результатов урока: вызов `POST /lessons/{id}/complete` с передачей набранных баллов и собранных текстов эссе для проверки преподавателем.
+  * ✅ Удобный возврат к учебному плану программы курса.
+
+### 8. Домен: Кабинет преподавателя и конструктор уроков (`frontend/src/app/teacher`)
+* 📄 **Спецификация:** [teacher/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/FUNCTIONAL_SPEC.md)
+* **Реализованный функционал:**
+  * ✅ Авторская студия `/teacher/courses`: реестр курсов со статусами («Опубликован»/«Черновик») и счетчиками уроков/студентов.
+  * ✅ Мастер создания курса `/teacher/courses/new`: транслитерация названия в URL-слаг, настройка обложки, видео, уровня сложности и мгновенный переход к учебному плану.
+  * ✅ Управление учебным планом `/teacher/courses/[id]/curriculum`: создание/редактирование/удаление модулей и уроков, изменение их порядка стрелками reorder.
+  * ✅ Публикация курса в один клик (`POST /courses/{id}/publish` / перевод в черновик).
+  * ✅ Аналитическая сводка курса: число студентов, средний прогресс, средний балл и счетчик ожидающих проверки работ.
+  * ✅ Таблица студентов: ручное зачисление (`ModalAddStudent`), просмотр персонального отчета (`ModalStudentDrilldown`).
+  * ✅ Очередь домашних заданий `/teacher/grading`: просмотр сданных студентами ответов и файлов, выставление баллов и текстовой обратной связи (`ModalGradeHW`).
+  * ✅ Визуальный конструктор уроков `/teacher/lessons/[id]/edit`: интеграция Puck Editor в режиме Content-as-Data с инлайн-редактированием, деревом блоков `CustomOutline` и сохранением JSON-структуры через `PATCH /lessons/{id}`.
+
+---
+
+## 🎯 Сквозные пользовательские сценарии (End-to-End Use Cases)
+
+```mermaid
+flowchart TD
+    subgraph UC1["Сценарий 1: Регистрация и выбор роли"]
+        A1["Гость заходит на /register"] --> A2["Вводит email, пароль, имя"]
+        A2 --> A3["POST /auth/register + POST /auth/login"]
+        A3 --> A4["useAuth.login() + fetchUser()"]
+        A4 --> A5{"Роль пользователя"}
+        A5 -->|"student"| A6["Редирект на /dashboard"]
+        A5 -->|"teacher / author"| A7["Редирект на /teacher/courses"]
+    end
+
+    subgraph UC2["Сценарий 2: Обучение студента с квизами"]
+        B1["Студент выбирает курс в /courses"] --> B2["Запись POST /courses/{id}/enroll"]
+        B2 --> B3["Переход в /dashboard/courses/{id}"]
+        B3 --> B4["Выбор урока /lessons/{id}"]
+        B4 --> B5["POST /lessons/{id}/start"]
+        B5 --> B6["Решение 8 типов квизов в PuckLessonViewer"]
+        B6 --> B7["POST /lessons/{id}/complete (баллы + эссе)"]
+        B7 --> B8["Обновление прогресса и возврат в курс"]
+    end
+
+    subgraph UC3["Сценарий 3: Создание курса и интерактивного урока"]
+        C1["Преподаватель: /teacher/courses/new"] --> C2["POST /courses (slug, обложка)"]
+        C2 --> C3["Конструктор /teacher/courses/{id}/curriculum"]
+        C3 --> C4["Добавление модулей и уроков (модалки)"]
+        C4 --> C5["Клик 'Редактировать контент'"]
+        C5 --> C6["Полноэкранный Puck Editor /lessons/{id}/edit"]
+        C6 --> C7["Добавление теории, видео, тестов (InlineEditable)"]
+        C7 --> C8["Сохранение PATCH /lessons/{id} (JSON Data)"]
+        C8 --> C9["Публикация курса: POST /courses/{id}/publish"]
+    end
+
+    subgraph UC4["Сценарий 4: Проверка домашних заданий учителем"]
+        D1["Учитель открывает /teacher/grading"] --> D2["Выбор курса и фильтрация очереди"]
+        D2 --> D3["Просмотр эссе и прикрепленных файлов"]
+        D3 --> D4["Открытие ModalGradeHW"]
+        D4 --> D5["Ввод баллов и комментария (feedback)"]
+        D5 --> D6["POST /attempts/.../grade"]
+        D6 --> D7["Уведомление и обновление очереди"]
+    end
+```
+
+### 1. Сценарий: Регистрация пользователя и адаптация роли
+1. **Регистрация:** Пользователь заполняет форму на странице [`/register`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/%28auth%29/register/page.tsx). При отсутствии введенного имени пользователя никнейм автоматически генерируется из Email ([`register/page.tsx#L45`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/%28auth%29/register/page.tsx#L45)).
+2. **Бесшовный вход:** После создания учетной записи клиент автоматически выполняет авторизацию через `POST /auth/login` ([`register/page.tsx#L49`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/%28auth%29/register/page.tsx#L49)).
+3. **Сохранение сессии:** Метод стора `login()` сохраняет ключи в `localStorage` и запрашивает профиль через `fetchUser()` ([`useAuth.ts#L39-L44`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/store/useAuth.ts#L39-L44)).
+4. **Ролевой выбор интерфейса:** Если у пользователя роль преподавателя (`teacher`, `author`, `admin`), он направляется в [`/teacher/courses`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/courses/page.tsx); обычный учащийся перенаправляется в [`/dashboard`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/dashboard/page.tsx). При наличии прав пользователь может переключать режим просмотра прямо в боковом меню через `handleRoleChange` ([`Sidebar.tsx#L30-L37`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/layout/Sidebar.tsx#L30-L37)).
+
+---
+
+### 2. Сценарий: Выбор курса и интерактивное обучение с тестированием
+1. **Поиск курса в каталоге:** Студент открывает [`/courses`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/courses/page.tsx), находит нужный курс с помощью поиска с дебаунсом 250 мс и фильтров сложности ([`courses/page.tsx#L67-L96`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/courses/page.tsx#L67-L96)).
+2. **Запись на курс:** Студент нажимает «Записаться на курс» в карточке каталога ([`courses/page.tsx#L105-L120`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/courses/page.tsx#L105-L120)) или на лендинге курса ([`courses/[slug]/page.tsx#L69-L81`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/courses/%5Bslug%5D/page.tsx#L69-L81)), инициируя запрос `POST /courses/{id}/enroll`.
+3. **Начало обучения:** Студент попадает в навигатор по курсу [`/dashboard/courses/{id}`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/dashboard/courses/%5Bid%5D/page.tsx), где видит структуру модулей, процент освоения и кнопку «Продолжить обучение» к первому непройденному уроку.
+4. **Прохождение урока:** На странице [`/lessons/{id}`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/lessons/%5Bid%5D/page.tsx) бэкенд уведомляется о старте (`POST /lessons/{id}/start`). Клиент загружает JSON-контент Puck и передает его в интерактивный плеер [`PuckLessonViewer`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/PuckLessonViewer.tsx#L39-L1007).
+5. **Решение заданий:** Студент решает задания 8 типов (одиночный выбор, множественный выбор, сопоставление пар, выпадающие пропуски, текстовые пропуски, сортировка шагов, открытое эссе, загрузка файла).
+6. **Завершение урока:** Клик по кнопке завершения рассчитывает итоговый балл, отправляет результаты через `POST /lessons/{id}/complete` ([`lessons/[id]/page.tsx#L42-L54`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/lessons/%5Bid%5D/page.tsx#L42-L54)), фиксирует оценку и возвращает студента к программе курса.
+
+---
+
+### 3. Сценарий: Создание курса и визуальное конструирование интерактивного урока
+1. **Создание курса:** Преподаватель открывает [`/teacher/courses/new`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/courses/new/page.tsx), указывает название (автоматически формируется URL-слаг), описание, обложку и нажимает «Создать курс» (`POST /courses`).
+2. **Формирование программы курса:** Преподаватель перенаправляется в конструктор учебного плана [`/teacher/courses/{id}/curriculum`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/courses/%5Bid%5D/curriculum/page.tsx):
+   - Открывает модалку `ModalCreateModule` и создает разделы ([`ModalCreateModule.tsx#L15-L64`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/ModalCreateModule.tsx#L15-L64)).
+   - Внутри разделов создает уроки через `ModalCreateLesson` ([`ModalCreateLesson.tsx#L17-L61`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/ModalCreateLesson.tsx#L17-L61)).
+   - При необходимости меняет порядок тем кнопками реордеринга ([`curriculum/page.tsx#L159-L195`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/courses/%5Bid%5D/curriculum/page.tsx#L159-L195)).
+3. **Визуальная сборка урока в Puck:** Преподаватель нажимает «Редактировать контент в Puck» у выбранного урока и переходит в полноэкранный редактор [`/teacher/lessons/{id}/edit`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/lessons/%5Bid%5D/edit/page.tsx):
+   - Перетаскивает на холст блоки: заголовки, лекцию с WYSIWYG Word-редактором, видеоролик YouTube, контрольные тесты.
+   - Редактирует текст вопросов и правильные варианты прямо на канвасе благодаря `InlineEditable` ([`InlineEditable.tsx#L43-L120`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/editor/InlineEditable.tsx#L43-L120)).
+   - Нажимает «Опубликовать / Сохранить», сохраняя JSON-дерево в базу через `PATCH /lessons/{id}` ([`edit/page.tsx#L49-L60`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/lessons/%5Bid%5D/edit/page.tsx#L49-L60)).
+4. **Публикация курса:** Вернувшись в программу курса, преподаватель нажимает кнопку «Опубликовать курс», открывая доступ студентам (`POST /courses/{id}/publish`) ([`curriculum/page.tsx#L136-L157`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/courses/%5Bid%5D/curriculum/page.tsx#L136-L157)).
+
+---
+
+### 4. Сценарий: Проверка домашних заданий и выставление оценок
+1. **Просмотр очереди на проверку:** Преподаватель переходит в раздел [`/teacher/grading`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/grading/page.tsx) или на вкладку студентов курса [`/teacher/courses/{id}/curriculum?tab=students`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/courses/%5Bid%5D/curriculum/page.tsx#L43).
+2. **Фильтрация заданий:** Выбирает целевой курс и видит список работ, ожидающих ручной проверки ([`PendingHomeworksQueue.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/PendingHomeworksQueue.tsx)).
+3. **Грейдинг работы:** Нажимает «Проверить и оценить», открывая модальное окно [`ModalGradeHW`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/ModalGradeHW.tsx#L14-L42):
+   - Изучает вопрос задания и развернутый ответ студента (или ссылку на прикрепленный файл).
+   - Выставляет заработанный балл (до максимального лимита задания).
+   - Пишет комментарий преподавателя (Feedback).
+   - Отправляет оценку через `POST /quizzes/attempts/{attId}/answers/{ansId}/grade`.
+4. **Обновление успеваемости:** Очередь немедленно обновляется, а средний балл и прогресс студента пересчитываются и становятся видны в его кабинете и в карточке аналитики курса.
+
+---
+
+### 9. Домен: Файловое хранилище и загрузка файлов (`internal/service/upload`)
+* 📄 **Спецификация:** [internal/service/upload/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/upload/FUNCTIONAL_SPEC.md)
+* **Реализованный функционал:**
+  * ✅ Загрузка бинарных файлов через HTTP multipart-форму `POST /api/v1/upload`.
+  * ✅ Авторизация загрузки по Bearer JWT токену.
+  * ✅ Строгая валидация типов файлов по сигнатуре (magic bytes) и черному списку исполняемых файлов (.exe, .sh, .php, .js и др.).
+  * ✅ Ограничение максимального размера файла (до 25 МБ).
+  * ✅ Безопасная генерация путей на базе UUID v4 по категориям (`avatar`, `course_cover`, `homework`, `general`) и датам.
+  * ✅ Статическая отдача сохраненных файлов по публичным URL `/static/uploads/...`.
+

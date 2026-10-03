@@ -34,6 +34,13 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		errors.Is(err, errorsAPP.ErrFailValidate),
 		errors.Is(err, errorsAPP.ErrFailEnroleValidate):
 		Error(w, r, http.StatusBadRequest, ValidationError, "Validation failed")
+	// 400 Bad Request - ошибки загрузки файлов
+	case errors.Is(err, errorsAPP.ErrFileTooLarge):
+		Error(w, r, http.StatusBadRequest, "FILE_TOO_LARGE", "File size exceeds maximum allowed limit (25MB)")
+	case errors.Is(err, errorsAPP.ErrInvalidFileType):
+		Error(w, r, http.StatusBadRequest, "INVALID_FILE_TYPE", "Unsupported or forbidden file type")
+	case errors.Is(err, errorsAPP.ErrEmptyFile):
+		Error(w, r, http.StatusBadRequest, "EMPTY_FILE", "Uploaded file cannot be empty")
 	// 400 Bad Request - ошибки URL параметров
 	case errors.Is(err, errorsAPP.ErrInvalidURLParam):
 		Error(w, r, http.StatusBadRequest, "INVALID_URL_PARAM", "Invalid URL parametr")

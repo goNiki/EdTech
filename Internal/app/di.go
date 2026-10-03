@@ -20,8 +20,10 @@ import (
 	progressHandler "edtech/internal/interfaces/handlers/progress"
 	quizHandler "edtech/internal/interfaces/handlers/quiz"
 	sectionHandler "edtech/internal/interfaces/handlers/section"
+	uploadHandler "edtech/internal/interfaces/handlers/upload"
 	mwauth "edtech/internal/interfaces/middleware/auth"
 	mwlogger "edtech/internal/interfaces/middleware/logger"
+	"edtech/internal/infrastructure/storage"
 
 	"edtech/internal/repository"
 	analyticsRepo "edtech/internal/repository/analytics"
@@ -45,6 +47,7 @@ import (
 	progressService "edtech/internal/service/progress"
 	quizService "edtech/internal/service/quiz"
 	sectionService "edtech/internal/service/section"
+	uploadService "edtech/internal/service/upload"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -64,6 +67,7 @@ type diContainer struct {
 	txManager   *txmanager.TxManager
 	hasher      hasher.HasherManager
 	jwtManager  *jwt.JwtManager
+	storage     storage.Storage
 
 	// middleware
 	mwAuth mwauth.AuthMiddleware
@@ -77,6 +81,7 @@ type diContainer struct {
 	courseHdl     *courseHandler.CourseHandler
 	lessonHdl     *lessonHandler.LessonHandler
 	sectionHdl    *sectionHandler.SectionHandler
+	uploadHdl     *uploadHandler.UploadHandler
 	progressHdl   *progressHandler.ProgressHandler
 	quizHdl       *quizHandler.QuizHandler
 	enrollmentHdl *enrollmentHandler.EnrollmentHandler
@@ -89,6 +94,7 @@ type diContainer struct {
 	enrolledSvc  service.EnrolledServices
 	lessonSvc    service.LessonServices
 	sectionSvc   service.SectionServices
+	uploadSvc    service.UploadServices
 	progressSvc  service.ProgressServices
 	quizSvc      service.QuizServices
 	analyticsSvc service.AnalyticsServices
@@ -181,6 +187,18 @@ func (d *diContainer) JWTManager() *jwt.JwtManager {
 		d.jwtManager = jwt.NewJwtManager(d.JwtCfg())
 	}
 	return d.jwtManager
+}
+
+func (d *diContainer) Storage() storage.Storage {
+	if d.storage == nil {
+		var err error
+		d.storage, err = storage.NewLocalStorage("./uploads")
+		if err != nil {
+			slog.Error("failed to create storage: ", "error", err)
+			os.Exit(1)
+		}
+	}
+	return d.storage
 }
 
 func (d *diContainer) Close() {
@@ -342,6 +360,13 @@ func (d *diContainer) AnalyticsSvc() service.AnalyticsServices {
 	return d.analyticsSvc
 }
 
+func (d *diContainer) UploadSvc() service.UploadServices {
+	if d.uploadSvc == nil {
+		d.uploadSvc = uploadService.NewUploadService(d.Storage())
+	}
+	return d.uploadSvc
+}
+
 // Handlers
 
 func (d *diContainer) LessonHdl() *lessonHandler.LessonHandler {
@@ -356,6 +381,13 @@ func (d *diContainer) SectionHdl() *sectionHandler.SectionHandler {
 		d.sectionHdl = sectionHandler.NewSectionHandler(d.SectionSvc(), d.Logger(), validator.New(), d.MwAuth())
 	}
 	return d.sectionHdl
+}
+
+func (d *diContainer) UploadHdl() *uploadHandler.UploadHandler {
+	if d.uploadHdl == nil {
+		d.uploadHdl = uploadHandler.NewUploadHandler(d.UploadSvc(), d.MwAuth(), d.Logger())
+	}
+	return d.uploadHdl
 }
 
 func (d *diContainer) AuthHdl() *authHandler.AuthHandler {
@@ -530,6 +562,18 @@ func (d *diContainer) Router() http.Handler {
 
 			r.Patch("/users/{id}/role", d.AuthHdl().ChangeUserRole)
 			r.Patch("/users/{id}/ban", d.AuthHdl().SetUserBanned)
+		})
+
+		// Static Files (Uploads)
+		filesDir := http.Dir("./uploads")
+		r.Handle("/static/uploads/*", http.StripPrefix("/static/uploads", http.FileServer(filesDir)))
+		r.Handle("/static/*", http.StripPrefix("/static", http.FileServer(filesDir)))
+
+		// Upload
+		r.Route("/api/v1/upload", func(r chi.Router) {
+			r.Use(d.MwAuth().JWTMiddleware)
+
+			r.Post("/", d.UploadHdl().UploadFile)
 		})
 
 		d.router = r
