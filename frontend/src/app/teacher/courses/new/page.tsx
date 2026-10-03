@@ -1,17 +1,32 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { slugify, isValidSlug } from '@/lib/utils';
+import { Category, fetchCategories, DEFAULT_CATEGORIES } from '@/lib/categories';
 import TopNavbar from '@/components/layout/TopNavbar';
-import { PlusCircle, Sparkles, Save, ArrowRight, Upload, Image as ImageIcon, Loader2, Trash2, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  PlusCircle,
+  Sparkles,
+  Save,
+  ArrowRight,
+  Upload,
+  Image as ImageIcon,
+  Loader2,
+  Trash2,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  Tag
+} from 'lucide-react';
 
 export default function CreateCoursePage() {
   const router = useRouter();
 
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
+  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [category, setCategory] = useState('1');
   const [shortDesc, setShortDesc] = useState('');
   const [desc, setDesc] = useState('');
@@ -25,6 +40,21 @@ export default function CreateCoursePage() {
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchCategories().then((list) => {
+      if (isMounted && list.length > 0) {
+        setCategories(list);
+        if (!list.some((c) => String(c.id) === category)) {
+          setCategory(String(list[0].id));
+        }
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const resolveUrl = (url: string) => {
     if (!url) return '';
@@ -109,6 +139,7 @@ export default function CreateCoursePage() {
         difficulty: difficulty,
         language: language,
         visibility: visibility,
+        category_id: Number(category),
       };
 
       const res = await api.post('/courses', payload);
@@ -127,6 +158,8 @@ export default function CreateCoursePage() {
       setIsSubmitting(false);
     }
   };
+
+  const selectedCategoryObj = categories.find((c) => String(c.id) === String(category));
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -340,8 +373,26 @@ export default function CreateCoursePage() {
             </div>
           </div>
 
-          {/* Selects: Difficulty, Language, Visibility */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Selects: Category, Difficulty, Language, Visibility */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Tag size={13} className="text-indigo-600 dark:text-indigo-400" />
+                <span>Категория курса *</span>
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+              >
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 Уровень сложности
@@ -386,19 +437,25 @@ export default function CreateCoursePage() {
             </div>
           </div>
 
+          {selectedCategoryObj?.description && (
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">
+              Выбрана категория «{selectedCategoryObj.name}»: {selectedCategoryObj.description}
+            </p>
+          )}
+
           {/* Submit Action */}
           <div className="flex justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50"
+              className="px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 cursor-pointer"
             >
               Отмена
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2"
+              className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <Sparkles size={16} />
               <span>{isSubmitting ? 'Создание курса...' : 'Создать и перейти к программе'}</span>

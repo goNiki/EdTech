@@ -4,13 +4,28 @@ import React, { useEffect, useState, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { slugify, isValidSlug } from '@/lib/utils';
+import { Category, fetchCategories, DEFAULT_CATEGORIES } from '@/lib/categories';
 import TopNavbar from '@/components/layout/TopNavbar';
-import { Save, ArrowLeft, Sparkles, CheckCircle2, Sliders, ExternalLink, Upload, Loader2, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
+import {
+  Save,
+  ArrowLeft,
+  Sparkles,
+  CheckCircle2,
+  Sliders,
+  ExternalLink,
+  Upload,
+  Loader2,
+  Trash2,
+  RefreshCw,
+  AlertCircle,
+  Tag
+} from 'lucide-react';
 
 export default function CourseSettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
 
+  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [formData, setFormData] = useState({
     title: '',
     slug: '',
@@ -31,6 +46,18 @@ export default function CourseSettingsPage({ params }: { params: Promise<{ id: s
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchCategories().then((list) => {
+      if (isMounted && list.length > 0) {
+        setCategories(list);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const resolveUrl = (url: string) => {
     if (!url) return '';
@@ -170,6 +197,8 @@ export default function CourseSettingsPage({ params }: { params: Promise<{ id: s
     }
   };
 
+  const selectedCategoryObj = categories.find((c) => c.id === formData.category_id);
+
   if (isLoading) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -207,7 +236,7 @@ export default function CourseSettingsPage({ params }: { params: Promise<{ id: s
             <button
               type="button"
               onClick={() => router.push(`/teacher/courses/${id}/curriculum`)}
-              className="px-4 py-2 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 w-fit"
+              className="px-4 py-2 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 w-fit cursor-pointer"
             >
               <Sliders size={14} />
               <span>Перейти к программе курса</span>
@@ -330,7 +359,7 @@ export default function CourseSettingsPage({ params }: { params: Promise<{ id: s
                   type="button"
                   onClick={() => coverFileInputRef.current?.click()}
                   disabled={isUploadingCover}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5"
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   {isUploadingCover ? (
                     <>
@@ -366,7 +395,7 @@ export default function CourseSettingsPage({ params }: { params: Promise<{ id: s
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, cover_url: '' })}
-                    className="px-3 py-2 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors flex items-center gap-1 text-xs font-bold"
+                    className="px-3 py-2 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors flex items-center gap-1 text-xs font-bold cursor-pointer"
                     title="Удалить обложку"
                   >
                     <Trash2 size={14} />
@@ -409,8 +438,26 @@ export default function CourseSettingsPage({ params }: { params: Promise<{ id: s
             </div>
           </div>
 
-          {/* Selects: Difficulty, Language, Visibility, Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          {/* Selects: Category, Difficulty, Language, Visibility, Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                <Tag size={13} className="text-indigo-600 dark:text-indigo-400" />
+                <span>Категория</span>
+              </label>
+              <select
+                value={formData.category_id}
+                onChange={(e) => setFormData({ ...formData, category_id: Number(e.target.value) })}
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+              >
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 Сложность
@@ -470,12 +517,18 @@ export default function CourseSettingsPage({ params }: { params: Promise<{ id: s
             </div>
           </div>
 
+          {selectedCategoryObj?.description && (
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">
+              Выбрана категория «{selectedCategoryObj.name}»: {selectedCategoryObj.description}
+            </p>
+          )}
+
           {/* Form Actions */}
           <div className="flex justify-between items-center pt-6 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={() => router.push(`/teacher/courses/${id}/curriculum`)}
-              className="text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors"
+              className="text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
             >
               ← Вернуться к программе курса
             </button>
@@ -483,7 +536,7 @@ export default function CourseSettingsPage({ params }: { params: Promise<{ id: s
             <button
               type="submit"
               disabled={isSaving}
-              className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2"
+              className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <Save size={16} />
               <span>{isSaving ? 'Сохранение...' : 'Сохранить настройки'}</span>

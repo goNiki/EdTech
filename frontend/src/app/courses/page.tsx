@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useEffect, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
+import { Category, fetchCategories, DEFAULT_CATEGORIES, getCategoryName } from '@/lib/categories';
 import { useAuth } from '@/store/useAuth';
 import TopNavbar from '@/components/layout/TopNavbar';
 import Sidebar from '@/components/layout/Sidebar';
 import {
   Search,
-  SlidersHorizontal,
   ArrowUpDown,
   BookOpen,
   Users,
@@ -16,7 +16,9 @@ import {
   Check,
   X,
   Sparkles,
-  Layers
+  Layers,
+  Tag,
+  FolderOpen
 } from 'lucide-react';
 
 interface Course {
@@ -31,21 +33,28 @@ interface Course {
   visibility: string;
   difficulty?: string;
   language?: string;
+  category_id?: number;
   total_lessons: number;
   total_sections: number;
   enrolled_count: number;
   created_at: string;
 }
 
-export default function CoursesCatalogPage() {
+function CoursesCatalogInner() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const searchParams = useSearchParams();
+  const { isAuthenticated } = useAuth();
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<number[]>([]);
+  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Filters State (matches CourseFilter)
+  // Filters State
+  const initialCategoryParam = searchParams.get('category_id') || searchParams.get('category');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
+    initialCategoryParam ? Number(initialCategoryParam) : null
+  );
   const [search, setSearch] = useState('');
   const [difficulty, setDifficulty] = useState('');
   const [language, setLanguage] = useState('');
@@ -64,11 +73,41 @@ export default function CoursesCatalogPage() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // Load categories on mount
+  useEffect(() => {
+    let isMounted = true;
+    fetchCategories().then((loaded) => {
+      if (isMounted && loaded.length > 0) {
+        setCategories(loaded);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Sync category param with URL without reload
+  const handleSelectCategory = (categoryId: number | null) => {
+    const nextId = selectedCategoryId === categoryId ? null : categoryId;
+    setSelectedCategoryId(nextId);
+
+    const currentUrl = new URL(window.location.href);
+    if (nextId) {
+      currentUrl.searchParams.set('category_id', String(nextId));
+      currentUrl.searchParams.delete('category');
+    } else {
+      currentUrl.searchParams.delete('category_id');
+      currentUrl.searchParams.delete('category');
+    }
+    window.history.replaceState({}, '', currentUrl.toString());
+  };
+
   const fetchCourses = async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
       if (search.trim()) params.append('search', search.trim());
+      if (selectedCategoryId) params.append('category_id', String(selectedCategoryId));
       if (difficulty) params.append('difficulty', difficulty);
       if (language) params.append('language', language);
       if (sortBy) params.append('sort_by', sortBy);
@@ -100,7 +139,7 @@ export default function CoursesCatalogPage() {
       fetchCourses();
     }, 250);
     return () => clearTimeout(timer);
-  }, [search, difficulty, language, sortBy, sortOrder, isAuthenticated]);
+  }, [search, selectedCategoryId, difficulty, language, sortBy, sortOrder, isAuthenticated]);
 
   const handleEnroll = async (courseId: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -231,6 +270,54 @@ export default function CoursesCatalogPage() {
                 </button>
               </div>
             </div>
+
+            {/* Category Filter Chips (Horizontal Scroll) */}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+                <button
+                  type="button"
+                  onClick={() => handleSelectCategory(null)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    selectedCategoryId === null
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20 ring-1 ring-indigo-500'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <FolderOpen size={14} />
+                  <span>Все категории</span>
+                </button>
+
+                {categories.map((cat) => {
+                  const isSelected = selectedCategoryId === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => handleSelectCategory(cat.id)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                        isSelected
+                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20 ring-1 ring-indigo-500'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      <Tag size={13} className={isSelected ? 'text-white' : 'text-slate-400'} />
+                      <span>{cat.name}</span>
+                      {typeof cat.courses_count === 'number' && (
+                        <span
+                          className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                            isSelected
+                              ? 'bg-white/20 text-white'
+                              : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                          }`}
+                        >
+                          {cat.courses_count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {/* Courses Grid */}
@@ -257,13 +344,24 @@ export default function CoursesCatalogPage() {
               </div>
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Курсы не найдены</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Попробуйте изменить параметры поиска или сбросить установленные фильтры.
+                {selectedCategoryId
+                  ? `В выбранной категории «${getCategoryName(selectedCategoryId, categories)}» пока нет курсов. Попробуйте выбрать другую категорию или сбросить фильтры.`
+                  : 'Попробуйте изменить параметры поиска или сбросить установленные фильтры.'}
               </p>
+              {selectedCategoryId && (
+                <button
+                  onClick={() => handleSelectCategory(null)}
+                  className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-indigo-600/20"
+                >
+                  Показать все категории
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {courses.map((course) => {
                 const isEnrolled = enrolledCourseIds.includes(course.id);
+                const categoryTitle = getCategoryName(course.category_id, categories);
 
                 return (
                   <div
@@ -289,9 +387,17 @@ export default function CoursesCatalogPage() {
 
                       {/* Top Badges */}
                       <div className="absolute top-3 left-3 right-3 flex justify-between items-center gap-2">
-                        <span className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-white/90 dark:bg-slate-900/90 text-indigo-600 dark:text-indigo-400 backdrop-blur-md shadow-xs">
-                          {getDifficultyLabel(course.difficulty)}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-white/90 dark:bg-slate-900/90 text-indigo-600 dark:text-indigo-400 backdrop-blur-md shadow-xs">
+                            {getDifficultyLabel(course.difficulty)}
+                          </span>
+                          {categoryTitle && (
+                            <span className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-indigo-600/90 text-white backdrop-blur-md shadow-xs flex items-center gap-1">
+                              <Tag size={10} />
+                              <span>{categoryTitle}</span>
+                            </span>
+                          )}
+                        </div>
                         {course.language && (
                           <span className="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-black/40 text-white backdrop-blur-md uppercase tracking-wider">
                             {course.language}
@@ -404,5 +510,17 @@ export default function CoursesCatalogPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CoursesCatalogPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      </div>
+    }>
+      <CoursesCatalogInner />
+    </Suspense>
   );
 }
