@@ -32,7 +32,9 @@ func (s *LocalStorage) Save(ctx context.Context, relativePath string, src io.Rea
 	if err != nil {
 		return fmt.Errorf("%s: create file %s: %w", op, fullPath, err)
 	}
-	defer dst.Close()
+	defer func() {
+		_ = dst.Close()
+	}()
 
 	if _, err := io.Copy(dst, src); err != nil {
 		return fmt.Errorf("%s: copy content: %w", op, err)

@@ -49,7 +49,9 @@ func (h *UploadHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		response.HandleError(w, r, h.log, errorsAPP.ErrValidationFailed, op)
 		return
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	category := r.FormValue("category")
 
