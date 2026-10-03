@@ -3,8 +3,9 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { slugify, isValidSlug } from '@/lib/utils';
 import TopNavbar from '@/components/layout/TopNavbar';
-import { PlusCircle, Sparkles, Save, ArrowRight, Upload, Image as ImageIcon, Loader2, Trash2 } from 'lucide-react';
+import { PlusCircle, Sparkles, Save, ArrowRight, Upload, Image as ImageIcon, Loader2, Trash2, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function CreateCoursePage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function CreateCoursePage() {
   const [language, setLanguage] = useState('RU');
   const [visibility, setVisibility] = useState('public');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
@@ -71,14 +73,21 @@ export default function CreateCoursePage() {
 
   const handleTitleChange = (val: string) => {
     setTitle(val);
-    // Auto generate translit slug
-    const generated = val
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    setSlug(generated || `course-${Date.now()}`);
+    if (!isSlugManuallyEdited) {
+      const generated = slugify(val);
+      setSlug(generated);
+    }
+  };
+
+  const handleSlugChange = (val: string) => {
+    setIsSlugManuallyEdited(true);
+    setSlug(val.toLowerCase().replace(/[^a-z0-9-]/g, ''));
+  };
+
+  const handleRegenerateSlug = () => {
+    const generated = slugify(title);
+    setSlug(generated);
+    setIsSlugManuallyEdited(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -151,17 +160,65 @@ export default function CreateCoursePage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                URL Slug (для адресной строки) *
-              </label>
-              <input
-                type="text"
-                required
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                placeholder="golang-microservices"
-                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              />
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  URL Slug (для адресной строки) *
+                </label>
+                {isSlugManuallyEdited && (
+                  <button
+                    type="button"
+                    onClick={handleRegenerateSlug}
+                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1 transition-colors cursor-pointer"
+                    title="Сгенерировать слаг заново из названия курса"
+                  >
+                    <RefreshCw size={11} />
+                    <span>Синхронизировать</span>
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={slug}
+                  onChange={(e) => handleSlugChange(e.target.value)}
+                  placeholder="arhitektura-mikroservisov-i-go"
+                  className={`w-full p-3 pr-8 bg-slate-50 dark:bg-slate-800 border rounded-xl text-xs font-medium focus:ring-2 focus:outline-none transition-all ${
+                    slug && !isValidSlug(slug)
+                      ? 'border-rose-400 focus:ring-rose-400 text-rose-700 dark:text-rose-300'
+                      : slug && isValidSlug(slug)
+                      ? 'border-emerald-400/80 focus:ring-emerald-400'
+                      : 'border-slate-200 dark:border-slate-700 focus:ring-indigo-500'
+                  }`}
+                />
+                {slug && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+                    {isValidSlug(slug) ? (
+                      <span className="text-emerald-500 text-[10px] font-bold flex items-center gap-0.5">
+                        <CheckCircle2 size={14} />
+                      </span>
+                    ) : (
+                      <span className="text-rose-500 text-[10px] font-bold flex items-center gap-0.5">
+                        <AlertCircle size={14} />
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-400">
+                {slug && !isValidSlug(slug) ? (
+                  <span className="text-rose-500 font-semibold">
+                    Допустимы только строчные латинские буквы, цифры и одиночные дефисы
+                  </span>
+                ) : (
+                  <span>
+                    Ссылка на курс:{' '}
+                    <code className="text-indigo-600 dark:text-indigo-400 font-mono">
+                      /courses/{slug || '...'}
+                    </code>
+                  </span>
+                )}
+              </p>
             </div>
           </div>
 

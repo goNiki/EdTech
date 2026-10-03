@@ -3,8 +3,9 @@
 import React, { useEffect, useState, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { slugify, isValidSlug } from '@/lib/utils';
 import TopNavbar from '@/components/layout/TopNavbar';
-import { Save, ArrowLeft, Sparkles, CheckCircle2, Sliders, ExternalLink, Upload, Loader2, Trash2 } from 'lucide-react';
+import { Save, ArrowLeft, Sparkles, CheckCircle2, Sliders, ExternalLink, Upload, Loader2, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
 
 export default function CourseSettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -75,6 +76,21 @@ export default function CourseSettingsPage({ params }: { params: Promise<{ id: s
         coverFileInputRef.current.value = '';
       }
     }
+  };
+
+  const handleGenerateSlugFromTitle = () => {
+    if (!formData.title.trim()) {
+      alert('Сначала укажите название курса');
+      return;
+    }
+    const generated = slugify(formData.title);
+    setFormData((prev) => ({ ...prev, slug: generated }));
+    showToast('Слаг успешно обновлен из названия');
+  };
+
+  const handleSlugChange = (val: string) => {
+    const clean = val.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    setFormData((prev) => ({ ...prev, slug: clean }));
   };
 
   const showToast = (msg: string) => {
@@ -215,17 +231,63 @@ export default function CourseSettingsPage({ params }: { params: Promise<{ id: s
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                URL Slug (для адресной строки) *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.slug}
-                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                placeholder="my-course-slug"
-                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              />
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  URL Slug (для адресной строки) *
+                </label>
+                <button
+                  type="button"
+                  onClick={handleGenerateSlugFromTitle}
+                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Сгенерировать слаг из названия курса"
+                >
+                  <RefreshCw size={11} />
+                  <span>Сгенерировать из названия</span>
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={formData.slug}
+                  onChange={(e) => handleSlugChange(e.target.value)}
+                  placeholder="arhitektura-mikroservisov-i-go"
+                  className={`w-full p-3 pr-8 bg-slate-50 dark:bg-slate-800 border rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:outline-none transition-all ${
+                    formData.slug && !isValidSlug(formData.slug)
+                      ? 'border-rose-400 focus:ring-rose-400 text-rose-700 dark:text-rose-300'
+                      : formData.slug && isValidSlug(formData.slug)
+                      ? 'border-emerald-400/80 focus:ring-emerald-400'
+                      : 'border-slate-200 dark:border-slate-700 focus:ring-indigo-500'
+                  }`}
+                />
+                {formData.slug && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+                    {isValidSlug(formData.slug) ? (
+                      <span className="text-emerald-500 text-[10px] font-bold flex items-center gap-0.5">
+                        <CheckCircle2 size={14} />
+                      </span>
+                    ) : (
+                      <span className="text-rose-500 text-[10px] font-bold flex items-center gap-0.5">
+                        <AlertCircle size={14} />
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-400">
+                {formData.slug && !isValidSlug(formData.slug) ? (
+                  <span className="text-rose-500 font-semibold">
+                    Допустимы только строчные латинские буквы, цифры и одиночные дефисы
+                  </span>
+                ) : (
+                  <span>
+                    Ссылка на курс:{' '}
+                    <code className="text-indigo-600 dark:text-indigo-400 font-mono">
+                      /courses/{formData.slug || '...'}
+                    </code>
+                  </span>
+                )}
+              </p>
             </div>
           </div>
 
