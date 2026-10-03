@@ -25,5 +25,8 @@ func (r *repository) ExistingBySlug(ctx context.Context, q db.QueryExecutor, slu
 	}
 
 	return exists, nil
+}
 
+func (r *repository) ExistsBySlug(ctx context.Context, q db.QueryExecutor, slug string) (bool, error) {
+	return r.ExistingBySlug(ctx, q, slug)
 }

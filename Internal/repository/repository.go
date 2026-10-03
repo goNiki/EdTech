@@ -36,6 +36,7 @@ type CourseRepository interface {
 	CountCourses(ctx context.Context, q db.QueryExecutor, filter domain.CourseFilter) (int64, error)
 	DeleteCourse(ctx context.Context, q db.QueryExecutor, courseID int64) error
 	ExistingBySlug(ctx context.Context, q db.QueryExecutor, slug string) (bool, error)
+	ExistsBySlug(ctx context.Context, q db.QueryExecutor, slug string) (bool, error)
 	IncrementEnrolledCount(ctx context.Context, q db.QueryExecutor, courseID int64) error
 	DecrementEnrolledCount(ctx context.Context, q db.QueryExecutor, courseID int64) error
 }

@@ -6,12 +6,36 @@ import (
 
 	"edtech/internal/domain"
 	"edtech/internal/infrastructure/db"
+	"edtech/pkg/utils"
 
 	"github.com/jackc/pgx/v5"
 )
 
+func (s *service) resolveUniqueSlug(ctx context.Context, q db.QueryExecutor, baseSlug string) (string, error) {
+	const op = "service.course.resolveUniqueSlug"
+
+	cleanSlug := utils.NormalizeSlug(baseSlug)
+	candidate := cleanSlug
+	counter := 1
+
+	for {
+		exists, err := s.courserepo.ExistsBySlug(ctx, q, candidate)
+		if err != nil {
+			return "", fmt.Errorf("%s: %w", op, err)
+		}
+		if !exists {
+			return candidate, nil
+		}
+		candidate = fmt.Sprintf("%s-%d", cleanSlug, counter)
+		counter++
+	}
+}
+
 func (s *service) CreateCourse(ctx context.Context, course *domain.Course) (*domain.Course, error) {
 	const op = "service.course.CreateCourse"
+
+	// Normalize slug before validation
+	course.Slug = utils.NormalizeSlug(course.Slug)
 
 	if err := course.Validate(); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -21,6 +45,13 @@ func (s *service) CreateCourse(ctx context.Context, course *domain.Course) (*dom
 	var createdCourse *domain.Course
 
 	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, q db.QueryExecutor) error {
+		// Resolve unique slug within transaction to prevent uniqueness collisions
+		uniqueSlug, err := s.resolveUniqueSlug(ctx, q, course.Slug)
+		if err != nil {
+			return err
+		}
+		course.Slug = uniqueSlug
+
 		var txErr error
 		createdCourse, txErr = s.courserepo.CreateCourse(ctx, q, course)
 		if txErr != nil {

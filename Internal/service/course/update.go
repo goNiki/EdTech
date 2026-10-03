@@ -6,6 +6,7 @@ import (
 
 	"edtech/internal/domain"
 	errorsAPP "edtech/pkg/errors"
+	"edtech/pkg/utils"
 )
 
 func (s *service) UpdateCourse(ctx context.Context, courseID int64, userID int64, input domain.UpdateCourseInput) (*domain.Course, error) {
@@ -22,6 +23,19 @@ func (s *service) UpdateCourse(ctx context.Context, courseID int64, userID int64
 	}
 	if !canEdit {
 		return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
+	}
+
+	if input.Slug != nil {
+		cleanSlug := utils.NormalizeSlug(*input.Slug)
+		if cleanSlug != course.Slug {
+			uniqueSlug, err := s.resolveUniqueSlug(ctx, s.db, cleanSlug)
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", op, err)
+			}
+			input.Slug = &uniqueSlug
+		} else {
+			input.Slug = &cleanSlug
+		}
 	}
 
 	course.Update(input)

@@ -43,7 +43,6 @@ func buildCourseFilterQuery(filter domain.CourseFilter) (string, []any) {
 	if filter.Search != nil && *filter.Search != "" {
 		where += fmt.Sprintf(" AND (title ILIKE $%d OR description ILIKE $%d)", argIdx, argIdx)
 		args = append(args, "%"+*filter.Search+"%")
-		argIdx++
 	}
 
 	return where, args

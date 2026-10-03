@@ -51,7 +51,6 @@ func buildEnrolledFilterQuery(input *domain.InputListMyCourse) (string, []any) {
 	if input.Filter.Search != nil && *input.Filter.Search != "" {
 		where += fmt.Sprintf(" AND (c.title ILIKE $%d OR c.description ILIKE $%d)", argIdx, argIdx)
 		args = append(args, "%"+*input.Filter.Search+"%")
-		argIdx++
 	}
 
 	return where, args
