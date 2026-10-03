@@ -7,7 +7,20 @@ import (
 
 func LessonProgressToDTO(d *domain.LessonProgress) dto.LessonProgress {
 	if d == nil {
-		return dto.LessonProgress{}
+		return dto.LessonProgress{
+			Submissions: make([]dto.LessonSubmissionDetailDTO, 0),
+		}
+	}
+	submissions := make([]dto.LessonSubmissionDetailDTO, 0, len(d.Submissions))
+	for _, s := range d.Submissions {
+		submissions = append(submissions, dto.LessonSubmissionDetailDTO{
+			QuestionText:    s.QuestionText,
+			StudentAnswer:   s.StudentAnswer,
+			PointsAwarded:   s.PointsAwarded,
+			MaxPoints:       s.MaxPoints,
+			TeacherFeedback: s.TeacherFeedback,
+			IsGraded:        s.IsGraded,
+		})
 	}
 	return dto.LessonProgress{
 		ID:          d.ID,
@@ -18,6 +31,7 @@ func LessonProgressToDTO(d *domain.LessonProgress) dto.LessonProgress {
 		LastPos:     d.LastPos,
 		StartedAt:   d.StartedAt,
 		CompletedAt: d.CompletedAt,
+		Submissions: submissions,
 	}
 }
 

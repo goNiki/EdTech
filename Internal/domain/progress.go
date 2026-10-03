@@ -22,6 +22,7 @@ type LessonProgress struct {
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 	UpdatedAt   time.Time
+	Submissions []LessonSubmissionDetail
 }
 
 type CourseProgress struct {
@@ -48,4 +49,13 @@ type EssaySubmission struct {
 	QuestionText string
 	AnswerText   string
 	MaxPoints    int
+}
+
+type LessonSubmissionDetail struct {
+	QuestionText    string  `json:"question_text"`
+	StudentAnswer   string  `json:"student_answer"`
+	PointsAwarded   int     `json:"points_awarded"`
+	MaxPoints       int     `json:"max_points"`
+	TeacherFeedback *string `json:"teacher_feedback"`
+	IsGraded        bool    `json:"is_graded"`
 }

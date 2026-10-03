@@ -127,4 +127,5 @@ type QuizRepository interface {
 	AcquireAdvisoryLock(ctx context.Context, q db.QueryExecutor, userID int64, quizID int64) error
 	ListAttemptsForGrading(ctx context.Context, q db.QueryExecutor, courseID int64, quizID *int64, limit, offset int) ([]domain.QuizAttempt, int64, error)
 	SaveEssaySubmission(ctx context.Context, q db.QueryExecutor, userID, courseID, lessonID int64, essay domain.EssaySubmission) error
+	GetLessonSubmissions(ctx context.Context, q db.QueryExecutor, userID, lessonID int64) ([]domain.LessonSubmissionDetail, error)
 }

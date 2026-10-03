@@ -70,3 +70,53 @@ func (r *repositoryImpl) SaveEssaySubmission(ctx context.Context, q db.QueryExec
 
 	return nil
 }
+
+func (r *repositoryImpl) GetLessonSubmissions(ctx context.Context, q db.QueryExecutor, userID, lessonID int64) ([]domain.LessonSubmissionDetail, error) {
+	const op = "repository.quiz.GetLessonSubmissions"
+
+	query := `
+		SELECT 
+			COALESCE(qq.question_text, ''),
+			COALESCE(qaa.user_answer, ''),
+			COALESCE(qaa.points, 0),
+			COALESCE(qz.points, 25),
+			qaa.feedback,
+			(qaa.is_correct IS NOT NULL) AS is_graded
+		FROM quiz_attempt_answers qaa
+		JOIN quiz_attempts qa ON qa.id = qaa.attempt_id
+		JOIN quizzes qz ON qz.id = qa.quiz_id
+		JOIN quiz_questions qq ON qq.id = qaa.question_id
+		WHERE qz.lesson_id = $1 
+		  AND qa.user_id = $2
+		  AND qz.deleted_at IS NULL
+		ORDER BY qaa.created_at ASC`
+
+	rows, err := q.Query(ctx, query, lessonID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
+	}
+	defer rows.Close()
+
+	submissions := make([]domain.LessonSubmissionDetail, 0)
+	for rows.Next() {
+		var sub domain.LessonSubmissionDetail
+		if err := rows.Scan(
+			&sub.QuestionText,
+			&sub.StudentAnswer,
+			&sub.PointsAwarded,
+			&sub.MaxPoints,
+			&sub.TeacherFeedback,
+			&sub.IsGraded,
+		); err != nil {
+			return nil, fmt.Errorf("%s: scan row: %w: %w", op, errorsAPP.ErrInternalDB, err)
+		}
+		submissions = append(submissions, sub)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: rows err: %w: %w", op, errorsAPP.ErrInternalDB, err)
+	}
+
+	return submissions, nil
+}
+
