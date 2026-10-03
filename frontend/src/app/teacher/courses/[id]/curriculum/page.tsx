@@ -239,6 +239,31 @@ export default function TeacherCourseManagementPage({ params }: { params: Promis
     }
   };
 
+  const handleRemoveStudent = async (student: StudentItem) => {
+    if (!canEdit) {
+      showToast('У вас нет прав на управление студентами этого курса.', 'error');
+      return;
+    }
+    try {
+      await api.delete(`/courses/${id}/students/${student.id}`);
+      showToast(`Студент ${student.name} успешно исключен из курса`);
+      setStudents((prev) => prev.filter((s) => s.id !== student.id));
+      setAnalytics((prev: any) =>
+        prev ? { ...prev, total_students: Math.max(0, (prev.total_students || 1) - 1) } : prev
+      );
+    } catch (err: any) {
+      console.error('Failed to remove student', err);
+      if (err.response?.status === 403) {
+        showToast('Недостаточно прав для исключения студента из курса', 'error');
+      } else {
+        showToast(
+          err.response?.data?.message || err.response?.data?.error || 'Ошибка при исключении студента',
+          'error'
+        );
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -636,6 +661,7 @@ export default function TeacherCourseManagementPage({ params }: { params: Promis
                 students={students}
                 onOpenDrilldown={(stId) => setDrilldownStudentId(stId)}
                 onAddStudent={() => setIsAddStudentOpen(true)}
+                onRemoveStudent={handleRemoveStudent}
               />
             ) : (
               <PendingHomeworksQueue

@@ -20,7 +20,10 @@ import {
   ChevronUp,
   Check,
   ArrowRight,
-  Star
+  Star,
+  LogOut,
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 
 export default function StudentCoursePlayerPage({ params }: { params: Promise<{ id: string }> }) {
@@ -33,6 +36,22 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
   const [lessonProgressMap, setLessonProgressMap] = useState<Record<number, any>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [openSections, setOpenSections] = useState<Record<number, boolean>>({});
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
+
+  const handleLeaveCourse = async () => {
+    setIsLeaving(true);
+    setLeaveError(null);
+    try {
+      await api.delete(`/courses/${id}/enroll`);
+      router.push('/dashboard/courses');
+    } catch (err: any) {
+      console.error('Failed to leave course', err);
+      setLeaveError(err.response?.data?.message || err.response?.data?.error || 'Не удалось покинуть курс. Попробуйте позже.');
+      setIsLeaving(false);
+    }
+  };
 
   useEffect(() => {
     const fetchCourseData = async () => {
@@ -393,6 +412,17 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                   <span>Продолжить обучение</span>
                 </button>
               )}
+
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setIsLeaveModalOpen(true)}
+                  className="text-xs font-semibold text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 flex items-center gap-1.5 transition-colors cursor-pointer py-1"
+                >
+                  <LogOut size={13} />
+                  <span>Покинуть курс</span>
+                </button>
+              </div>
             </div>
 
             {/* Course Progress & Performance Card */}
@@ -442,6 +472,58 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
           </div>
         </div>
       </main>
+
+      {/* Leave Course Confirmation Modal */}
+      {isLeaveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+              <AlertTriangle size={24} />
+            </div>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                Вы уверены, что хотите покинуть курс?
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Ваш текущий прогресс будет сохранен, но курс исчезнет из списка активных в личном кабинете. Вы сможете записаться повторно в любое время.
+              </p>
+            </div>
+
+            {leaveError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-xs font-medium text-center">
+                {leaveError}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={isLeaving}
+                onClick={() => setIsLeaveModalOpen(false)}
+                className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                disabled={isLeaving}
+                onClick={handleLeaveCourse}
+                className="flex-1 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isLeaving ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Отчисление...</span>
+                  </>
+                ) : (
+                  <span>Да, покинуть курс</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

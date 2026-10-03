@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { UserCheck, FileText, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { UserCheck, FileText, Sparkles, UserX, AlertTriangle, Loader2 } from 'lucide-react';
 
 export interface StudentItem {
   id: number;
@@ -18,13 +18,28 @@ interface StudentsTableProps {
   students: StudentItem[];
   onOpenDrilldown: (studentId: number) => void;
   onAddStudent: () => void;
+  onRemoveStudent?: (student: StudentItem) => Promise<void> | void;
 }
 
 export default function StudentsTable({
   students,
   onOpenDrilldown,
   onAddStudent,
+  onRemoveStudent,
 }: StudentsTableProps) {
+  const [studentToRemove, setStudentToRemove] = useState<StudentItem | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  const handleConfirmRemove = async () => {
+    if (!studentToRemove || !onRemoveStudent) return;
+    setIsRemoving(true);
+    try {
+      await onRemoveStudent(studentToRemove);
+      setStudentToRemove(null);
+    } finally {
+      setIsRemoving(false);
+    }
+  };
   if (students.length === 0) {
     return (
       <div className="p-12 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl space-y-4">
@@ -122,18 +137,77 @@ export default function StudentsTable({
                   )}
                 </td>
                 <td className="px-5 py-4 text-right">
-                  <button
-                    onClick={() => onOpenDrilldown(st.id)}
-                    className="px-3.5 py-1.5 bg-indigo-50 dark:bg-indigo-950 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl transition-all shadow-2xs"
-                  >
-                    Детальный отчет
-                  </button>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => onOpenDrilldown(st.id)}
+                      className="px-3.5 py-1.5 bg-indigo-50 dark:bg-indigo-950 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl transition-all shadow-2xs text-xs"
+                    >
+                      Детальный отчет
+                    </button>
+                    {onRemoveStudent && (
+                      <button
+                        onClick={() => setStudentToRemove(st)}
+                        className="p-1.5 rounded-xl border border-rose-200/80 dark:border-rose-900/60 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 transition-colors"
+                        title="Исключить студента из курса"
+                      >
+                        <UserX size={15} />
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Remove Student Confirmation Modal */}
+      {studentToRemove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+              <AlertTriangle size={24} />
+            </div>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                Исключить студента из курса?
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Вы собираетесь отчислить учащегося{' '}
+                <strong className="text-slate-800 dark:text-slate-200">{studentToRemove.name}</strong> ({studentToRemove.email}). 
+                Он потеряет доступ к материалам курса, а счетчик учащихся будет уменьшен.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={isRemoving}
+                onClick={() => setStudentToRemove(null)}
+                className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                disabled={isRemoving}
+                onClick={handleConfirmRemove}
+                className="flex-1 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isRemoving ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Исключение...</span>
+                  </>
+                ) : (
+                  <span>Исключить</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
