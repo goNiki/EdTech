@@ -43,6 +43,10 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		Error(w, r, http.StatusBadRequest, "EMPTY_FILE", "Uploaded file cannot be empty")
 	case errors.Is(err, errorsAPP.ErrCreatorCannotUnenroll):
 		Error(w, r, http.StatusBadRequest, "CREATOR_CANNOT_UNENROLL", "Course creator cannot be unenrolled")
+	case errors.Is(err, errorsAPP.ErrSamePassword):
+		Error(w, r, http.StatusBadRequest, "SAME_PASSWORD", "New password cannot be the same as old password")
+	case errors.Is(err, errorsAPP.ErrPasswordTooShort):
+		Error(w, r, http.StatusBadRequest, "PASSWORD_TOO_SHORT", "New password must be at least 8 characters")
 	// 400 Bad Request - ошибки URL параметров
 	case errors.Is(err, errorsAPP.ErrInvalidURLParam):
 		Error(w, r, http.StatusBadRequest, "INVALID_URL_PARAM", "Invalid URL parametr")

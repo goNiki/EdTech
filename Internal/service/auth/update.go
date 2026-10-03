@@ -5,7 +5,10 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
+	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
+
+	"github.com/jackc/pgx/v5"
 )
 
 func (s *service) UpdateProfile(ctx context.Context, userID int64, input domain.UpdateProfileInput) (*domain.User, error) {
@@ -28,6 +31,13 @@ func (s *service) UpdateProfile(ctx context.Context, userID int64, input domain.
 func (s *service) ChangePassword(ctx context.Context, userID int64, oldPassword, newPassword string) error {
 	const op = "service.auth.ChangePassword"
 
+	if len(newPassword) < 8 {
+		return fmt.Errorf("%s: %w", op, errorsAPP.ErrPasswordTooShort)
+	}
+	if oldPassword == newPassword {
+		return fmt.Errorf("%s: %w", op, errorsAPP.ErrSamePassword)
+	}
+
 	user, err := s.repo.GetUserByID(ctx, s.db, userID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -46,7 +56,16 @@ func (s *service) ChangePassword(ctx context.Context, userID int64, oldPassword,
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := s.repo.UpdatePassword(ctx, s.db, user.ID, passHash); err != nil {
+	err = s.txmanager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, tx db.QueryExecutor) error {
+		if err := s.repo.UpdatePassword(ctx, tx, user.ID, passHash); err != nil {
+			return fmt.Errorf("%s: update password: %w", op, err)
+		}
+		if err := s.refreshRepo.DeleteAllByUserID(ctx, tx, user.ID); err != nil {
+			return fmt.Errorf("%s: revoke refresh tokens: %w", op, err)
+		}
+		return nil
+	})
+	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 

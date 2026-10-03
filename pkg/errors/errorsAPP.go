@@ -7,6 +7,8 @@ var (
 	ErrUserNotFound        = errors.New("user not found")
 	ErrInvalidCredentials  = errors.New("invalid credentials")
 	ErrUserAlreadyEnrolled = errors.New("user already enrolled")
+	ErrSamePassword        = errors.New("new password cannot be the same as old password")
+	ErrPasswordTooShort    = errors.New("new password must be at least 8 characters")
 
 	// Course errors
 	ErrCourseNotFound           = errors.New("course not found")
