@@ -20,6 +20,54 @@ export default function CreateCoursePage() {
   const [language, setLanguage] = useState('RU');
   const [visibility, setVisibility] = useState('public');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+
+  const resolveUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8082/api/v1').replace(/\/api\/v1\/?$/, '');
+    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setCoverError('Размер обложки не должен превышать 10 МБ');
+      return;
+    }
+
+    setIsUploadingCover(true);
+    setCoverError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', 'course_cover');
+
+      const res = await api.post('/upload', formData, {
+        params: { category: 'course_cover' },
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const data = res.data.data || res.data;
+      const uploadedUrl = data.file_url || data.url || data.FileUrl;
+      if (uploadedUrl) {
+        setCoverUrl(resolveUrl(uploadedUrl));
+      }
+    } catch (err: any) {
+      console.error('Course cover upload failed', err);
+      setCoverError(err.response?.data?.message || err.response?.data?.error || 'Не удалось загрузить обложку');
+    } finally {
+      setIsUploadingCover(false);
+      if (coverFileInputRef.current) {
+        coverFileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleTitleChange = (val: string) => {
     setTitle(val);
@@ -148,16 +196,77 @@ export default function CreateCoursePage() {
           {/* Media Links */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Ссылка на обложку (Cover Image URL)
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Обложка курса (Cover Image)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => coverFileInputRef.current?.click()}
+                  disabled={isUploadingCover}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5"
+                >
+                  {isUploadingCover ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Загрузка...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={13} />
+                      <span>Загрузить с диска</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
               <input
-                type="url"
-                value={coverUrl}
-                onChange={(e) => setCoverUrl(e.target.value)}
-                placeholder="https://example.com/cover.jpg"
-                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                type="file"
+                ref={coverFileInputRef}
+                onChange={handleCoverUpload}
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
               />
+
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={coverUrl}
+                  onChange={(e) => setCoverUrl(e.target.value)}
+                  placeholder="https://example.com/cover.jpg или выберите файл"
+                  className="flex-1 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+                {coverUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setCoverUrl('')}
+                    className="px-3 py-2 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors flex items-center gap-1 text-xs font-bold"
+                    title="Удалить обложку"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+
+              {coverError && (
+                <p className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold">{coverError}</p>
+              )}
+
+              {coverUrl && (
+                <div className="relative mt-2 w-full h-32 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+                  <img
+                    src={coverUrl}
+                    alt="Предпросмотр обложки"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <span className="absolute bottom-1.5 right-1.5 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs">
+                    Превью
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">
