@@ -187,3 +187,13 @@ button[data-puck-overlay-portal],
 [data-puck-drag-handle]:active {
   cursor: grabbing !important;
 }
+
+/* Elegant placeholder for empty contenteditable elements */
+.edtech-inline-editable[contenteditable]:empty:before,
+[contenteditable][data-placeholder]:empty:before {
+  content: attr(data-placeholder);
+  color: #94a3b8;
+  pointer-events: none;
+  display: block;
+  font-style: italic;
+}

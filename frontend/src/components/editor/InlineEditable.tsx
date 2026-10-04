@@ -504,6 +504,7 @@ export function RichTextCanvasEditor({
 }: RichTextCanvasEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const isInitializedRef = useRef(false);
+  const initialHtmlRef = useRef<string>(htmlContent || '');
   const lastHtmlRef = useRef<string>(htmlContent || '');
   const savedSelectionRef = useRef<Range | null>(null);
 
@@ -565,10 +566,13 @@ export function RichTextCanvasEditor({
     } catch (e) {}
   }, []);
 
-  // Sync external changes ONLY when prop actually changed from outside
+  // Sync external changes ONLY when prop actually changed from outside and user is not currently typing inside
   useEffect(() => {
     if (editorRef.current && isInitializedRef.current) {
-      if (htmlContent !== undefined && htmlContent !== lastHtmlRef.current) {
+      const isFocused =
+        typeof document !== 'undefined' &&
+        (document.activeElement === editorRef.current || editorRef.current.contains(document.activeElement));
+      if (!isFocused && htmlContent !== undefined && htmlContent !== lastHtmlRef.current) {
         lastHtmlRef.current = htmlContent;
         editorRef.current.innerHTML = htmlContent || '';
       }
@@ -863,18 +867,16 @@ export function RichTextCanvasEditor({
         }}
         className="bg-slate-100/90 dark:bg-slate-900/90 px-3 py-1.5 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-1.5 text-slate-700 dark:text-slate-300 select-none text-xs"
       >
-        {/* Drag Handle */}
-        {dragRef && (
-          <div
-            ref={dragRef}
-            data-puck-drag-handle="true"
-            className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold transition-colors cursor-grab active:cursor-grabbing select-none"
-            title="Зажмите и потяните, чтобы переместить блок"
-          >
-            <GripVertical size={13} />
-            <span>Текст</span>
-          </div>
-        )}
+        {/* Block Badge */}
+        <div
+          ref={dragRef}
+          data-puck-drag-handle={dragRef ? 'true' : undefined}
+          className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-indigo-600 text-white text-[11px] font-bold select-none shadow-2xs"
+          title="Текстовый блок (Canvas)"
+        >
+          <Type size={13} />
+          <span>Текст</span>
+        </div>
 
         {/* Undo / Redo */}
         <div className="flex items-center bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 p-0.5">
@@ -1323,6 +1325,7 @@ export function RichTextCanvasEditor({
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
+        dangerouslySetInnerHTML={{ __html: initialHtmlRef.current }}
         data-puck-overlay-portal="true"
         onPointerDownCapture={(e) => e.stopPropagation()}
         onMouseDownCapture={(e) => e.stopPropagation()}
@@ -1372,6 +1375,7 @@ export function RichTextWordEditor({
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const isInitializedRef = useRef(false);
+  const initialHtmlRef = useRef<string>(htmlContent || '');
   const lastHtmlRef = useRef<string>(htmlContent || '');
   const savedSelectionRef = useRef<Range | null>(null);
 
@@ -1477,10 +1481,13 @@ export function RichTextWordEditor({
     } catch (e) {}
   }, []);
 
-  // Sync external changes ONLY when prop actually changed from outside
+  // Sync external changes ONLY when prop actually changed from outside and user is not typing inside
   useEffect(() => {
     if (editorRef.current && isInitializedRef.current) {
-      if (htmlContent !== undefined && htmlContent !== lastHtmlRef.current) {
+      const isFocused =
+        typeof document !== 'undefined' &&
+        (document.activeElement === editorRef.current || editorRef.current.contains(document.activeElement));
+      if (!isFocused && htmlContent !== undefined && htmlContent !== lastHtmlRef.current) {
         lastHtmlRef.current = htmlContent;
         editorRef.current.innerHTML = htmlContent || '';
       }
@@ -1775,14 +1782,14 @@ export function RichTextWordEditor({
       {/* Top Banner & Header */}
       <div className="bg-slate-100/90 dark:bg-slate-800/90 px-5 py-3 border-b border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          {/* Drag Handle */}
+          {/* Badge */}
           <div
             ref={dragRef}
-            data-puck-drag-handle="true"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors cursor-grab active:cursor-grabbing select-none"
-            title="Зажмите и потяните, чтобы переместить блок по уроку"
+            data-puck-drag-handle={dragRef ? 'true' : undefined}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-600 text-white text-xs font-bold select-none shadow-2xs"
+            title="Интерактивная статья / лекция"
           >
-            <GripVertical size={14} />
+            <FileText size={14} />
             <span>Лекция / Word</span>
           </div>
         </div>
@@ -2372,6 +2379,7 @@ export function RichTextWordEditor({
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
+          dangerouslySetInnerHTML={{ __html: initialHtmlRef.current }}
           data-puck-overlay-portal="true"
           onPointerDownCapture={(e) => e.stopPropagation()}
           onMouseDownCapture={(e) => e.stopPropagation()}

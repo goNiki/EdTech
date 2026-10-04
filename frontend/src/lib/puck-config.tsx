@@ -281,7 +281,6 @@ export const config: Config<PuckProps> = {
 
     TextBlock: {
       label: 'Текстовый блок (Canvas)',
-      inline: true,
       fields: {
         contentHtml: { type: 'textarea', label: 'HTML-содержимое блока' },
         align: {
@@ -305,10 +304,11 @@ export const config: Config<PuckProps> = {
       render: (props: any) => {
         const { contentHtml, content, align, id, puck } = props;
         const { updateProps, isEditing, selectThisBlock } = usePuckPropUpdater(id);
+        const effectiveEditing = puck?.isEditing ?? isEditing ?? true;
         const initialHtml = contentHtml || (content ? `<p>${content}</p>` : '<p>Начните вводить текст лекции...</p>');
 
         return (
-          <div className="my-3" id={id} onClick={() => selectThisBlock()}>
+          <div className="my-3 w-full" id={id} onClick={() => selectThisBlock()}>
             <RichTextCanvasEditor
               htmlContent={initialHtml}
               onChange={(val) => {
@@ -317,10 +317,9 @@ export const config: Config<PuckProps> = {
                   content: val.replace(/<[^>]+>/g, ' '),
                 });
               }}
-              isEditing={isEditing}
+              isEditing={effectiveEditing}
               onFocusBlock={selectThisBlock}
               defaultAlign={align || 'left'}
-              dragRef={puck?.dragRef}
             />
           </div>
         );
@@ -329,7 +328,6 @@ export const config: Config<PuckProps> = {
 
     RichTextBlock: {
       label: 'Лекция / Статья (Word)',
-      inline: true,
       fields: {
         title: { type: 'text', label: 'Заголовок раздела лекции' },
         contentHtml: { type: 'textarea', label: 'HTML-содержимое статьи' },
@@ -355,17 +353,17 @@ export const config: Config<PuckProps> = {
       render: (props: any) => {
         const { contentHtml, title, id, puck } = props;
         const { updateProp, isEditing, selectThisBlock } = usePuckPropUpdater(id);
+        const effectiveEditing = puck?.isEditing ?? isEditing ?? true;
 
         return (
-          <div id={id} onClick={() => selectThisBlock()}>
+          <div className="my-5 w-full" id={id} onClick={() => selectThisBlock()}>
             <RichTextWordEditor
               htmlContent={contentHtml || ''}
               onChange={(val) => updateProp('contentHtml', val)}
               title={title}
               onTitleChange={(val) => updateProp('title', val)}
-              isEditing={isEditing}
+              isEditing={effectiveEditing}
               onFocusBlock={selectThisBlock}
-              dragRef={puck?.dragRef}
             />
           </div>
         );
