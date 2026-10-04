@@ -1,4 +1,4 @@
-package errorsAPP
+package apperrors
 
 import "errors"
 
@@ -19,7 +19,6 @@ var (
 
 	// Course errors
 	ErrCourseNotFound           = errors.New("course not found")
-	ErrNotFoundCourse           = ErrCourseNotFound
 	ErrSlugAlreadyExists        = errors.New("slug already exists")
 	ErrCourseAlreadyPublished    = errors.New("course already published")
 	ErrCourseAlreadyArchived     = errors.New("course already archived")
@@ -39,9 +38,9 @@ var (
 	ErrSectionAlreadyArchived   = errors.New("section already archived")
 
 	// Lesson errors
-	ErrLessonNotFound           = errors.New("lesson not found")
-	ErrNotFoundLesson           = ErrLessonNotFound
-	ErrLessonAlreadyPublished   = errors.New("lesson already published")
+	ErrLessonNotFound         = errors.New("lesson not found")
+	ErrNotFoundLesson         = ErrLessonNotFound
+	ErrLessonAlreadyPublished = errors.New("lesson already published")
 	ErrLessonAlreadyArchived    = errors.New("lesson already archived")
 	ErrLessonValidation         = errors.New("lesson validation failed")
 	ErrNothingToUpdate          = errors.New("nothing to update")
@@ -53,10 +52,8 @@ var (
 
 	// Quiz errors
 	ErrQuizNotFound            = errors.New("quiz not found")
-	ErrNotFoundQuiz            = ErrQuizNotFound
 	ErrQuizValidation          = errors.New("quiz validation failed")
 	ErrAttemptNotFound         = errors.New("quiz attempt not found")
-	ErrNotFoundAttempt         = ErrAttemptNotFound
 	ErrMaxAttemptsReached      = errors.New("maximum quiz attempts reached")
 	ErrTimeLimitExceeded       = errors.New("quiz time limit exceeded")
 	ErrAttemptAlreadyCompleted = errors.New("quiz attempt already completed")

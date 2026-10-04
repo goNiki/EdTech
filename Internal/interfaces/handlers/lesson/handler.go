@@ -1,6 +1,14 @@
 package lesson
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"strconv"
+	"strings"
+
 	"edtech/internal/domain"
 	"edtech/internal/dto"
 	"edtech/internal/interfaces/handlers/converter"
@@ -8,14 +16,13 @@ import (
 	"edtech/internal/interfaces/response"
 	"edtech/internal/service"
 	errorsAPP "edtech/pkg/errors"
-	"log/slog"
-	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 )
+
+const maxLessonBodySize = 5 * 1024 * 1024 // 5 MB max body size for lesson payloads
 
 type LessonHandler struct {
 	lessonService  service.LessonServices
@@ -42,8 +49,15 @@ func (h *LessonHandler) CreateLesson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxLessonBodySize)
+
 	var req dto.CreateLessonRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			response.HandleError(w, r, h.log, errorsAPP.ErrFileTooLarge, op)
+			return
+		}
 		response.HandleError(w, r, h.log, errorsAPP.ErrDecodeJSON, op)
 		return
 	}
@@ -51,6 +65,13 @@ func (h *LessonHandler) CreateLesson(w http.ResponseWriter, r *http.Request) {
 	if err := h.validator.Struct(req); err != nil {
 		response.HandleError(w, r, h.log, errorsAPP.ErrValidationFailed, op)
 		return
+	}
+
+	if strings.TrimSpace(req.Content) != "" {
+		if !json.Valid([]byte(req.Content)) {
+			response.HandleError(w, r, h.log, fmt.Errorf("%w: invalid json in content", errorsAPP.ErrValidationFailed), op)
+			return
+		}
 	}
 
 	lessonDomain := converter.CreateLessonRequestToDomain(req)
@@ -80,8 +101,15 @@ func (h *LessonHandler) UpdateLesson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxLessonBodySize)
+
 	var req dto.UpdateLessonRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			response.HandleError(w, r, h.log, errorsAPP.ErrFileTooLarge, op)
+			return
+		}
 		response.HandleError(w, r, h.log, errorsAPP.ErrDecodeJSON, op)
 		return
 	}
@@ -89,6 +117,13 @@ func (h *LessonHandler) UpdateLesson(w http.ResponseWriter, r *http.Request) {
 	if err := h.validator.Struct(req); err != nil {
 		response.HandleError(w, r, h.log, errorsAPP.ErrValidationFailed, op)
 		return
+	}
+
+	if req.Content != nil && strings.TrimSpace(*req.Content) != "" {
+		if !json.Valid([]byte(*req.Content)) {
+			response.HandleError(w, r, h.log, fmt.Errorf("%w: invalid json in content", errorsAPP.ErrValidationFailed), op)
+			return
+		}
 	}
 
 	lessonDomain := &domain.Lesson{
