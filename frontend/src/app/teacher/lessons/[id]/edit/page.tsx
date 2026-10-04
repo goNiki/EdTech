@@ -18,6 +18,8 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
   const router = useRouter();
   const { user } = useAuth();
   const [initialData, setInitialData] = useState<any>(null);
+  const [editorKey, setEditorKey] = useState<number>(0);
+  const currentPuckDataRef = useRef<any>(null);
   const [lessonMeta, setLessonMeta] = useState<any>(null);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [forbiddenAlert, setForbiddenAlert] = useState<string | null>(null);
@@ -32,10 +34,14 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
   };
 
   const handleBulkQuizzesImport = (blocks: any[]) => {
-    setInitialData((prev: any) => ({
-      ...prev,
-      content: [...(prev?.content || []), ...blocks],
-    }));
+    const baseData = currentPuckDataRef.current || initialData || { content: [] };
+    const updatedData = {
+      ...baseData,
+      content: [...(baseData.content || []), ...blocks],
+    };
+    currentPuckDataRef.current = updatedData;
+    setInitialData(updatedData);
+    setEditorKey((prev) => prev + 1);
     showToast(`Успешно добавлено ${blocks.length} блоков тестов в урок!`);
   };
 
@@ -51,10 +57,14 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
           contentHtml: res.html,
         },
       };
-      setInitialData((prev: any) => ({
-        ...prev,
-        content: [...(prev?.content || []), newBlock],
-      }));
+      const baseData = currentPuckDataRef.current || initialData || { content: [] };
+      const updatedData = {
+        ...baseData,
+        content: [...(baseData.content || []), newBlock],
+      };
+      currentPuckDataRef.current = updatedData;
+      setInitialData(updatedData);
+      setEditorKey((prev) => prev + 1);
       showToast(`Документ успешно добавлен в урок (${res.wordCount} слов, ${res.tablesCount} таблиц)`);
     } catch (err: any) {
       alert(err.message || 'Ошибка импорта документа');
@@ -210,8 +220,12 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
       {/* Puck Editor Container */}
       <div className="flex-1 w-full overflow-hidden">
         <Puck
+          key={editorKey}
           config={config}
           data={initialData}
+          onChange={(data) => {
+            currentPuckDataRef.current = data;
+          }}
           onPublish={handleSave}
           plugins={[
             blocksPlugin({ label: 'Блоки' }),

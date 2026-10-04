@@ -531,15 +531,22 @@ export function RichTextCanvasEditor({
   const restoreSelection = useCallback(() => {
     if (typeof window === 'undefined' || !editorRef.current) return;
     const sel = window.getSelection();
-    if (editorRef.current && document.activeElement !== editorRef.current) {
-      editorRef.current.focus();
+    if (!sel || !savedSelectionRef.current) return;
+    if (sel.rangeCount > 0) {
+      const curRange = sel.getRangeAt(0);
+      if (
+        curRange.startContainer === savedSelectionRef.current.startContainer &&
+        curRange.startOffset === savedSelectionRef.current.startOffset &&
+        curRange.endContainer === savedSelectionRef.current.endContainer &&
+        curRange.endOffset === savedSelectionRef.current.endOffset
+      ) {
+        return;
+      }
     }
-    if (savedSelectionRef.current && sel) {
-      try {
-        sel.removeAllRanges();
-        sel.addRange(savedSelectionRef.current);
-      } catch (e) {}
-    }
+    try {
+      sel.removeAllRanges();
+      sel.addRange(savedSelectionRef.current);
+    } catch (e) {}
   }, []);
 
   // Track selection changes across the document
@@ -590,7 +597,7 @@ export function RichTextCanvasEditor({
     if (!editorRef.current) return;
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'true');
+      document.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
     document.execCommand(command, false, value);
     saveSelection();
@@ -667,7 +674,7 @@ export function RichTextCanvasEditor({
     if (!editorRef.current) return;
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'true');
+      document.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
     let ok = document.execCommand('formatBlock', false, `<${tag}>`);
     if (!ok) {
@@ -677,88 +684,62 @@ export function RichTextCanvasEditor({
     triggerChange();
   };
 
-  const formatFont = (fontFamily: string) => {
+  const applyInlineStyle = (styleObj: Record<string, string>) => {
     if (!editorRef.current) return;
     restoreSelection();
     const sel = window.getSelection();
-    if (sel && !sel.isCollapsed) {
-      try {
-        document.execCommand('styleWithCSS', false, 'true');
-      } catch (e) {}
-      document.execCommand('fontName', false, fontFamily);
-    } else if (sel && sel.anchorNode && editorRef.current) {
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (!editorRef.current.contains(range.commonAncestorContainer)) return;
+
+    if (range.collapsed) {
       let el: HTMLElement | null =
-        (sel.anchorNode.nodeType === Node.ELEMENT_NODE
-          ? sel.anchorNode
-          : sel.anchorNode.parentElement) as HTMLElement;
+        (range.startContainer.nodeType === Node.ELEMENT_NODE
+          ? range.startContainer
+          : range.startContainer.parentElement) as HTMLElement;
       while (el && el !== editorRef.current && el.parentElement !== editorRef.current) {
         el = el.parentElement;
       }
       if (el && el !== editorRef.current) {
-        el.style.fontFamily = fontFamily;
+        Object.assign(el.style, styleObj);
       } else {
-        editorRef.current.style.fontFamily = fontFamily;
+        Object.assign(editorRef.current.style, styleObj);
       }
+      triggerChange();
+      return;
     }
-    saveSelection();
+
+    const contents = range.extractContents();
+    const span = document.createElement('span');
+    Object.assign(span.style, styleObj);
+    span.appendChild(contents);
+    range.insertNode(span);
+
+    const newRange = document.createRange();
+    newRange.selectNodeContents(span);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+    savedSelectionRef.current = newRange.cloneRange();
     triggerChange();
   };
 
-  const formatSize = (sizeCmd: string, sizePx: string) => {
-    if (!editorRef.current) return;
-    restoreSelection();
-    const sel = window.getSelection();
-    if (sel && !sel.isCollapsed) {
-      try {
-        document.execCommand('styleWithCSS', false, 'true');
-      } catch (e) {}
-      document.execCommand('fontSize', false, sizeCmd);
-    } else if (sel && sel.anchorNode && editorRef.current) {
-      let el: HTMLElement | null =
-        (sel.anchorNode.nodeType === Node.ELEMENT_NODE
-          ? sel.anchorNode
-          : sel.anchorNode.parentElement) as HTMLElement;
-      while (el && el !== editorRef.current && el.parentElement !== editorRef.current) {
-        el = el.parentElement;
-      }
-      if (el && el !== editorRef.current) {
-        el.style.fontSize = sizePx;
-      }
-    }
-    saveSelection();
-    triggerChange();
+  const formatFont = (fontFamily: string) => {
+    applyInlineStyle({ fontFamily });
+  };
+
+  const formatSize = (sizePx: string) => {
+    applyInlineStyle({ fontSize: sizePx });
   };
 
   const formatColor = (color: string) => {
-    if (!editorRef.current) return;
-    restoreSelection();
-    const sel = window.getSelection();
-    if (sel && !sel.isCollapsed) {
-      try {
-        document.execCommand('styleWithCSS', false, 'true');
-      } catch (e) {}
-      document.execCommand('foreColor', false, color);
-    } else if (sel && sel.anchorNode && editorRef.current) {
-      let el: HTMLElement | null =
-        (sel.anchorNode.nodeType === Node.ELEMENT_NODE
-          ? sel.anchorNode
-          : sel.anchorNode.parentElement) as HTMLElement;
-      while (el && el !== editorRef.current && el.parentElement !== editorRef.current) {
-        el = el.parentElement;
-      }
-      if (el && el !== editorRef.current) {
-        el.style.color = color;
-      }
-    }
-    saveSelection();
-    triggerChange();
+    applyInlineStyle({ color });
   };
 
   const formatAlign = (alignCmd: 'justifyLeft' | 'justifyCenter' | 'justifyRight' | 'justifyFull') => {
     if (!editorRef.current) return;
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'true');
+      document.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
     document.execCommand(alignCmd, false);
     const sel = window.getSelection();
@@ -778,14 +759,59 @@ export function RichTextCanvasEditor({
   };
 
   const formatHighlight = (color: string = '#fef08a') => {
+    applyInlineStyle({ backgroundColor: color });
+  };
+
+  const formatCode = () => {
+    if (!editorRef.current) return;
+    restoreSelection();
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      if (editorRef.current.contains(range.commonAncestorContainer)) {
+        const contents = range.extractContents();
+        const code = document.createElement('code');
+        code.className = 'px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-mono text-xs';
+        code.appendChild(contents);
+        range.insertNode(code);
+
+        const newRange = document.createRange();
+        newRange.selectNodeContents(code);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+        savedSelectionRef.current = newRange.cloneRange();
+        triggerChange();
+        return;
+      }
+    }
+    formatHeading('p');
+    exec('formatBlock', '<pre>');
+  };
+
+  const clearFormatting = () => {
     if (!editorRef.current) return;
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'true');
+      document.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
-    let ok = document.execCommand('hiliteColor', false, color);
-    if (!ok) {
-      document.execCommand('backColor', false, color);
+    document.execCommand('removeFormat', false);
+    document.execCommand('unlink', false);
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      if (editorRef.current.contains(range.commonAncestorContainer)) {
+        let el = range.commonAncestorContainer as HTMLElement;
+        if (el.nodeType !== Node.ELEMENT_NODE) el = el.parentElement as HTMLElement;
+        while (el && el !== editorRef.current) {
+          if (el.tagName === 'SPAN' || el.tagName === 'FONT' || el.tagName === 'MARK') {
+            el.removeAttribute('style');
+            el.removeAttribute('face');
+            el.removeAttribute('size');
+            el.removeAttribute('color');
+          }
+          el = el.parentElement as HTMLElement;
+        }
+      }
     }
     saveSelection();
     triggerChange();
@@ -848,6 +874,17 @@ export function RichTextCanvasEditor({
     );
   }
 
+  const preventBtnFocus = {
+    onPointerDown: (e: React.PointerEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    onMouseDown: (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    },
+  };
+
   return (
     <div
       className="my-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden transition-all"
@@ -856,14 +893,21 @@ export function RichTextCanvasEditor({
       {/* Sleek Canvas Formatting Ribbon */}
       <div
         data-puck-overlay-portal="true"
-        onPointerDown={(e) => e.stopPropagation()}
-        onMouseDown={(e) => {
-          e.stopPropagation();
+        onPointerDown={(e) => {
           const target = e.target as HTMLElement;
           if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA')) {
             return;
           }
           e.preventDefault();
+          e.stopPropagation();
+        }}
+        onMouseDown={(e) => {
+          const target = e.target as HTMLElement;
+          if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA')) {
+            return;
+          }
+          e.preventDefault();
+          e.stopPropagation();
         }}
         className="bg-slate-100/90 dark:bg-slate-900/90 px-3 py-1.5 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-1.5 text-slate-700 dark:text-slate-300 select-none text-xs"
       >
@@ -883,7 +927,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Отменить действие (Ctrl+Z)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('undo'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
           >
@@ -892,7 +936,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Повторить действие (Ctrl+Y)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('redo'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
           >
@@ -905,7 +949,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Обычный абзац (P)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatHeading('p'); }}
             className="edtech-inline-btn px-2 py-1 text-xs font-bold rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -914,7 +958,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Заголовок H1"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatHeading('h1'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-extrabold"
           >
@@ -923,7 +967,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Заголовок H2"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatHeading('h2'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-bold"
           >
@@ -932,7 +976,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Подзаголовок H3"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatHeading('h3'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400"
           >
@@ -945,7 +989,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Шрифт: Стандартный без засечек"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatFont('sans-serif'); }}
             className="edtech-inline-btn px-1.5 py-0.5 text-[11px] font-medium rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -954,7 +998,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Шрифт: С засечками (Serif / Книга)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatFont('Georgia, serif'); }}
             className="edtech-inline-btn px-1.5 py-0.5 text-[11px] font-serif rounded hover:bg-slate-100 dark:hover:bg-slate-800 italic"
           >
@@ -963,7 +1007,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Шрифт: Моноширинный (Код)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatFont('monospace'); }}
             className="edtech-inline-btn px-1.5 py-0.5 text-[11px] font-mono rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -976,8 +1020,8 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Размер шрифта: Мелкий"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onClick={(e) => { e.stopPropagation(); formatSize('2', '13px'); }}
+            {...preventBtnFocus}
+            onClick={(e) => { e.stopPropagation(); formatSize('13px'); }}
             className="edtech-inline-btn px-1.5 py-0.5 text-[10px] font-bold rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             A-
@@ -985,8 +1029,8 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Размер шрифта: Стандартный"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onClick={(e) => { e.stopPropagation(); formatSize('3', '16px'); }}
+            {...preventBtnFocus}
+            onClick={(e) => { e.stopPropagation(); formatSize('16px'); }}
             className="edtech-inline-btn px-1.5 py-0.5 text-xs font-bold rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             A
@@ -994,8 +1038,8 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Размер шрифта: Крупный"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onClick={(e) => { e.stopPropagation(); formatSize('5', '22px'); }}
+            {...preventBtnFocus}
+            onClick={(e) => { e.stopPropagation(); formatSize('22px'); }}
             className="edtech-inline-btn px-1.5 py-0.5 text-xs font-black rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400"
           >
             A+
@@ -1007,7 +1051,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Цвет текста"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); setShowColorPicker(!showColorPicker); }}
             className="edtech-inline-btn p-1.5 bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400"
           >
@@ -1032,7 +1076,7 @@ export function RichTextCanvasEditor({
                   key={c.color}
                   type="button"
                   title={c.label}
-                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  {...preventBtnFocus}
                   onClick={(e) => {
                     e.stopPropagation();
                     formatColor(c.color);
@@ -1050,7 +1094,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="По левому краю"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatAlign('justifyLeft'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -1059,7 +1103,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="По центру"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatAlign('justifyCenter'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -1068,7 +1112,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="По правому краю"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatAlign('justifyRight'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -1077,7 +1121,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="По ширине"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatAlign('justifyFull'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -1090,7 +1134,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Жирный (Ctrl+B)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('bold'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 font-extrabold"
           >
@@ -1099,7 +1143,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Курсив (Ctrl+I)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('italic'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 italic"
           >
@@ -1108,7 +1152,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Подчеркнутый (Ctrl+U)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('underline'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -1117,7 +1161,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Зачеркнутый"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('strikeThrough'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -1125,9 +1169,9 @@ export function RichTextCanvasEditor({
           </button>
           <button
             type="button"
-            title="Код"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onClick={(e) => { e.stopPropagation(); formatHeading('p'); exec('formatBlock', '<pre>'); }}
+            title="Код (inline / block)"
+            {...preventBtnFocus}
+            onClick={(e) => { e.stopPropagation(); formatCode(); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 font-mono"
           >
             <Code size={14} />
@@ -1139,7 +1183,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Маркированный список"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('insertUnorderedList'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -1148,7 +1192,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Нумерованный список"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('insertOrderedList'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -1157,7 +1201,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Увеличить отступ"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('indent'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -1166,7 +1210,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Уменьшить отступ"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('outdent'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -1179,7 +1223,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Цитата"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('formatBlock', '<blockquote>'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-amber-600"
           >
@@ -1188,7 +1232,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Выделитель желтым"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatHighlight('#fef08a'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-yellow-100 dark:hover:bg-yellow-950/60 text-yellow-600"
           >
@@ -1197,7 +1241,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Вставить важную заметку (Callout)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); handleInsertCallout(); }}
             className="edtech-inline-btn p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-950 text-indigo-600"
           >
@@ -1206,7 +1250,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Вставить картинку по ссылке"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); setShowImageModal(!showImageModal); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-sky-600"
           >
@@ -1215,7 +1259,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Вставить ссылку"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); setShowLinkModal(!showLinkModal); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-600"
           >
@@ -1224,7 +1268,7 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Разделительная линия"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('insertHorizontalRule'); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
           >
@@ -1233,8 +1277,8 @@ export function RichTextCanvasEditor({
           <button
             type="button"
             title="Очистить форматирование"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onClick={(e) => { e.stopPropagation(); exec('removeFormat'); }}
+            {...preventBtnFocus}
+            onClick={(e) => { e.stopPropagation(); clearFormatting(); }}
             className="edtech-inline-btn p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-rose-500"
           >
             <RemoveFormatting size={14} />
@@ -1446,15 +1490,22 @@ export function RichTextWordEditor({
   const restoreSelection = useCallback(() => {
     if (typeof window === 'undefined' || !editorRef.current) return;
     const sel = window.getSelection();
-    if (editorRef.current && document.activeElement !== editorRef.current) {
-      editorRef.current.focus();
+    if (!sel || !savedSelectionRef.current) return;
+    if (sel.rangeCount > 0) {
+      const curRange = sel.getRangeAt(0);
+      if (
+        curRange.startContainer === savedSelectionRef.current.startContainer &&
+        curRange.startOffset === savedSelectionRef.current.startOffset &&
+        curRange.endContainer === savedSelectionRef.current.endContainer &&
+        curRange.endOffset === savedSelectionRef.current.endOffset
+      ) {
+        return;
+      }
     }
-    if (savedSelectionRef.current && sel) {
-      try {
-        sel.removeAllRanges();
-        sel.addRange(savedSelectionRef.current);
-      } catch (e) {}
-    }
+    try {
+      sel.removeAllRanges();
+      sel.addRange(savedSelectionRef.current);
+    } catch (e) {}
   }, []);
 
   // Track selection changes across the document
@@ -1505,7 +1556,7 @@ export function RichTextWordEditor({
     if (!editorRef.current) return;
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'true');
+      document.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
     document.execCommand(command, false, value);
     saveSelection();
@@ -1582,7 +1633,7 @@ export function RichTextWordEditor({
     if (!editorRef.current) return;
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'true');
+      document.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
     let ok = document.execCommand('formatBlock', false, `<${tag}>`);
     if (!ok) {
@@ -1592,88 +1643,62 @@ export function RichTextWordEditor({
     triggerChange();
   };
 
-  const formatFont = (fontFamily: string) => {
+  const applyInlineStyle = (styleObj: Record<string, string>) => {
     if (!editorRef.current) return;
     restoreSelection();
     const sel = window.getSelection();
-    if (sel && !sel.isCollapsed) {
-      try {
-        document.execCommand('styleWithCSS', false, 'true');
-      } catch (e) {}
-      document.execCommand('fontName', false, fontFamily);
-    } else if (sel && sel.anchorNode && editorRef.current) {
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (!editorRef.current.contains(range.commonAncestorContainer)) return;
+
+    if (range.collapsed) {
       let el: HTMLElement | null =
-        (sel.anchorNode.nodeType === Node.ELEMENT_NODE
-          ? sel.anchorNode
-          : sel.anchorNode.parentElement) as HTMLElement;
+        (range.startContainer.nodeType === Node.ELEMENT_NODE
+          ? range.startContainer
+          : range.startContainer.parentElement) as HTMLElement;
       while (el && el !== editorRef.current && el.parentElement !== editorRef.current) {
         el = el.parentElement;
       }
       if (el && el !== editorRef.current) {
-        el.style.fontFamily = fontFamily;
+        Object.assign(el.style, styleObj);
       } else {
-        editorRef.current.style.fontFamily = fontFamily;
+        Object.assign(editorRef.current.style, styleObj);
       }
+      triggerChange();
+      return;
     }
-    saveSelection();
+
+    const contents = range.extractContents();
+    const span = document.createElement('span');
+    Object.assign(span.style, styleObj);
+    span.appendChild(contents);
+    range.insertNode(span);
+
+    const newRange = document.createRange();
+    newRange.selectNodeContents(span);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+    savedSelectionRef.current = newRange.cloneRange();
     triggerChange();
   };
 
-  const formatSize = (sizeCmd: string, sizePx: string) => {
-    if (!editorRef.current) return;
-    restoreSelection();
-    const sel = window.getSelection();
-    if (sel && !sel.isCollapsed) {
-      try {
-        document.execCommand('styleWithCSS', false, 'true');
-      } catch (e) {}
-      document.execCommand('fontSize', false, sizeCmd);
-    } else if (sel && sel.anchorNode && editorRef.current) {
-      let el: HTMLElement | null =
-        (sel.anchorNode.nodeType === Node.ELEMENT_NODE
-          ? sel.anchorNode
-          : sel.anchorNode.parentElement) as HTMLElement;
-      while (el && el !== editorRef.current && el.parentElement !== editorRef.current) {
-        el = el.parentElement;
-      }
-      if (el && el !== editorRef.current) {
-        el.style.fontSize = sizePx;
-      }
-    }
-    saveSelection();
-    triggerChange();
+  const formatFont = (fontFamily: string) => {
+    applyInlineStyle({ fontFamily });
+  };
+
+  const formatSize = (sizePx: string) => {
+    applyInlineStyle({ fontSize: sizePx });
   };
 
   const formatColor = (color: string) => {
-    if (!editorRef.current) return;
-    restoreSelection();
-    const sel = window.getSelection();
-    if (sel && !sel.isCollapsed) {
-      try {
-        document.execCommand('styleWithCSS', false, 'true');
-      } catch (e) {}
-      document.execCommand('foreColor', false, color);
-    } else if (sel && sel.anchorNode && editorRef.current) {
-      let el: HTMLElement | null =
-        (sel.anchorNode.nodeType === Node.ELEMENT_NODE
-          ? sel.anchorNode
-          : sel.anchorNode.parentElement) as HTMLElement;
-      while (el && el !== editorRef.current && el.parentElement !== editorRef.current) {
-        el = el.parentElement;
-      }
-      if (el && el !== editorRef.current) {
-        el.style.color = color;
-      }
-    }
-    saveSelection();
-    triggerChange();
+    applyInlineStyle({ color });
   };
 
   const formatAlign = (alignCmd: 'justifyLeft' | 'justifyCenter' | 'justifyRight' | 'justifyFull') => {
     if (!editorRef.current) return;
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'true');
+      document.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
     document.execCommand(alignCmd, false);
     const sel = window.getSelection();
@@ -1693,14 +1718,59 @@ export function RichTextWordEditor({
   };
 
   const formatHighlight = (color: string = '#fef08a') => {
+    applyInlineStyle({ backgroundColor: color });
+  };
+
+  const formatCode = () => {
+    if (!editorRef.current) return;
+    restoreSelection();
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      if (editorRef.current.contains(range.commonAncestorContainer)) {
+        const contents = range.extractContents();
+        const code = document.createElement('code');
+        code.className = 'px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-mono text-xs';
+        code.appendChild(contents);
+        range.insertNode(code);
+
+        const newRange = document.createRange();
+        newRange.selectNodeContents(code);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+        savedSelectionRef.current = newRange.cloneRange();
+        triggerChange();
+        return;
+      }
+    }
+    formatHeading('p');
+    exec('formatBlock', '<pre>');
+  };
+
+  const clearFormatting = () => {
     if (!editorRef.current) return;
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'true');
+      document.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
-    let ok = document.execCommand('hiliteColor', false, color);
-    if (!ok) {
-      document.execCommand('backColor', false, color);
+    document.execCommand('removeFormat', false);
+    document.execCommand('unlink', false);
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      if (editorRef.current.contains(range.commonAncestorContainer)) {
+        let el = range.commonAncestorContainer as HTMLElement;
+        if (el.nodeType !== Node.ELEMENT_NODE) el = el.parentElement as HTMLElement;
+        while (el && el !== editorRef.current) {
+          if (el.tagName === 'SPAN' || el.tagName === 'FONT' || el.tagName === 'MARK') {
+            el.removeAttribute('style');
+            el.removeAttribute('face');
+            el.removeAttribute('size');
+            el.removeAttribute('color');
+          }
+          el = el.parentElement as HTMLElement;
+        }
+      }
     }
     saveSelection();
     triggerChange();
@@ -1772,6 +1842,17 @@ export function RichTextWordEditor({
     );
   }
 
+  const preventBtnFocus = {
+    onPointerDown: (e: React.PointerEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    onMouseDown: (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    },
+  };
+
   return (
     <div
       ref={containerRef}
@@ -1816,14 +1897,21 @@ export function RichTextWordEditor({
       {/* Word-style Ribbon Toolbar */}
       <div
         data-puck-overlay-portal="true"
-        onPointerDown={(e) => e.stopPropagation()}
-        onMouseDown={(e) => {
-          e.stopPropagation();
+        onPointerDown={(e) => {
           const target = e.target as HTMLElement;
           if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA')) {
             return;
           }
           e.preventDefault();
+          e.stopPropagation();
+        }}
+        onMouseDown={(e) => {
+          const target = e.target as HTMLElement;
+          if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA')) {
+            return;
+          }
+          e.preventDefault();
+          e.stopPropagation();
         }}
         className="bg-slate-50 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-1.5 text-slate-700 dark:text-slate-300 select-none text-xs"
       >
@@ -1832,7 +1920,7 @@ export function RichTextWordEditor({
           <button
             type="button"
             title="Отменить действие (Ctrl+Z)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('undo'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
           >
@@ -1841,7 +1929,7 @@ export function RichTextWordEditor({
           <button
             type="button"
             title="Повторить действие (Ctrl+Y)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('redo'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
           >
@@ -1855,7 +1943,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Обычный текст (Абзац)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatHeading('p'); }}
             className="edtech-inline-btn px-2 py-1 text-xs font-bold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -1865,7 +1953,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Заголовок H1"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatHeading('h1'); }}
             className="edtech-inline-btn p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-extrabold"
           >
@@ -1875,7 +1963,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Заголовок H2"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatHeading('h2'); }}
             className="edtech-inline-btn p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-bold"
           >
@@ -1885,7 +1973,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Подзаголовок H3"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatHeading('h3'); }}
             className="edtech-inline-btn p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400"
           >
@@ -1898,7 +1986,7 @@ export function RichTextWordEditor({
           <button
             type="button"
             title="Шрифт: Без засечек (Sans)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatFont('sans-serif'); }}
             className="edtech-inline-btn px-1.5 py-0.5 text-[11px] font-medium rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -1907,7 +1995,7 @@ export function RichTextWordEditor({
           <button
             type="button"
             title="Шрифт: С засечками (Serif / Книга)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatFont('Georgia, serif'); }}
             className="edtech-inline-btn px-1.5 py-0.5 text-[11px] font-serif rounded hover:bg-slate-100 dark:hover:bg-slate-800 italic"
           >
@@ -1916,7 +2004,7 @@ export function RichTextWordEditor({
           <button
             type="button"
             title="Шрифт: Моноширинный (Mono)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatFont('monospace'); }}
             className="edtech-inline-btn px-1.5 py-0.5 text-[11px] font-mono rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -1929,8 +2017,8 @@ export function RichTextWordEditor({
           <button
             type="button"
             title="Размер: Мелкий"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onClick={(e) => { e.stopPropagation(); formatSize('2', '13px'); }}
+            {...preventBtnFocus}
+            onClick={(e) => { e.stopPropagation(); formatSize('13px'); }}
             className="edtech-inline-btn px-1.5 py-0.5 text-[10px] font-bold rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             A-
@@ -1938,8 +2026,8 @@ export function RichTextWordEditor({
           <button
             type="button"
             title="Размер: Стандартный"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onClick={(e) => { e.stopPropagation(); formatSize('3', '16px'); }}
+            {...preventBtnFocus}
+            onClick={(e) => { e.stopPropagation(); formatSize('16px'); }}
             className="edtech-inline-btn px-1.5 py-0.5 text-xs font-bold rounded hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             A
@@ -1947,8 +2035,8 @@ export function RichTextWordEditor({
           <button
             type="button"
             title="Размер: Крупный"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onClick={(e) => { e.stopPropagation(); formatSize('5', '22px'); }}
+            {...preventBtnFocus}
+            onClick={(e) => { e.stopPropagation(); formatSize('22px'); }}
             className="edtech-inline-btn px-1.5 py-0.5 text-xs font-black rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400"
           >
             A+
@@ -1960,7 +2048,7 @@ export function RichTextWordEditor({
           <button
             type="button"
             title="Цвет текста"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); setShowColorPicker(!showColorPicker); }}
             className="edtech-inline-btn p-1.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400"
           >
@@ -1985,7 +2073,7 @@ export function RichTextWordEditor({
                   key={c.color}
                   type="button"
                   title={c.label}
-                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  {...preventBtnFocus}
                   onClick={(e) => {
                     e.stopPropagation();
                     formatColor(c.color);
@@ -2004,7 +2092,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Жирный (Ctrl+B)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('bold'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 font-extrabold"
           >
@@ -2014,7 +2102,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Курсив (Ctrl+I)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('italic'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 italic"
           >
@@ -2024,7 +2112,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Подчеркнутый (Ctrl+U)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('underline'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -2034,7 +2122,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Зачеркнутый"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('strikeThrough'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -2044,8 +2132,8 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Моноширинный код"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onClick={(e) => { e.stopPropagation(); formatHeading('p'); exec('formatBlock', '<pre>'); }}
+            {...preventBtnFocus}
+            onClick={(e) => { e.stopPropagation(); formatCode(); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 font-mono"
           >
             <Code size={14} />
@@ -2054,7 +2142,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Выделитель маркером"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatHighlight('#fef08a'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/40 text-yellow-600"
           >
@@ -2068,7 +2156,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="По левому краю"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatAlign('justifyLeft'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -2078,7 +2166,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="По центру"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatAlign('justifyCenter'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -2088,7 +2176,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="По правому краю"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatAlign('justifyRight'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -2098,7 +2186,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="По ширине"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); formatAlign('justifyFull'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -2112,7 +2200,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Маркированный список"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('insertUnorderedList'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -2122,7 +2210,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Нумерованный список"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('insertOrderedList'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -2131,7 +2219,7 @@ export function RichTextWordEditor({
           <button
             type="button"
             title="Увеличить отступ"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('indent'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -2140,7 +2228,7 @@ export function RichTextWordEditor({
           <button
             type="button"
             title="Уменьшить отступ"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('outdent'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -2150,7 +2238,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Цитата"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('formatBlock', '<blockquote>'); }}
             className="edtech-inline-btn p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
@@ -2164,7 +2252,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Вставить картинку"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); setShowImageModal(true); }}
             className="edtech-inline-btn px-2.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-xs font-bold flex items-center gap-1.5 transition-colors border border-indigo-200 dark:border-indigo-800"
           >
@@ -2176,7 +2264,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Вставить врезку / заметку"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); handleInsertCallout(); }}
             className="edtech-inline-btn px-2.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900 text-xs font-bold flex items-center gap-1.5 transition-colors border border-amber-200 dark:border-amber-800"
           >
@@ -2188,7 +2276,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Вставить ссылку"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); setShowLinkModal(true); }}
             className="edtech-inline-btn p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
           >
@@ -2200,7 +2288,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Импортировать документ Word (.docx) или Markdown (.md)"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
             className="edtech-inline-btn px-2.5 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900 text-xs font-bold flex items-center gap-1.5 transition-colors border border-purple-200 dark:border-purple-800 cursor-pointer"
           >
@@ -2223,7 +2311,7 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Горизонтальная черта"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            {...preventBtnFocus}
             onClick={(e) => { e.stopPropagation(); exec('insertHorizontalRule'); }}
             className="edtech-inline-btn p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
           >
@@ -2234,8 +2322,8 @@ export function RichTextWordEditor({
             type="button"
             data-puck-overlay-portal="true"
             title="Очистить форматирование"
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onClick={(e) => { e.stopPropagation(); exec('removeFormat'); }}
+            {...preventBtnFocus}
+            onClick={(e) => { e.stopPropagation(); clearFormatting(); }}
             className="edtech-inline-btn p-1.5 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-950/50 text-slate-400 hover:text-rose-500"
           >
             <RotateCcw size={14} />

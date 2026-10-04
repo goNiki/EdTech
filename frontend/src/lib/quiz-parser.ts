@@ -125,6 +125,12 @@ export function parseQuizzesFromText(rawText: string): ParsedQuiz[] {
         continue;
       }
 
+      // Первая строка блока всегда является формулировкой вопроса (даже если начинается с 1. или Вопрос 1:)
+      if (questionLines.length === 0) {
+        questionLines.push(line);
+        continue;
+      }
+
       // Проверка на Markdown чекбокс: [x] или [ ]
       const checkboxMatch = line.match(/^\[([xX\s])\]\s+(.+)$/);
       if (checkboxMatch) {
@@ -137,12 +143,12 @@ export function parseQuizzesFromText(rawText: string): ParsedQuiz[] {
         continue;
       }
 
-      // Проверка на стандартный вариант: "A. Текст", "1) Текст", "- Текст"
-      const optionMatch = line.match(/^([a-zA-Zа-яА-Я\d])[\.\)]\s+(.+)$/);
-      if (optionMatch) {
+      // Проверка на буквенный вариант: "A. Текст", "B) Текст", "а) Текст"
+      const letterOptionMatch = line.match(/^([a-zA-Zа-яА-Я])[\.\)]\s+(.+)$/);
+      if (letterOptionMatch) {
         foundFirstOption = true;
-        const key = optionMatch[1].toUpperCase();
-        let optText = optionMatch[2].trim();
+        const key = letterOptionMatch[1].toUpperCase();
+        let optText = letterOptionMatch[2].trim();
         let isCorrect = false;
 
         // Проверяем звездочку или маркер (верно)
@@ -165,6 +171,50 @@ export function parseQuizzesFromText(rawText: string): ParsedQuiz[] {
         continue;
       }
 
+      // Проверка на числовой вариант ответа: "1) Текст", "2) Текст", "1. Текст" ТОЛЬКО если уже найдены варианты или начинается с 1)
+      const numberOptionMatch = line.match(/^(\d+)[\.\)]\s+(.+)$/);
+      if (numberOptionMatch && (foundFirstOption || numberOptionMatch[1] === '1')) {
+        foundFirstOption = true;
+        const key = numberOptionMatch[1];
+        let optText = numberOptionMatch[2].trim();
+        let isCorrect = false;
+
+        if (optText.endsWith('*') || optText.startsWith('*')) {
+          isCorrect = true;
+          optText = optText.replace(/^\*|\*$/g, '').trim();
+        } else if (/\((?:верно|правильно|правильный|correct)\)/i.test(optText)) {
+          isCorrect = true;
+          optText = optText.replace(/\((?:верно|правильно|правильный|correct)\)/gi, '').trim();
+        } else if (optText.endsWith('+')) {
+          isCorrect = true;
+          optText = optText.replace(/\+$/, '').trim();
+        }
+
+        rawOptions.push({
+          text: optText,
+          isCorrect,
+          key,
+        });
+        continue;
+      }
+
+      // Проверка на маркер дефис: "- Текст"
+      const dashOptionMatch = line.match(/^\-\s+(.+)$/);
+      if (dashOptionMatch && (foundFirstOption || line.startsWith('- '))) {
+        foundFirstOption = true;
+        let optText = dashOptionMatch[1].trim();
+        let isCorrect = false;
+        if (optText.endsWith('*') || optText.startsWith('*')) {
+          isCorrect = true;
+          optText = optText.replace(/^\*|\*$/g, '').trim();
+        }
+        rawOptions.push({
+          text: optText,
+          isCorrect,
+        });
+        continue;
+      }
+
       // Если варианты еще не начались, это часть формулировки вопроса
       if (!foundFirstOption) {
         questionLines.push(line);
@@ -176,7 +226,10 @@ export function parseQuizzesFromText(rawText: string): ParsedQuiz[] {
       }
     }
 
-    questionText = questionLines.join(' ').replace(/^\d+[\.\)]\s*/, '').trim();
+    questionText = questionLines
+      .join(' ')
+      .replace(/^(?:#+\s*|Вопрос\s*\d+[\.:]?\s*|\d+[\.\)]\s*)/i, '')
+      .trim();
 
     // Если был указан ANSWER: B или ANSWER: A, C, расставляем флаги
     if (answerKey) {
