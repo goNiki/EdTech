@@ -21,6 +21,7 @@ import (
 	quizHandler "edtech/internal/interfaces/handlers/quiz"
 	sectionHandler "edtech/internal/interfaces/handlers/section"
 	uploadHandler "edtech/internal/interfaces/handlers/upload"
+	categoryHandler "edtech/internal/interfaces/handlers/category"
 	mwauth "edtech/internal/interfaces/middleware/auth"
 	mwlogger "edtech/internal/interfaces/middleware/logger"
 	"edtech/internal/infrastructure/storage"
@@ -28,6 +29,7 @@ import (
 	"edtech/internal/repository"
 	analyticsRepo "edtech/internal/repository/analytics"
 	authRepo "edtech/internal/repository/auth"
+	categoryRepo "edtech/internal/repository/category"
 	courseRepo "edtech/internal/repository/course"
 	enrolledRepo "edtech/internal/repository/enrollment"
 	lessonRepo "edtech/internal/repository/lesson"
@@ -41,6 +43,7 @@ import (
 	accessService "edtech/internal/service/access"
 	analyticsService "edtech/internal/service/analytics"
 	authService "edtech/internal/service/auth"
+	categoryService "edtech/internal/service/category"
 	courseService "edtech/internal/service/course"
 	enrolledService "edtech/internal/service/enrollment"
 	lessonService "edtech/internal/service/lesson"
@@ -86,6 +89,7 @@ type diContainer struct {
 	quizHdl       *quizHandler.QuizHandler
 	enrollmentHdl *enrollmentHandler.EnrollmentHandler
 	analyticsHdl  *analyticsHandler.AnalyticsHandler
+	categoryHdl   *categoryHandler.CategoryHandler
 
 	// services
 	accessSvc    service.AccessService
@@ -98,6 +102,7 @@ type diContainer struct {
 	progressSvc  service.ProgressServices
 	quizSvc      service.QuizServices
 	analyticsSvc service.AnalyticsServices
+	categorySvc  service.CategoryServices
 
 	// repositories
 	userRepo      repository.UserRepository
@@ -110,6 +115,7 @@ type diContainer struct {
 	progRepo      repository.ProgressRepository
 	quizRepo      repository.QuizRepository
 	analyticsRepo repository.AnalyticsRepository
+	categoryRepo  repository.CategoryRepository
 }
 
 func (d *diContainer) initConfig() {
@@ -295,6 +301,13 @@ func (d *diContainer) AnalyticsRepo() repository.AnalyticsRepository {
 	return d.analyticsRepo
 }
 
+func (d *diContainer) CategoryRepo() repository.CategoryRepository {
+	if d.categoryRepo == nil {
+		d.categoryRepo = categoryRepo.NewCategoryRepo(d.DB().Pool)
+	}
+	return d.categoryRepo
+}
+
 // Services
 
 func (d *diContainer) SectionSvc() service.SectionServices {
@@ -367,6 +380,13 @@ func (d *diContainer) UploadSvc() service.UploadServices {
 	return d.uploadSvc
 }
 
+func (d *diContainer) CategorySvc() service.CategoryServices {
+	if d.categorySvc == nil {
+		d.categorySvc = categoryService.NewCategoryService(d.CategoryRepo(), d.DB().Pool)
+	}
+	return d.categorySvc
+}
+
 // Handlers
 
 func (d *diContainer) LessonHdl() *lessonHandler.LessonHandler {
@@ -430,6 +450,13 @@ func (d *diContainer) AnalyticsHdl() *analyticsHandler.AnalyticsHandler {
 		d.analyticsHdl = analyticsHandler.NewAnalyticsHandler(d.AnalyticsSvc(), d.MwAuth())
 	}
 	return d.analyticsHdl
+}
+
+func (d *diContainer) CategoryHdl() *categoryHandler.CategoryHandler {
+	if d.categoryHdl == nil {
+		d.categoryHdl = categoryHandler.NewCategoryHandler(d.CategorySvc(), d.MwAuth())
+	}
+	return d.categoryHdl
 }
 
 // Router
@@ -574,6 +601,15 @@ func (d *diContainer) Router() http.Handler {
 			r.Use(d.MwAuth().JWTMiddleware)
 
 			r.Post("/", d.UploadHdl().UploadFile)
+		})
+
+		// Categories
+		r.Route("/api/v1/categories", func(r chi.Router) {
+			r.Get("/", d.CategoryHdl().ListCategories)
+			r.Group(func(r chi.Router) {
+				r.Use(d.MwAuth().JWTMiddleware)
+				r.Post("/", d.CategoryHdl().CreateCategory)
+			})
 		})
 
 		d.router = r

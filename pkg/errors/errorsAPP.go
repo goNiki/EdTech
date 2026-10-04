@@ -23,6 +23,9 @@ var (
 	ErrEmptySlug                = errors.New("slug cannot be empty")
 	ErrInvalidSlug              = errors.New("invalid slug format")
 
+	// Category errors
+	ErrCategoryNotFound         = errors.New("category not found")
+
 	// Section errors
 	ErrSectionNotFound          = errors.New("section not found")
 	ErrSectionAlreadyPublished  = errors.New("section already published")

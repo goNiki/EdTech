@@ -22,6 +22,15 @@ type UserRepository interface {
 	SetBannedStatus(ctx context.Context, q db.QueryExecutor, userID int64, isBanned bool) error
 }
 
+type CategoryRepository interface {
+	ListCategories(ctx context.Context, q db.QueryExecutor) ([]domain.Category, error)
+	CreateCategory(ctx context.Context, q db.QueryExecutor, category *domain.Category) (*domain.Category, error)
+	GetCategoryByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.Category, error)
+	GetCategoryBySlug(ctx context.Context, q db.QueryExecutor, slug string) (*domain.Category, error)
+	UpdateCategory(ctx context.Context, q db.QueryExecutor, category *domain.Category) error
+	DeleteCategory(ctx context.Context, q db.QueryExecutor, id int64) error
+}
+
 type CourseRepository interface {
 	GetCourseBySlug(ctx context.Context, q db.QueryExecutor, slug string) (*domain.Course, error)
 	CreateCourse(ctx context.Context, q db.QueryExecutor, course *domain.Course) (*domain.Course, error)

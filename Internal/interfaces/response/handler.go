@@ -76,6 +76,8 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 	// 404 Not Found
 	case errors.Is(err, errorsAPP.ErrNotFoundCourse), errors.Is(err, errorsAPP.ErrCourseNotFound):
 		Error(w, r, http.StatusNotFound, "COURSE_NOT_FOUND", "Course not found")
+	case errors.Is(err, errorsAPP.ErrCategoryNotFound):
+		Error(w, r, http.StatusNotFound, "CATEGORY_NOT_FOUND", "Category not found")
 	case errors.Is(err, errorsAPP.ErrNotFoundLesson):
 		Error(w, r, http.StatusNotFound, "LESSON_NOT_FOUND", "Lesson not found")
 	case errors.Is(err, errorsAPP.ErrProgressNotFound),
