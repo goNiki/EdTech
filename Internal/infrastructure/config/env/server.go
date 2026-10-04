@@ -14,6 +14,7 @@ type serverEnvConfig struct {
 	Port               string        `env:"SERVER_PORT,required"`
 	TimeOut            time.Duration `env:"SERVER_TIMEOUT,required"`
 	Idletimeout        time.Duration `env:"SERVER_IDLETIMEOUT,required"`
+	ReadHeaderTimeout  time.Duration `env:"SERVER_READ_HEADER_TIMEOUT" envDefault:"5s"`
 	CorsAllowedOrigins []string      `env:"CORS_ALLOWED_ORIGINS" envSeparator:"," envDefault:"http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000"`
 }
 
@@ -51,6 +52,10 @@ func (cfg *serverConfig) TimeOut() time.Duration {
 
 func (cfg *serverConfig) Idletimeout() time.Duration {
 	return cfg.raw.Idletimeout
+}
+
+func (cfg *serverConfig) ReadHeaderTimeout() time.Duration {
+	return cfg.raw.ReadHeaderTimeout
 }
 
 func (cfg *serverConfig) CorsAllowedOrigins() []string {

@@ -66,11 +66,17 @@ func (a *App) initDI() {
 func (a *App) initHttpServer() {
 	cfg := a.di.ServerCfg()
 
+	readHeaderTimeout := cfg.ReadHeaderTimeout()
+	if readHeaderTimeout <= 0 {
+		readHeaderTimeout = 5 * time.Second
+	}
+
 	a.httpServer = &http.Server{
-		Addr:         ":" + cfg.Port(),
-		Handler:      a.di.Router(),
-		ReadTimeout:  cfg.TimeOut(),
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  cfg.Idletimeout(),
+		Addr:              ":" + cfg.Port(),
+		Handler:           a.di.Router(),
+		ReadHeaderTimeout: readHeaderTimeout,
+		ReadTimeout:       cfg.TimeOut(),
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       cfg.Idletimeout(),
 	}
 }

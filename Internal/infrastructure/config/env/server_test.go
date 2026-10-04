@@ -77,5 +77,8 @@ func TestServerConfig_CorsAllowedOrigins(t *testing.T) {
 		if cfg.Idletimeout() != 60*time.Second {
 			t.Errorf("expected idletimeout 60s, got %v", cfg.Idletimeout())
 		}
+		if cfg.ReadHeaderTimeout() != 5*time.Second {
+			t.Errorf("expected read header timeout 5s, got %v", cfg.ReadHeaderTimeout())
+		}
 	})
 }

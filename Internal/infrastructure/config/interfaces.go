@@ -32,6 +32,7 @@ type Server interface {
 	Address() string
 	TimeOut() time.Duration
 	Idletimeout() time.Duration
+	ReadHeaderTimeout() time.Duration
 	CorsAllowedOrigins() []string
 }
 
