@@ -60,10 +60,22 @@ type LessonSubmissionDetail struct {
 	IsGraded        bool    `json:"is_graded"`
 }
 
+type CompleteLessonInput struct {
+	Score       *int
+	TimeSpent   int
+	Answers     []LessonAnswerSubmission
+	Essays      []EssaySubmission
+	AttemptID   *int64
+	IsAbandoned bool
+}
+
 type LessonCompletionResult struct {
+	LessonID       int64                            `json:"lesson_id"`
+	Status         string                           `json:"status"`
 	Score          int                              `json:"score"`
 	EarnedPoints   int                              `json:"earned_points"`
 	TotalMaxPoints int                              `json:"total_max_points"`
+	IsPassed       bool                             `json:"is_passed"`
 	Results        map[string]BlockValidationResult `json:"results,omitempty"`
 }
 

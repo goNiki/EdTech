@@ -121,7 +121,10 @@ func (s *service) finalizeAttemptScore(ctx context.Context, quiz *domain.Quiz, a
 	attempt.CalculateScore(correctPoints, maxPoints, quiz.PassingScor)
 
 	if attempt.Passed {
-		if _, err := s.progressService.CompleteLesson(ctx, attempt.UserID, quiz.LessonID, &attempt.Score, nil, nil); err != nil {
+		if _, err := s.progressService.CompleteLesson(ctx, attempt.UserID, quiz.LessonID, domain.CompleteLessonInput{
+			Score:     &attempt.Score,
+			AttemptID: &attempt.ID,
+		}); err != nil {
 			return fmt.Errorf("complete lesson: %w", err)
 		}
 		if err := s.quizRepo.UpdateLessonProgressAfterQuiz(ctx, attempt.UserID, quiz.LessonID, attempt.Score); err != nil {

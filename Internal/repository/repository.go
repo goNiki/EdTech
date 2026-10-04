@@ -122,6 +122,7 @@ type ProgressRepository interface {
 type QuizRepository interface {
 	CreateQuiz(ctx context.Context, quiz *domain.Quiz) (*domain.Quiz, error)
 	GetQuizByID(ctx context.Context, id int64) (*domain.Quiz, error)
+	GetQuizByLessonID(ctx context.Context, lessonID int64) (*domain.Quiz, error)
 	CreateAttempt(ctx context.Context, attempt *domain.QuizAttempt) (*domain.QuizAttempt, error)
 	GetAttemptByID(ctx context.Context, id int64) (*domain.QuizAttempt, error)
 	UpdateAttempt(ctx context.Context, attempt *domain.QuizAttempt) error

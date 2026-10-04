@@ -90,7 +90,7 @@ type EnrolledServices interface {
 type ProgressTrackingOperations interface {
 	StartLesson(ctx context.Context, userID int64, lessonID int64) error
 	UpdateLessonProgress(ctx context.Context, userID int64, lessonID int64, input domain.UpdateProgressInput) error
-	CompleteLesson(ctx context.Context, userID int64, lessonID int64, score *int, answers []domain.LessonAnswerSubmission, essays []domain.EssaySubmission) (*domain.LessonCompletionResult, error)
+	CompleteLesson(ctx context.Context, userID int64, lessonID int64, input domain.CompleteLessonInput) (*domain.LessonCompletionResult, error)
 }
 
 // ProgressReaderOperations handles querying lesson and course progress statistics

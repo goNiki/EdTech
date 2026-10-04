@@ -114,7 +114,10 @@ func (s *service) finalizeGrading(ctx context.Context, quiz *domain.Quiz, attemp
 	}
 
 	if attempt.Passed {
-		_, _ = s.progressService.CompleteLesson(ctx, attempt.UserID, quiz.LessonID, &attempt.Score, nil, nil)
+		_, _ = s.progressService.CompleteLesson(ctx, attempt.UserID, quiz.LessonID, domain.CompleteLessonInput{
+			Score:     &attempt.Score,
+			AttemptID: &attempt.ID,
+		})
 		_ = s.quizRepo.UpdateLessonProgressAfterQuiz(ctx, attempt.UserID, quiz.LessonID, attempt.Score)
 	}
 

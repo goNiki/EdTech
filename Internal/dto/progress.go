@@ -43,10 +43,12 @@ type UpdateLessonProgressRequest struct {
 }
 
 type CompleteLessonRequest struct {
-	Score     *int              `json:"score,omitempty"`
-	TimeSpent int               `json:"time_spent,omitempty"`
-	Answers   []LessonAnswerDTO `json:"answers,omitempty"`
-	Essays    []EssayDTO        `json:"essays,omitempty"`
+	Score       *int              `json:"score,omitempty"`
+	TimeSpent   int               `json:"time_spent,omitempty"`
+	Answers     []LessonAnswerDTO `json:"answers,omitempty"`
+	Essays      []EssayDTO        `json:"essays,omitempty"`
+	AttemptID   *int64            `json:"attempt_id,omitempty"`
+	IsAbandoned bool              `json:"is_abandoned,omitempty"`
 }
 
 type LessonAnswerDTO struct {
@@ -60,11 +62,15 @@ type LessonAnswerDTO struct {
 }
 
 type CompleteLessonResponse struct {
-	Message        string                           `json:"message"`
-	Score          int                              `json:"score"`
-	EarnedPoints   int                              `json:"earned_points"`
-	TotalMaxPoints int                              `json:"total_max_points"`
-	Results        map[string]BlockValidationDTO    `json:"results,omitempty"`
+	LessonID       int64                         `json:"lesson_id"`
+	Status         string                        `json:"status"`
+	Score          int                           `json:"score"`
+	EarnedPoints   int                           `json:"earned_points"`
+	TotalPoints    int                           `json:"total_points"`
+	TotalMaxPoints int                           `json:"total_max_points,omitempty"`
+	IsPassed       bool                          `json:"is_passed"`
+	Message        string                        `json:"message,omitempty"`
+	Results        map[string]BlockValidationDTO `json:"results,omitempty"`
 }
 
 type BlockValidationDTO struct {

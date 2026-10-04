@@ -107,6 +107,50 @@ func (r *repositoryImpl) GetQuizByID(ctx context.Context, id int64) (*domain.Qui
 	return repoconverter.QuizToDomain(&qz), nil
 }
 
+func (r *repositoryImpl) GetQuizByLessonID(ctx context.Context, lessonID int64) (*domain.Quiz, error) {
+	const op = "repository.quiz.GetQuizByLessonID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
+
+	query := `
+		SELECT 
+			id, 
+			lesson_id, 
+			title, 
+			description, 
+			passing_score, 
+			max_attempts, 
+			time_limit, 
+			created_at, 
+			updated_at, 
+			deleted_at 
+		FROM quizzes 
+		WHERE lesson_id = $1 AND deleted_at IS NULL
+		ORDER BY id ASC
+		LIMIT 1`
+
+	var qz repomodels.Quiz
+	err := q.QueryRow(ctx, query, lessonID).Scan(
+		&qz.ID,
+		&qz.LessonID,
+		&qz.Title,
+		&qz.Description,
+		&qz.PassingScor,
+		&qz.MaxAttempts,
+		&qz.TimeLimit,
+		&qz.CreatedAt,
+		&qz.UpdatedAt,
+		&qz.DeletedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrQuizNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
+	}
+
+	return repoconverter.QuizToDomain(&qz), nil
+}
+
 func (r *repositoryImpl) GetQuizTotalPoints(ctx context.Context, quizID int64) (int, error) {
 	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 	var maxPoints int

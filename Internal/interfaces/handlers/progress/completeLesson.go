@@ -30,8 +30,8 @@ func (h *ProgressHandler) CompleteLesson(w http.ResponseWriter, r *http.Request)
 	}
 
 	var req dto.CompleteLessonRequest
-	if r.ContentLength > 0 {
-		if err := render.DecodeJSON(r.Body, &req); err != nil {
+	if r.Body != nil {
+		if err := render.DecodeJSON(r.Body, &req); err != nil && err.Error() != "EOF" {
 			log.Warn("failed to decode complete lesson request body", "error", err)
 		}
 	}
@@ -68,7 +68,16 @@ func (h *ProgressHandler) CompleteLesson(w http.ResponseWriter, r *http.Request)
 		})
 	}
 
-	result, err := h.progressService.CompleteLesson(r.Context(), userID, lessonID, req.Score, answers, essays)
+	input := domain.CompleteLessonInput{
+		Score:       req.Score,
+		TimeSpent:   req.TimeSpent,
+		Answers:     answers,
+		Essays:      essays,
+		AttemptID:   req.AttemptID,
+		IsAbandoned: req.IsAbandoned,
+	}
+
+	result, err := h.progressService.CompleteLesson(r.Context(), userID, lessonID, input)
 	if err != nil {
 		response.HandleError(w, r, log, err, op)
 		return
@@ -85,9 +94,13 @@ func (h *ProgressHandler) CompleteLesson(w http.ResponseWriter, r *http.Request)
 
 	response.OK(w, r, dto.CompleteLessonResponse{
 		Message:        "lesson completed",
+		LessonID:       result.LessonID,
+		Status:         result.Status,
 		Score:          result.Score,
 		EarnedPoints:   result.EarnedPoints,
+		TotalPoints:    result.TotalMaxPoints,
 		TotalMaxPoints: result.TotalMaxPoints,
+		IsPassed:       result.IsPassed,
 		Results:        resultsDTO,
 	})
 }
