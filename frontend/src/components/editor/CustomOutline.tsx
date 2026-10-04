@@ -19,7 +19,8 @@ import {
   ArrowDown,
   Copy,
   Trash2,
-  Layers
+  Layers,
+  Presentation
 } from 'lucide-react';
 
 function stripHtml(html: string): string {
@@ -66,6 +67,14 @@ function getBlockOutlineMeta(item: any): BlockOutlineMeta {
         title: 'Видео-урок',
         previewText: props.caption || props.url || 'Видео',
         icon: <Video size={14} className="text-red-400" />,
+      };
+
+    case 'PresentationBlock':
+      return {
+        title: 'Презентация / Слайды',
+        previewText: props.title || props.embedUrl || props.pdfUrl || 'Слайды презентации',
+        badge: props.mode === 'pdf' ? 'PDF' : 'Слайды',
+        icon: <Presentation size={14} className="text-amber-400" />,
       };
 
     case 'QuizSingleBlock':

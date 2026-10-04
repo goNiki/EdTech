@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   RotateCcw
 } from 'lucide-react';
+import PresentationViewer from './PresentationViewer';
 
 export interface LessonAnswerItem {
   block_id: string;
@@ -558,6 +559,14 @@ export default function PuckLessonViewer({
                     {props.caption}
                   </p>
                 )}
+              </div>
+            );
+          }
+
+          case 'PresentationBlock': {
+            return (
+              <div key={blockId} className="my-6">
+                <PresentationViewer {...props} />
               </div>
             );
           }

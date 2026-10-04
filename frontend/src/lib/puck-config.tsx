@@ -1,7 +1,9 @@
 import type { Config, CustomField } from '@puckeditor/core';
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { InlineText, RichTextCanvasEditor, RichTextWordEditor, usePuckPropUpdater } from '@/components/editor/InlineEditable';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Presentation as PresentationIcon, Upload, Loader2 } from 'lucide-react';
+import PresentationViewer from '@/components/player/PresentationViewer';
+import { api } from './api';
 
 export interface DropdownBlankItem {
   key: string;
@@ -88,6 +90,14 @@ export type PuckProps = {
     points: number;
     allowedTypes?: string;
     maxSizeMB?: number;
+  };
+  PresentationBlock: {
+    title?: string;
+    mode?: 'embed' | 'pdf';
+    embedUrl?: string;
+    pdfUrl?: string;
+    aspectRatio?: '16:9' | '4:3';
+    allowDownload?: boolean;
   };
 };
 
@@ -396,6 +406,121 @@ export const config: Config<PuckProps> = {
                 placeholder="Добавьте подпись к видео..."
               />
             </div>
+          </div>
+        );
+      },
+    },
+
+    PresentationBlock: {
+      label: 'Презентация / Слайды',
+      fields: {
+        title: { type: 'text', label: 'Название презентации' },
+        mode: {
+          type: 'select',
+          label: 'Режим отображения',
+          options: [
+            { label: 'Встраивание по ссылке (Google Slides / Canva)', value: 'embed' },
+            { label: 'Загрузка PDF-файла', value: 'pdf' },
+          ],
+        },
+        embedUrl: { type: 'text', label: 'Ссылка на слайды (Google Slides, Canva, SpeakerDeck)' },
+        pdfUrl: { type: 'text', label: 'URL загруженного PDF документа' },
+        aspectRatio: {
+          type: 'select',
+          label: 'Соотношение сторон',
+          options: [
+            { label: '16:9 (Широкоформатный)', value: '16:9' },
+            { label: '4:3 (Классический)', value: '4:3' },
+          ],
+        },
+        allowDownload: {
+          type: 'select',
+          label: 'Разрешить скачивание',
+          options: [
+            { label: 'Да', value: true },
+            { label: 'Нет', value: false },
+          ],
+        },
+      },
+      defaultProps: {
+        title: 'Презентация к лекции',
+        mode: 'embed',
+        embedUrl: 'https://docs.google.com/presentation/d/e/2PACX-1vT_DEMO_SLIDES/embed',
+        pdfUrl: '',
+        aspectRatio: '16:9',
+        allowDownload: true,
+      },
+      render: (props: any) => {
+        const { title, mode, embedUrl, pdfUrl, aspectRatio, allowDownload, id } = props;
+        const { updateProp, isEditing, selectThisBlock } = usePuckPropUpdater(id);
+
+        return (
+          <div className="my-6 space-y-3" id={id} onClick={() => selectThisBlock()}>
+            {isEditing && (
+              <div
+                data-puck-overlay-portal="true"
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                className="p-3 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs"
+              >
+                <div className="flex items-center gap-2 font-bold text-amber-900 dark:text-amber-200">
+                  <PresentationIcon size={16} />
+                  <span>Настройки презентации:</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={mode || 'embed'}
+                    onChange={(e) => updateProp('mode', e.target.value)}
+                    className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold cursor-pointer"
+                  >
+                    <option value="embed">Ссылка (Google Slides / Canva)</option>
+                    <option value="pdf">Файл PDF</option>
+                  </select>
+
+                  {mode === 'pdf' && (
+                    <label className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs">
+                      <Upload size={13} />
+                      <span>{pdfUrl ? 'Заменить PDF' : 'Загрузить PDF'}</span>
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          formData.append('category', 'presentation');
+                          try {
+                            const res = await api.post('/upload', formData, {
+                              headers: { 'Content-Type': 'multipart/form-data' },
+                            });
+                            const fileUrl = res.data?.data?.file_url || res.data?.file_url;
+                            if (fileUrl) {
+                              updateProp('pdfUrl', fileUrl);
+                            }
+                          } catch {
+                            const localUrl = URL.createObjectURL(file);
+                            updateProp('pdfUrl', localUrl);
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <PresentationViewer
+              title={title}
+              mode={mode}
+              embedUrl={embedUrl}
+              pdfUrl={pdfUrl}
+              aspectRatio={aspectRatio}
+              allowDownload={allowDownload}
+            />
           </div>
         );
       },
