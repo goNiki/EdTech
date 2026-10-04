@@ -79,6 +79,7 @@ var (
 	ErrInvalidFileType  = errors.New("unsupported or dangerous file type")
 	ErrEmptyFile        = errors.New("uploaded file cannot be empty")
 	ErrUploadFailed     = errors.New("failed to upload file")
+	ErrPathTraversal    = errors.New("security violation: path traversal detected")
 
 	// Validation errors
 	ErrValidationFailed = errors.New("validation failed")

@@ -4,8 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
+
+	errorsAPP "edtech/pkg/errors"
 )
 
 type LocalStorage struct {
@@ -19,10 +23,42 @@ func NewLocalStorage(baseDir string) (*LocalStorage, error) {
 	return &LocalStorage{baseDir: baseDir}, nil
 }
 
+func (s *LocalStorage) resolveSafePath(relativePath string) (string, error) {
+	trimmed := strings.TrimSpace(relativePath)
+	if trimmed == "" {
+		slog.Warn("storage: empty relative path")
+		return "", fmt.Errorf("%w: path cannot be empty", errorsAPP.ErrPathTraversal)
+	}
+
+	cleanBase, err := filepath.Abs(s.baseDir)
+	if err != nil {
+		return "", fmt.Errorf("resolve base dir: %w", err)
+	}
+
+	// Reject absolute paths, volume drive specifications, or rooted slashes upfront
+	if filepath.IsAbs(trimmed) || filepath.VolumeName(trimmed) != "" || strings.HasPrefix(trimmed, "/") || strings.HasPrefix(trimmed, "\\") {
+		slog.Warn("storage: path traversal attempt rejected (rooted/volume path)", "path", relativePath)
+		return "", fmt.Errorf("%w: rooted path or drive letter not allowed: %s", errorsAPP.ErrPathTraversal, relativePath)
+	}
+
+	targetPath := filepath.Clean(filepath.Join(cleanBase, trimmed))
+	rel, err := filepath.Rel(cleanBase, targetPath)
+	if err != nil || strings.HasPrefix(rel, "..") || rel == "." {
+		slog.Warn("storage: path traversal attempt rejected", "path", relativePath, "targetPath", targetPath, "rel", rel)
+		return "", fmt.Errorf("%w: path traversal detected for '%s'", errorsAPP.ErrPathTraversal, relativePath)
+	}
+
+	return targetPath, nil
+}
+
 func (s *LocalStorage) Save(ctx context.Context, relativePath string, src io.Reader) error {
 	const op = "infrastructure.storage.local.Save"
 
-	fullPath := filepath.Join(s.baseDir, filepath.Clean(relativePath))
+	fullPath, err := s.resolveSafePath(relativePath)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
 	dir := filepath.Dir(fullPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("%s: create directory %s: %w", op, dir, err)
@@ -46,7 +82,11 @@ func (s *LocalStorage) Save(ctx context.Context, relativePath string, src io.Rea
 func (s *LocalStorage) Delete(ctx context.Context, relativePath string) error {
 	const op = "infrastructure.storage.local.Delete"
 
-	fullPath := filepath.Join(s.baseDir, filepath.Clean(relativePath))
+	fullPath, err := s.resolveSafePath(relativePath)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
 	if err := os.Remove(fullPath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("%s: delete file %s: %w", op, fullPath, err)
 	}
@@ -54,8 +94,14 @@ func (s *LocalStorage) Delete(ctx context.Context, relativePath string) error {
 }
 
 func (s *LocalStorage) Exists(ctx context.Context, relativePath string) (bool, error) {
-	fullPath := filepath.Join(s.baseDir, filepath.Clean(relativePath))
-	_, err := os.Stat(fullPath)
+	const op = "infrastructure.storage.local.Exists"
+
+	fullPath, err := s.resolveSafePath(relativePath)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = os.Stat(fullPath)
 	if err == nil {
 		return true, nil
 	}
