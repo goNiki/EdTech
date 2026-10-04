@@ -10,6 +10,9 @@ RUN go mod download
 # Копируем остальной код
 COPY . .
 
+# Исправляем регистр папки Internal -> internal (Windows/Linux case sensitivity)
+RUN if [ -d "Internal" ] && [ ! -d "internal" ]; then mv Internal internal; fi
+
 # Собираем бинарники с оптимизацией размера (-w -s убирают debug-информацию)
 RUN go build -ldflags="-w -s" -o /bin/edtech ./cmd/edtech/main.go
 RUN go build -ldflags="-w -s" -o /bin/migration ./cmd/migration/migration.go
