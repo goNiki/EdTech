@@ -211,8 +211,19 @@ Student POST /api/v1/quizzes/attempts/{id}/submit
   ➔ [domain/quiz.go]                   : Автопроверка single/multi choice, расчет первичных баллов
   ➔ [service/quiz]                     : Если есть open_text вопросы -> ставит NeedsGrading = true
   ➔ [repository/quiz/attempt.go]       : Сохраняет попытку с баллами и статусом Passed
-  ➔ [service/progress]                 : Если сдан успешно -> обновляет прогресс урока
+  ➔ [service/progress]                 : Если сдан успешно -> обновляет прогресс урока (Best Score)
 ```
+
+### 5. Pre-flight сводка и старт попытки тестирования (`GET /lessons/{id}/attempts/summary`, `POST /attempts/start`)
+```text
+Student GET /api/v1/lessons/{id}/attempts/summary
+  ➔ [handlers/progress/getAttemptsSummary] : Запрос сводки перед тестом
+  ➔ [service/progress/attempts]            : Агрегирует попытки, лимит, лучший балл и историю
+Student POST /api/v1/lessons/{id}/attempts/start
+  ➔ [handlers/progress/startAttempt]       : Валидирует доступ и параметры
+  ➔ [service/progress/attempts]            : Проверяет лимит max_attempts (403 при исчерпании) и создает запись attempt
+```
+
 
 ---
 
