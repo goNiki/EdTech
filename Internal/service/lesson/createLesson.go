@@ -4,7 +4,6 @@ import (
 	"context"
 	"edtech/internal/domain"
 	errorsAPP "edtech/pkg/errors"
-	"edtech/pkg/utils"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -14,13 +13,13 @@ func (s *lessonService) CreateLesson(ctx context.Context, userID int64, lesson *
 
 	const op = "service.lesson.CreateLesson"
 
-	if err := utils.ValidateLesson(int64(lesson.CourseID), lesson.Title, lesson.Description); err != nil {
+	if err := lesson.Validate(); err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
 	course, err := s.courserepo.GetCourseByID(ctx, int64(lesson.CourseID))
 	if err != nil {
-		if errors.Is(err, errorsAPP.ErrNotFoundCourse) {
+		if errors.Is(err, errorsAPP.ErrCourseNotFound) {
 			return 0, fmt.Errorf("%s: %w", op, err)
 		}
 		return 0, fmt.Errorf("%s: %w", op, err)

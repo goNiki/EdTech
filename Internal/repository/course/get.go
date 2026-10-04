@@ -78,7 +78,7 @@ func (r *repository) GetCourseByID(ctx context.Context, id int64) (*domain.Cours
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrNotFoundCourse)
+			return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrCourseNotFound)
 		}
 		return nil, fmt.Errorf("%s: %w :%w", op, errorsAPP.ErrInternalDB, err)
 	}
@@ -150,7 +150,7 @@ func (r *repository) GetCourseBySlug(ctx context.Context, slug string) (*domain.
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrNotFoundCourse)
+			return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrCourseNotFound)
 		}
 		return nil, fmt.Errorf("%s: %w :%w", op, errorsAPP.ErrInternalDB, err)
 	}

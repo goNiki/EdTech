@@ -5,6 +5,7 @@ import (
 	"edtech/internal/domain"
 	errorsAPP "edtech/pkg/errors"
 	"fmt"
+	"log/slog"
 	"time"
 )
 
@@ -37,10 +38,15 @@ func (s *service) Login(ctx context.Context, email, password string) (domain.Aut
 
 	user.Login(now)
 
-	_ = s.repo.UpdateLastLogin(ctx, user.ID, now)
+	if err := s.repo.UpdateLastLogin(ctx, user.ID, now); err != nil {
+		slog.Warn("failed to update last login timestamp",
+			"userID", user.ID,
+			"error", err,
+			"op", op,
+		)
+	}
 
 	return tokens, nil
-
 }
 
 func (s *service) generateAndSaveTokens(ctx context.Context, user *domain.User, now time.Time) (domain.AuthTokens, error) {
@@ -72,5 +78,4 @@ func (s *service) generateAndSaveTokens(ctx context.Context, user *domain.User, 
 		RefreshToken: refreshToken,
 		ExpiresIn:    s.jwtManager.GetAccessTokenExpiresIn(),
 	}, nil
-
 }

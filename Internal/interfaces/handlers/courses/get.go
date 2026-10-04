@@ -47,15 +47,10 @@ func (h *CourseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userRole := ""
-	role, err := h.enrolmentService.GetRoleUserInCource(r.Context(), userID, course.Id)
+	userRole, err := h.enrolmentService.GetRoleUserInCource(r.Context(), userID, course.Id)
 	if err != nil {
-		if err.Error() != "user not found" && err.Error() != "not found" && err.Error() != "no rows in result set" {
-			response.HandleError(w, r, log, err, op)
-			return
-		}
-	} else {
-		userRole = role
+		response.HandleError(w, r, log, err, op)
+		return
 	}
 
 	resp := dto.CourseDetailResponse{
@@ -98,15 +93,10 @@ func (h *CourseHandler) GetCourseBySlug(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	userRole := ""
-	role, err := h.enrolmentService.GetRoleUserInCource(r.Context(), userID, course.Id)
+	userRole, err := h.enrolmentService.GetRoleUserInCource(r.Context(), userID, course.Id)
 	if err != nil {
-		if err.Error() != "user not found" && err.Error() != "not found" && err.Error() != "no rows in result set" {
-			response.HandleError(w, r, log, err, op)
-			return
-		}
-	} else {
-		userRole = role
+		response.HandleError(w, r, log, err, op)
+		return
 	}
 
 	resp := dto.CourseDetailResponse{

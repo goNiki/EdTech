@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+var slugRegex = regexp.MustCompile("^[a-z0-9-]+$")
+
 const (
 	VisibilityPublic  = "public"
 	VisibilityPrivate = "private"
@@ -73,13 +75,9 @@ func (c *Course) CanPublish() error {
 }
 
 func (c *Course) Publish(time time.Time) {
-
 	c.Status = StatusPublished
-
 	c.UpdatedAt = time
-
 	c.PublishedAt = &time
-
 }
 
 func (c *Course) CanSelfEnroll() error {
@@ -138,7 +136,6 @@ func (c *Course) Validate() error {
 	}
 
 	// Slug validation
-	slugRegex := regexp.MustCompile("^[a-z0-9-]+$")
 	if !slugRegex.MatchString(c.Slug) {
 		return errorsAPP.ErrInvalidSlug
 	}

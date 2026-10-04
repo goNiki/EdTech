@@ -18,7 +18,7 @@ func (r *repository) IncrementEnrolledCount(ctx context.Context, courseID int64)
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("%s: %w", op, errorsAPP.ErrNotFoundCourse)
+		return fmt.Errorf("%s: %w", op, errorsAPP.ErrCourseNotFound)
 	}
 
 	return nil
@@ -35,7 +35,7 @@ func (r *repository) DecrementEnrolledCount(ctx context.Context, courseID int64)
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("%s: %w", op, errorsAPP.ErrNotFoundCourse)
+		return fmt.Errorf("%s: %w", op, errorsAPP.ErrCourseNotFound)
 	}
 
 	return nil

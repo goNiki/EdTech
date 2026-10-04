@@ -16,7 +16,7 @@ func (s *lessonService) ListLessonsByCourseID(ctx context.Context, slug string) 
 	course, err := s.courserepo.GetCourseBySlug(ctx, slug)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, errorsAPP.ErrCourseNotFound) {
-			return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, errorsAPP.ErrNotFoundCourse)
+			return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, errorsAPP.ErrCourseNotFound)
 		}
 		return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -24,7 +24,7 @@ func (s *lessonService) ListLessonsByCourseID(ctx context.Context, slug string) 
 	lessons, err := s.lessonrepo.GetLessonsByCourseID(ctx, course.Id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, errorsAPP.ErrNotFoundLesson)
+			return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, errorsAPP.ErrLessonNotFound)
 		}
 		return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, err)
 	}

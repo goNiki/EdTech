@@ -17,7 +17,7 @@ func (s *service) ChangeUserRole(ctx context.Context, courseID int64, targetUser
 
 	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, targetUserID, courseID)
 	if err != nil {
-		if errors.Is(err, errorsAPP.ErrNotFoundCourse) {
+		if errors.Is(err, errorsAPP.ErrCourseNotFound) {
 			return fmt.Errorf("%s: %w", op, errorsAPP.ErrNotEnrolled)
 		}
 		return fmt.Errorf("%s: get role: %w", op, err)

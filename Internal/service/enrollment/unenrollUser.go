@@ -15,7 +15,7 @@ func (s *service) UnenrollUser(ctx context.Context, userID int64, courseID int64
 
 	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, userID, courseID)
 	if err != nil {
-		if errors.Is(err, errorsAPP.ErrNotFoundCourse) {
+		if errors.Is(err, errorsAPP.ErrCourseNotFound) {
 			return fmt.Errorf("%s: %w", op, errorsAPP.ErrNotEnrolled)
 		}
 		return fmt.Errorf("%s: get role: %w", op, err)
@@ -63,4 +63,3 @@ func (s *service) TeacherUnenrollUser(ctx context.Context, teacherID int64, targ
 
 	return s.UnenrollUser(ctx, targetUserID, courseID)
 }
-

@@ -6,6 +6,7 @@ import (
 	errorsAPP "edtech/pkg/errors"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -27,7 +28,12 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (domain
 	now := time.Now()
 
 	if !tokenData.IsValid(now) {
-		_ = s.refreshRepo.DeleteRefreshToken(ctx, hashRefreshToken)
+		if err := s.refreshRepo.DeleteRefreshToken(ctx, hashRefreshToken); err != nil {
+			slog.Warn("failed to delete expired refresh token",
+				"error", err,
+				"op", op,
+			)
+		}
 		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, errorsAPP.ErrInvalidRefreshToken)
 	}
 
@@ -63,5 +69,4 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (domain
 	}
 
 	return newTokens, nil
-
 }

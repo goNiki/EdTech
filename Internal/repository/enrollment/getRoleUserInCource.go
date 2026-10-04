@@ -2,9 +2,12 @@ package enrollment
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"edtech/internal/infrastructure/txmanager"
+
+	"github.com/jackc/pgx/v5"
 )
 
 func (r *repository) GetRoleUserInCourse(ctx context.Context, userID, courceID int64) (string, error) {
@@ -17,7 +20,7 @@ func (r *repository) GetRoleUserInCourse(ctx context.Context, userID, courceID i
 
 	err := q.QueryRow(ctx, query, userID, courceID).Scan(&role)
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return "", nil
 		}
 		return "", fmt.Errorf("%s: %w", op, err)

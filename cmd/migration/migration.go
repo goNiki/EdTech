@@ -21,7 +21,8 @@ func main() {
 
 	cfg, err := config.Load(configPath)
 	if err != nil {
-
+		log.Error("failed to load configuration", sl.Error(err))
+		os.Exit(1)
 	}
 
 	log.Info("Конфиг иннициализирован")

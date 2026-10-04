@@ -20,7 +20,7 @@ func (r *repository) DeleteLessonByID(ctx context.Context, lessonID int64) error
 	}
 
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("%s: %w", op, errorsAPP.ErrNotFoundLesson)
+		return fmt.Errorf("%s: %w", op, errorsAPP.ErrLessonNotFound)
 	}
 
 	return nil

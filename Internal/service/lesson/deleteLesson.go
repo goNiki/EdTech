@@ -15,7 +15,7 @@ func (s *lessonService) DeleteLesson(ctx context.Context, userID int64, lessonID
 	// Load the lesson to find its courseID
 	existingLesson, err := s.lessonrepo.GetLessonByID(ctx, lessonID)
 	if err != nil {
-		if errors.Is(err, errorsAPP.ErrNotFoundLesson) {
+		if errors.Is(err, errorsAPP.ErrLessonNotFound) {
 			return fmt.Errorf("%s: %w", op, err)
 		}
 		return fmt.Errorf("%s: %w", op, err)
@@ -42,7 +42,7 @@ func (s *lessonService) DeleteLesson(ctx context.Context, userID int64, lessonID
 	}
 
 	if err := s.lessonrepo.DeleteLessonByID(ctx, lessonID); err != nil {
-		if errors.Is(err, errorsAPP.ErrNotFoundLesson) {
+		if errors.Is(err, errorsAPP.ErrLessonNotFound) {
 			return fmt.Errorf("%s: %w", op, err)
 		}
 		return fmt.Errorf("%s: %w", op, err)

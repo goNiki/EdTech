@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"testing"
 
 	"edtech/internal/domain"
@@ -15,6 +16,7 @@ import (
 )
 
 type mockStorage struct {
+	mu         sync.Mutex
 	savedFiles map[string][]byte
 }
 
@@ -27,18 +29,30 @@ func (m *mockStorage) Save(ctx context.Context, relativePath string, src io.Read
 	if err != nil {
 		return err
 	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.savedFiles[relativePath] = data
 	return nil
 }
 
 func (m *mockStorage) Delete(ctx context.Context, relativePath string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	delete(m.savedFiles, relativePath)
 	return nil
 }
 
 func (m *mockStorage) Exists(ctx context.Context, relativePath string) (bool, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	_, ok := m.savedFiles[relativePath]
 	return ok, nil
+}
+
+func (m *mockStorage) Count() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.savedFiles)
 }
 
 func TestUploadFile_Success(t *testing.T) {
@@ -70,8 +84,8 @@ func TestUploadFile_Success(t *testing.T) {
 		t.Errorf("expected size %d, got %d", len(pngHeader), res.SizeBytes)
 	}
 
-	if len(mockStore.savedFiles) != 1 {
-		t.Errorf("expected 1 saved file in storage, got %d", len(mockStore.savedFiles))
+	if mockStore.Count() != 1 {
+		t.Errorf("expected 1 saved file in storage, got %d", mockStore.Count())
 	}
 }
 
@@ -184,8 +198,8 @@ func TestUploadImagesBatch_Success(t *testing.T) {
 		t.Errorf("invalid result 1: %+v", results[1])
 	}
 
-	if len(mockStore.savedFiles) != 2 {
-		t.Errorf("expected 2 saved files in mockStore, got %d", len(mockStore.savedFiles))
+	if mockStore.Count() != 2 {
+		t.Errorf("expected 2 saved files in mockStore, got %d", mockStore.Count())
 	}
 }
 
