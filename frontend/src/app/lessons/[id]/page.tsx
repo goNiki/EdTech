@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import PuckLessonViewer, { LessonCompletionPayload } from '@/components/player/PuckLessonViewer';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, CheckCircle, Sparkles, ArrowRight, RotateCcw, Loader2 } from 'lucide-react';
+import { ChevronLeft, CheckCircle, Sparkles, ArrowRight, RotateCcw, Loader2, AlertTriangle, Zap } from 'lucide-react';
 
 export default function LessonPlayer({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -15,6 +15,7 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -51,6 +52,36 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   }, [id]);
 
   const [isCompleting, setIsCompleting] = useState(false);
+
+  // Determine if lesson contains interactive quizzes/assignments
+  const hasQuizzes = React.useMemo(() => {
+    try {
+      const rawContent = lessonData?.content || lessonData?.Content;
+      if (!rawContent) return false;
+      const parsed = typeof rawContent === 'string' ? JSON.parse(rawContent) : rawContent;
+      const blocks = parsed?.content || [];
+      return blocks.some((b: any) => 
+        b.type?.startsWith('Quiz') || b.type === 'FileUploadBlock'
+      );
+    } catch (e) {
+      return false;
+    }
+  }, [lessonData]);
+
+  const courseId = lessonData?.course_id || lessonData?.CourseID;
+
+  const performExit = () => {
+    if (courseId) router.push(`/dashboard/courses/${courseId}`);
+    else router.back();
+  };
+
+  const handleRequestExit = () => {
+    if (hasQuizzes && !isCompleted) {
+      setIsExitModalOpen(true);
+    } else {
+      performExit();
+    }
+  };
 
   const handleRetake = () => {
     setIsCompleted(false);
@@ -100,8 +131,6 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
     );
   }
 
-  const courseId = lessonData?.course_id || lessonData?.CourseID;
-
   return (
     <ProtectedRoute allowedRoles={['student', 'teacher', 'author', 'admin']}>
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
@@ -109,10 +138,7 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
         <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => {
-                if (courseId) router.push(`/dashboard/courses/${courseId}`);
-                else router.back();
-              }}
+              onClick={handleRequestExit}
               className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer"
               title="Назад к курсу"
             >
@@ -144,6 +170,11 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
                   <RotateCcw size={13} />
                   <span className="hidden sm:inline">Пройти заново</span>
                 </button>
+              </div>
+            ) : hasQuizzes ? (
+              <div className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 rounded-xl border border-indigo-200/80 dark:border-indigo-800/60 text-xs font-bold shadow-2xs">
+                <Zap size={14} className="text-indigo-500 animate-pulse" />
+                <span>Контрольное тестирование</span>
               </div>
             ) : (
               <button
@@ -238,26 +269,60 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
             contentJson={lessonData?.content || lessonData?.Content || '{}'}
             onComplete={handleComplete}
             initialProgress={progressData}
-            onNavigateBack={() => {
-              if (courseId) router.push(`/dashboard/courses/${courseId}`);
-              else router.back();
-            }}
+            onNavigateBack={handleRequestExit}
           />
         </main>
 
         {/* Footer Navigation */}
         <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-4 px-6 text-center">
           <button
-            onClick={() => {
-              if (courseId) router.push(`/dashboard/courses/${courseId}`);
-              else router.back();
-            }}
+            onClick={handleRequestExit}
             className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
           >
             <span>Вернуться к содержанию курса</span>
             <ArrowRight size={14} />
           </button>
         </footer>
+
+        {/* Confirm Exit Quiz Modal */}
+        {isExitModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto shadow-inner">
+                <AlertTriangle size={30} />
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                  Покинуть тестирование?
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  В уроке содержатся проверочные задания. Если вы покинете урок сейчас, неотвеченные вопросы будут оценены в 0 баллов.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsExitModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                >
+                  Продолжить тест
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsExitModalOpen(false);
+                    performExit();
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20 cursor-pointer"
+                >
+                  Завершить досрочно
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Toast */}
         {toastMsg && (

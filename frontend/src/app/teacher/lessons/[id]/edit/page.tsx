@@ -110,6 +110,38 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
       setForbiddenAlert('У вас нет прав на редактирование этого курса. Изменения не сохранены.');
       return;
     }
+
+    // Валидация тестовых блоков перед сохранением:
+    const blocks: any[] = data?.content || [];
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      if (b.type === 'QuizSingleBlock') {
+        const qText = b.props?.question || `Задание #${i + 1}`;
+        const options: any[] = b.props?.options || [];
+        const correctCount = options.filter(
+          (o: any) => o.isCorrect === true || o.isCorrect === 'true'
+        ).length;
+
+        if (correctCount === 0) {
+          showToast(`В вопросе «${qText.slice(0, 45)}...» не выбран ни один верный ответ! Выберите правильный вариант.`);
+          return;
+        }
+
+        if (correctCount > 1) {
+          // Автоматически нормализуем к первому выбранному варианту
+          let foundFirst = false;
+          b.props.options = options.map((o: any) => {
+            const isCorr = o.isCorrect === true || o.isCorrect === 'true';
+            if (isCorr && !foundFirst) {
+              foundFirst = true;
+              return { ...o, isCorrect: 'true' };
+            }
+            return { ...o, isCorrect: 'false' };
+          });
+        }
+      }
+    }
+
     try {
       const contentString = JSON.stringify(data);
       await api.patch(`/lessons/${id}`, {

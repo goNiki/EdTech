@@ -618,14 +618,19 @@ export const config: Config<PuckProps> = {
                           onClick={(e) => {
                             e.stopPropagation();
                             selectThisBlock();
-                            updateNestedArrayItem('options', idx, 'isCorrect', isCorrect ? 'false' : 'true');
+                            // В одиночном выборе ровно 1 вариант правильный (Radio)
+                            const updatedOptions = (options || []).map((optItem: any, i: number) => ({
+                              ...optItem,
+                              isCorrect: i === idx ? 'true' : 'false',
+                            }));
+                            updateProp('options', updatedOptions);
                           }}
                           className={`edtech-inline-btn px-2.5 py-1 text-[10px] font-black rounded-lg transition-all cursor-pointer ${
                             isCorrect
                               ? 'bg-emerald-600 text-white shadow-sm'
                               : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
                           }`}
-                          title="Нажмите, чтобы переключить правильность ответа"
+                          title="Нажмите, чтобы сделать этот вариант единственным верным (Radio)"
                         >
                           {isCorrect ? '✓ Верный' : 'Сделать верным'}
                         </button>
