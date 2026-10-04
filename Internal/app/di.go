@@ -646,6 +646,7 @@ func (d *diContainer) Router() http.Handler {
 			r.Post("/", d.LessonHdl().CreateLesson)
 			r.Get("/{id}", d.LessonHdl().GetLesson)
 			r.Get("/{id}/navigation", d.LessonHdl().GetLessonNavigationContext)
+			r.Get("/{id}/homework-feedback", d.QuizHdl().GetStudentHomeworkFeedback)
 			r.Patch("/{id}", d.LessonHdl().UpdateLesson)
 			r.Patch("/{id}/status", d.LessonHdl().UpdateLessonStatus)
 			r.Delete("/{id}", d.LessonHdl().DeleteLesson)

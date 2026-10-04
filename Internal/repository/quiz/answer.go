@@ -45,16 +45,20 @@ func (r *repositoryImpl) CreateBatchAnswers(ctx context.Context, answers []domai
 	return nil
 }
 
-func (r *repositoryImpl) UpdateAttemptAnswer(ctx context.Context, answerID int64, points int, feedback *string, isCorrect bool) error {
+func (r *repositoryImpl) UpdateAttemptAnswer(ctx context.Context, answerID int64, points int, feedback *string, isCorrect bool, gradedBy ...int64) error {
 	const op = "repository.quiz.UpdateAttemptAnswer"
 	q := txmanager.GetQueryExecutor(ctx, r.Pool)
+	var teacherID *int64
+	if len(gradedBy) > 0 && gradedBy[0] > 0 {
+		teacherID = &gradedBy[0]
+	}
 
 	query := `
 		UPDATE quiz_attempt_answers 
-		SET is_correct = $2, points = $3, feedback = $4, graded_at = NOW() 
+		SET is_correct = $2, points = $3, feedback = $4, graded_by = COALESCE($5, graded_by), graded_at = NOW() 
 		WHERE id = $1`
 
-	tag, err := q.Exec(ctx, query, answerID, isCorrect, points, feedback)
+	tag, err := q.Exec(ctx, query, answerID, isCorrect, points, feedback, teacherID)
 	if err != nil {
 		return fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
 	}

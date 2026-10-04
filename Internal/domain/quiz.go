@@ -117,3 +117,30 @@ type QuizAttemptAnswer struct {
 	GradedAt      *time.Time
 	CreatedAt     time.Time
 }
+
+type StudentHomeworkFeedback struct {
+	HasSubmission bool
+	Status        string // "not_submitted", "pending", "graded"
+	AttemptID     *int64
+	SubmittedAt   *time.Time
+	GradedAt      *time.Time
+	Teacher       *HomeworkTeacherInfo
+	Answers       []HomeworkAnswerDetail
+}
+
+type HomeworkTeacherInfo struct {
+	ID        int64
+	Name      string
+	AvatarURL *string
+}
+
+type HomeworkAnswerDetail struct {
+	AnswerID      int64
+	QuestionText  string
+	StudentAnswer string
+	Points        int
+	MaxPoints     int
+	IsCorrect     *bool
+	Feedback      *string
+}
+

@@ -85,3 +85,36 @@ type ListAttemptsResponse struct {
 	Page     int           `json:"page"`
 	PageSize int           `json:"page_size"`
 }
+
+type HomeworkFeedbackResponse struct {
+	Code    int                     `json:"code"`
+	Message string                  `json:"message"`
+	Data    HomeworkFeedbackDataDTO `json:"data"`
+}
+
+type HomeworkFeedbackDataDTO struct {
+	HasSubmission bool                      `json:"has_submission"`
+	Status        string                    `json:"status"` // "not_submitted", "pending", "graded"
+	AttemptID     *int64                    `json:"attempt_id,omitempty"`
+	SubmittedAt   *time.Time                `json:"submitted_at,omitempty"`
+	GradedAt      *time.Time                `json:"graded_at,omitempty"`
+	Teacher       *HomeworkTeacherDTO       `json:"teacher,omitempty"`
+	Answers       []HomeworkAnswerDetailDTO `json:"answers"`
+}
+
+type HomeworkTeacherDTO struct {
+	ID        int64   `json:"id"`
+	Name      string  `json:"name"`
+	AvatarURL *string `json:"avatar_url,omitempty"`
+}
+
+type HomeworkAnswerDetailDTO struct {
+	AnswerID      int64   `json:"answer_id"`
+	QuestionText  string  `json:"question_text"`
+	StudentAnswer string  `json:"student_answer"`
+	Points        int     `json:"points"`
+	MaxPoints     int     `json:"max_points"`
+	IsCorrect     *bool   `json:"is_correct"`
+	Feedback      *string `json:"feedback,omitempty"`
+}
+

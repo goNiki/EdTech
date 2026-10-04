@@ -184,6 +184,7 @@ type QuizServices interface {
 	SubmitAttempt(ctx context.Context, userID int64, attemptID int64, answers []domain.QuizAttemptAnswer) (*domain.QuizAttempt, error)
 	ListAttemptsForGrading(ctx context.Context, userID int64, courseID int64, quizID *int64, page int, pageSize int) ([]domain.QuizAttempt, int64, error)
 	GradeAttemptAnswer(ctx context.Context, teacherID int64, attemptID int64, answerID int64, points int, feedback *string) (*domain.QuizAttempt, error)
+	GetStudentHomeworkFeedback(ctx context.Context, userID, lessonID int64) (*domain.StudentHomeworkFeedback, error)
 }
 
 // --- Section Interfaces ---

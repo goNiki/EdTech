@@ -234,6 +234,16 @@ Student POST /api/v1/lessons/{id}/complete
   ➔ [repository/progress]                  : Сохранение прогресса в транзакции WithTX
 ```
 
+### 7. Домашние задания: получение рецензии и результатов проверки студентом (`GET /lessons/{id}/homework-feedback`)
+```text
+Student GET /api/v1/lessons/{id}/homework-feedback
+  ➔ [handlers/quiz/getHomeworkFeedback]    : Извлечение userID из JWT, валидация lessonID
+  ➔ [service/quiz/homework_feedback]       : Проверка существования урока, курса и прав доступа CanViewCourse
+  ➔ [repository/quiz/homework_feedback]    : Поиск последней попытки студента по уроку (с приоритетом essay-квиза)
+                                             Загрузка ответов, баллов, рецензий и карточки проверившего преподавателя
+                                             Определение статуса: not_submitted | pending | graded
+```
+
 
 ---
 

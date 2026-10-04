@@ -58,3 +58,54 @@ func QuizAttemptsToDTO(attempts []domain.QuizAttempt) []dto.QuizAttempt {
 	}
 	return dtos
 }
+
+func StudentHomeworkFeedbackToDTO(f *domain.StudentHomeworkFeedback) dto.HomeworkFeedbackResponse {
+	if f == nil {
+		return dto.HomeworkFeedbackResponse{
+			Code:    200,
+			Message: "success",
+			Data: dto.HomeworkFeedbackDataDTO{
+				HasSubmission: false,
+				Status:        "not_submitted",
+				Answers:       make([]dto.HomeworkAnswerDetailDTO, 0),
+			},
+		}
+	}
+
+	var teacherDTO *dto.HomeworkTeacherDTO
+	if f.Teacher != nil {
+		teacherDTO = &dto.HomeworkTeacherDTO{
+			ID:        f.Teacher.ID,
+			Name:      f.Teacher.Name,
+			AvatarURL: f.Teacher.AvatarURL,
+		}
+	}
+
+	answersDTO := make([]dto.HomeworkAnswerDetailDTO, 0, len(f.Answers))
+	for _, a := range f.Answers {
+		answersDTO = append(answersDTO, dto.HomeworkAnswerDetailDTO{
+			AnswerID:      a.AnswerID,
+			QuestionText:  a.QuestionText,
+			StudentAnswer: a.StudentAnswer,
+			Points:        a.Points,
+			MaxPoints:     a.MaxPoints,
+			IsCorrect:     a.IsCorrect,
+			Feedback:      a.Feedback,
+		})
+	}
+
+	return dto.HomeworkFeedbackResponse{
+		Code:    200,
+		Message: "success",
+		Data: dto.HomeworkFeedbackDataDTO{
+			HasSubmission: f.HasSubmission,
+			Status:        f.Status,
+			AttemptID:     f.AttemptID,
+			SubmittedAt:   f.SubmittedAt,
+			GradedAt:      f.GradedAt,
+			Teacher:       teacherDTO,
+			Answers:       answersDTO,
+		},
+	}
+}
+

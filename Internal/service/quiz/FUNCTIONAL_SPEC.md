@@ -14,6 +14,7 @@
 | **Сдача теста и автопроверка** | Прием ответов, валидация таймлимита (+30 сек грейс-период), автопроверка тестов и перевод эссе на ручную проверку | `SubmitAttempt()` |
 | **Ручная проверка заданий преподавателем** | Оценивание развернутых ответов/эссе с комментарием и автоматический зачет урока при сдаче | `GradeAttemptAnswer()` |
 | **Очередь работ на проверку** | Пагинированный реестр попыток с открытыми вопросами для преподавателей курса | `ListAttemptsForGrading()` |
+| **Рецензия и результаты проверки ДЗ** | Получение студентом баллов, рецензий преподавателя и карточки проверяющего по сданному заданию | `GetStudentHomeworkFeedback()` |
 | **Античит санитизация урока** | Фильтрация правильных ответов, подсказок и ключей из Puck JSON для студентов | `SanitizeLessonContentForStudent()` |
 | **Серверная проверка квизов** | Независимый расчет баллов и проверка ответов на бэкенде по эталонному контенту урока | `ValidateQuizSubmission()` |
 
@@ -187,8 +188,33 @@
 
 ---
 
+### ⚡ Функция: `GetStudentHomeworkFeedback(ctx, userID, lessonID)`
+
+* **Файл и строки:** [`homework_feedback.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/homework_feedback.go)
+* **Бизнес-назначение:** Предоставление студенту детализированных результатов проверки его домашнего задания (эссе, открытых ответов) преподавателем.
+* **Связанная фича:** *Рецензия и результаты проверки ДЗ*
+
+#### 📥 Входные параметры
+| Параметр | Тип | Обязателен | Бизнес-смысл и ограничения |
+|---|---|:---:|---|
+| `userID` | `int64` | Да | Идентификатор авторизованного студента (из JWT) |
+| `lessonID` | `int64` | Да | Идентификатор урока с домашним заданием |
+
+#### 🔄 Пошаговый алгоритм работы
+1. Валидация входных идентификаторов (`userID > 0`, `lessonID > 0`).
+2. Проверка существования урока и связанного курса (`lessonRepo.GetLessonByID`, `courseRepo.GetCourseByID`).
+3. Проверка прав доступа студента к курсу через `accessService.CanViewCourse` (403 при отсутствии доступа).
+4. Поиск последней сдачи студента в `quizRepo.GetStudentHomeworkFeedback`:
+   - Если сдачи нет ➔ `has_submission: false`, `status: "not_submitted"`.
+   - Если есть непроверенные ответы (`is_correct IS NULL`) ➔ `status: "pending"`, дата проверки и данные преподавателя скрыты.
+   - Если все ответы проверены ➔ `status: "graded"`, возвращаются баллы, максимальные баллы, рецензия (`feedback`), дата проверки (`graded_at`) и карточка преподавателя (`teacher: { id, name, avatar_url }`).
+
+---
+
 ## 💡 Подсказка для аналитика (Где менять логику?)
 * *Сетевой допуск на задержку сдачи теста (сейчас +30 секунд):* [`submitAttempt.go#L77`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/submitAttempt.go#L77).
 * *Правило выставления флага `IsCorrect` при ручной проверке (сейчас `points > 0`):* [`gradeAttemptAnswer.go#L35`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/gradeAttemptAnswer.go#L35).
 * *Формула расчета процента сдачи теста:* метод `CalculateScore` сущности `domain.QuizAttempt`.
+* *Определение статуса проверки ДЗ (`not_submitted` / `pending` / `graded`):* [`homework_feedback.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/quiz/homework_feedback.go).
+
 

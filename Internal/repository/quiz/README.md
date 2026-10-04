@@ -26,6 +26,7 @@
 | [`answer.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/quiz/answer.go) | Пакетная вставка ответов (`CreateBatchAnswers`), обновление оценки учителем (`UpdateAttemptAnswer`) |
 | [`lock.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/quiz/lock.go) | Вызов `SELECT pg_advisory_xact_lock($1, $2)` |
 | [`essay.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/quiz/essay.go) | Сохранение эссе/домашних работ как попыток со статусом ручной проверки |
+| [`homework_feedback.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/quiz/homework_feedback.go) | Выборка рецензий и результатов проверки ДЗ студента |
 
 ---
 
@@ -35,9 +36,10 @@
 | `AcquireAdvisoryLock` | [`lock.go#L8-L12`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/quiz/lock.go#L8-L12) | Транзакционный лок по связке (пользователь, тест) | `AcquireAdvisoryLock(ctx, q db.QueryExecutor, userID, quizID int64) error` |
 | `GetAttemptForUpdate` | [`attempt.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/quiz/attempt.go) | Выборка попытки с блокировкой строки `FOR UPDATE` | `GetAttemptForUpdate(ctx, q db.QueryExecutor, attemptID int64) (*domain.QuizAttempt, error)` |
 | `CreateBatchAnswers` | [`answer.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/quiz/answer.go) | Пакетная вставка ответов студента в `quiz_attempt_answers` | `CreateBatchAnswers(ctx, q db.QueryExecutor, answers []domain.QuizAttemptAnswer) error` |
-| `UpdateAttemptAnswer` | [`answer.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/quiz/answer.go) | Запись оценки преподавателя, отзыва и статуса `is_correct` | `UpdateAttemptAnswer(ctx, q, answerID, points, feedback, isCorrect) error` |
+| `UpdateAttemptAnswer` | [`answer.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/quiz/answer.go) | Запись оценки преподавателя, отзыва, проверившего учителя и статуса `is_correct` | `UpdateAttemptAnswer(ctx, answerID int64, points int, feedback *string, isCorrect bool, gradedBy ...int64) error` |
 | `SaveEssaySubmission` | [`essay.go#L12-L72`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/quiz/essay.go#L12-L72) | Сохранение развернутого текстового ответа на проверку | `SaveEssaySubmission(ctx, q, userID, courseID, lessonID, essay) error` |
 | `GetLessonSubmissions` | [`essay.go#L74-L122`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/quiz/essay.go#L74-L122) | Получение списка сданных работ студента с оценками и фидбеком | `GetLessonSubmissions(ctx, q, userID, lessonID int64) ([]domain.LessonSubmissionDetail, error)` |
+| `GetStudentHomeworkFeedback` | [`homework_feedback.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/quiz/homework_feedback.go) | Выборка сданного ДЗ, рецензий преподавателя и статуса проверки | `GetStudentHomeworkFeedback(ctx context.Context, userID, lessonID int64) (*domain.StudentHomeworkFeedback, error)` |
 
 ---
 

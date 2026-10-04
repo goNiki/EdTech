@@ -273,3 +273,15 @@ flowchart TD
   * ✅ Кастомный проходной порог `passing_score_percent`: урок помечается как `completed` только при преодолении установленного процента.
   * ✅ Фоновое автосохранение черновика ответов (`PATCH /api/v1/lessons/{id}/attempts/{attempt_id}/draft`): сохранение `draft_answers JSONB` и текущего шага `current_step` с защитой от перезаписи сданных попыток и просроченных дедлайнов.
   * ✅ Восстановление активной сессии тестирования (`GET /api/v1/lessons/{id}/attempts/active`): возврат сохраненного драфта, текущего шага, точного расчет оставшихся секунд `remaining_seconds` от серверного времени и автозакрытие истекших попыток.
+
+---
+
+### 15. Домен: Тестирование, проверка знаний и домашние задания (`internal/service/quiz`)
+* 📄 **Спецификация:** [internal/service/quiz/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/FUNCTIONAL_SPEC.md)
+* **Реализованный функционал:**
+  * ✅ Создание квизов и вопросов (`POST /api/v1/lessons/{lesson_id}/quizzes`).
+  * ✅ Старт попытки тестирования с защитой от race condition через PostgreSQL Advisory Lock (`POST /api/v1/quizzes/{quiz_id}/attempts/start`).
+  * ✅ Сдача попытки с автоскорингом закрытых тестов и изоляцией открытых эссе (`POST /api/v1/quizzes/attempts/{attempt_id}/submit`).
+  * ✅ Ручная проверка и рецензирование развернутых ответов преподавателем (`POST /api/v1/quizzes/attempts/{attempt_id}/answers/{answer_id}/grade`) с автозавершением урока при успехе и отправкой нотификации.
+  * ✅ API получения результатов проверки и рецензии домашнего задания для студента (`GET /api/v1/lessons/{id}/homework-feedback`): статус сдачи (`not_submitted`, `pending`, `graded`), карточка проверившего преподавателя, баллы, максимальные баллы и текстовая рецензия.
+

@@ -32,7 +32,7 @@ func (s *service) GradeAttemptAnswer(ctx context.Context, teacherID int64, attem
 		}
 
 		isCorrect := points > 0
-		if txErr = s.quizRepo.UpdateAttemptAnswer(ctx, answerID, points, feedback, isCorrect); txErr != nil {
+		if txErr = s.quizRepo.UpdateAttemptAnswer(ctx, answerID, points, feedback, isCorrect, teacherID); txErr != nil {
 			return txErr
 		}
 

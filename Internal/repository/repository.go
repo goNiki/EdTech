@@ -129,7 +129,7 @@ type QuizRepository interface {
 	CountUserAttempts(ctx context.Context, userID, quizID int64) (int, error)
 	CountUserAttemptsForUpdate(ctx context.Context, userID, quizID int64) (int, error)
 	CreateBatchAnswers(ctx context.Context, answers []domain.QuizAttemptAnswer) error
-	UpdateAttemptAnswer(ctx context.Context, answerID int64, points int, feedback *string, isCorrect bool) error
+	UpdateAttemptAnswer(ctx context.Context, answerID int64, points int, feedback *string, isCorrect bool, gradedBy ...int64) error
 	CountUngradedAnswers(ctx context.Context, attemptID int64) (int, error)
 	GetAnswerPointsAndCorrectness(ctx context.Context, answerID int64) (bool, int, error)
 	UpdateLessonProgressAfterQuiz(ctx context.Context, userID, lessonID int64, score int) error
@@ -144,7 +144,9 @@ type QuizRepository interface {
 	GetBestScoreByLessonID(ctx context.Context, userID, lessonID int64) (int, error)
 	SaveAttemptDraft(ctx context.Context, attemptID, userID int64, currentStep int, draftAnswers []byte) error
 	GetActiveAttempt(ctx context.Context, userID, lessonID int64) (*domain.QuizAttempt, error)
+	GetStudentHomeworkFeedback(ctx context.Context, userID, lessonID int64) (*domain.StudentHomeworkFeedback, error)
 }
+
 
 type ReviewRepository interface {
 	UpsertReview(ctx context.Context, review *domain.Review) (*domain.Review, error)
