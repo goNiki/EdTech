@@ -10,6 +10,7 @@ type lessonService struct {
 	lessonrepo    repository.LessonRepository
 	sectionrepo   repository.SectionRepository
 	accessService service.AccessService
+	progressrepo  repository.ProgressRepository
 }
 
 func NewLessonService(
@@ -17,11 +18,14 @@ func NewLessonService(
 	lessonrepo repository.LessonRepository,
 	sectionrepo repository.SectionRepository,
 	accessService service.AccessService,
+	progressrepo repository.ProgressRepository,
 ) *lessonService {
 	return &lessonService{
 		courserepo:    courserepo,
 		lessonrepo:    lessonrepo,
 		sectionrepo:   sectionrepo,
 		accessService: accessService,
+		progressrepo:  progressrepo,
 	}
 }
+

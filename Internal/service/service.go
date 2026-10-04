@@ -151,6 +151,7 @@ type LessonServices interface {
 	DeleteLesson(ctx context.Context, userID int64, lessonID int64) error
 	UpdateLesson(ctx context.Context, userID int64, lesson *domain.Lesson) error
 	UpdateLessonStatus(ctx context.Context, userID int64, lessonID int64, status string) error
+	GetLessonNavigationContext(ctx context.Context, userID int64, lessonID int64) (*domain.LessonNavigationContext, error)
 }
 
 // --- Analytics Interfaces ---

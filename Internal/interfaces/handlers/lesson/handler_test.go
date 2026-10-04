@@ -16,6 +16,7 @@ import (
 	lessonHandler "edtech/internal/interfaces/handlers/lesson"
 	"edtech/internal/interfaces/middleware/auth"
 	"edtech/internal/service"
+	errorsAPP "edtech/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
@@ -25,6 +26,8 @@ type mockLessonService struct {
 	service.LessonServices
 	updatedLesson *domain.Lesson
 	updateErr     error
+	navContext    *domain.LessonNavigationContext
+	navErr        error
 }
 
 func (m *mockLessonService) UpdateLesson(ctx context.Context, userID int64, lesson *domain.Lesson) error {
@@ -33,6 +36,19 @@ func (m *mockLessonService) UpdateLesson(ctx context.Context, userID int64, less
 	}
 	m.updatedLesson = lesson
 	return nil
+}
+
+func (m *mockLessonService) GetLessonNavigationContext(ctx context.Context, userID int64, lessonID int64) (*domain.LessonNavigationContext, error) {
+	if m.navErr != nil {
+		return nil, m.navErr
+	}
+	if m.navContext != nil {
+		return m.navContext, nil
+	}
+	return &domain.LessonNavigationContext{
+		CurrentLesson: domain.LessonNavCurrent{ID: lessonID, Title: "Урок", Position: 1},
+		Course:        domain.LessonNavCourse{ID: 10, Title: "Курс", Slug: "kurs"},
+	}, nil
 }
 
 type mockAuthMiddleware struct {
@@ -160,3 +176,145 @@ func TestUpdateLesson_Unauthorized(t *testing.T) {
 		t.Fatalf("expected 401 Unauthorized, got %d", rec.Code)
 	}
 }
+
+func TestGetLessonNavigationContext_Success(t *testing.T) {
+	prev := &domain.LessonNavNeighbor{ID: 41, Title: "Предыдущий"}
+	next := &domain.LessonNavNeighbor{ID: 43, Title: "Следующий"}
+	secID := int64(12)
+	navCtx := &domain.LessonNavigationContext{
+		CurrentLesson: domain.LessonNavCurrent{ID: 42, Title: "Текущий", Position: 2, SectionID: &secID},
+		Course:        domain.LessonNavCourse{ID: 10, Title: "Курс", Slug: "kurs"},
+		PrevLesson:    prev,
+		NextLesson:    next,
+		Syllabus: []domain.LessonNavSection{
+			{
+				SectionID:    12,
+				SectionTitle: "Модуль 1",
+				Position:     1,
+				Lessons: []domain.LessonNavItem{
+					{ID: 41, Title: "Предыдущий", Position: 1, IsCompleted: true, Score: 100},
+					{ID: 42, Title: "Текущий", Position: 2, IsCompleted: false, Score: 0},
+					{ID: 43, Title: "Следующий", Position: 3, IsCompleted: false, Score: 0},
+				},
+			},
+		},
+	}
+
+	mockSvc := &mockLessonService{navContext: navCtx}
+	authMw := &mockAuthMiddleware{userID: 1}
+	val := validator.New()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	h := lessonHandler.NewLessonHandler(mockSvc, logger, val, authMw)
+
+	r := chi.NewRouter()
+	r.Get("/api/v1/lessons/{id}/navigation", h.GetLessonNavigationContext)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/lessons/42/navigation", nil)
+	rec := httptest.NewRecorder()
+
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d, body: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Data    struct {
+			CurrentLesson struct {
+				ID int64 `json:"id"`
+			} `json:"current_lesson"`
+			PrevLesson *struct {
+				ID int64 `json:"id"`
+			} `json:"prev_lesson"`
+			NextLesson *struct {
+				ID int64 `json:"id"`
+			} `json:"next_lesson"`
+			Syllabus []struct {
+				SectionID int64 `json:"section_id"`
+			} `json:"syllabus"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	if resp.Code != 200 {
+		t.Errorf("expected code 200, got %d", resp.Code)
+	}
+	if resp.Data.CurrentLesson.ID != 42 {
+		t.Errorf("expected current lesson 42, got %d", resp.Data.CurrentLesson.ID)
+	}
+	if resp.Data.PrevLesson == nil || resp.Data.PrevLesson.ID != 41 {
+		t.Errorf("expected prev lesson 41, got %+v", resp.Data.PrevLesson)
+	}
+	if resp.Data.NextLesson == nil || resp.Data.NextLesson.ID != 43 {
+		t.Errorf("expected next lesson 43, got %+v", resp.Data.NextLesson)
+	}
+	if len(resp.Data.Syllabus) != 1 || resp.Data.Syllabus[0].SectionID != 12 {
+		t.Errorf("expected 1 syllabus section with id 12, got %+v", resp.Data.Syllabus)
+	}
+}
+
+func TestGetLessonNavigationContext_Unauthorized(t *testing.T) {
+	mockSvc := &mockLessonService{}
+	authMw := &mockAuthMiddleware{userID: 0}
+	val := validator.New()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	h := lessonHandler.NewLessonHandler(mockSvc, logger, val, authMw)
+
+	r := chi.NewRouter()
+	r.Get("/api/v1/lessons/{id}/navigation", h.GetLessonNavigationContext)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/lessons/42/navigation", nil)
+	rec := httptest.NewRecorder()
+
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 Unauthorized, got %d", rec.Code)
+	}
+}
+
+func TestGetLessonNavigationContext_Forbidden(t *testing.T) {
+	mockSvc := &mockLessonService{navErr: errorsAPP.ErrForbidden}
+	authMw := &mockAuthMiddleware{userID: 99}
+	val := validator.New()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	h := lessonHandler.NewLessonHandler(mockSvc, logger, val, authMw)
+
+	r := chi.NewRouter()
+	r.Get("/api/v1/lessons/{id}/navigation", h.GetLessonNavigationContext)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/lessons/42/navigation", nil)
+	rec := httptest.NewRecorder()
+
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden, got %d", rec.Code)
+	}
+}
+
+func TestGetLessonNavigationContext_InvalidID(t *testing.T) {
+	mockSvc := &mockLessonService{}
+	authMw := &mockAuthMiddleware{userID: 1}
+	val := validator.New()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	h := lessonHandler.NewLessonHandler(mockSvc, logger, val, authMw)
+
+	r := chi.NewRouter()
+	r.Get("/api/v1/lessons/{id}/navigation", h.GetLessonNavigationContext)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/lessons/not-a-number/navigation", nil)
+	rec := httptest.NewRecorder()
+
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 Bad Request, got %d", rec.Code)
+	}
+}
+

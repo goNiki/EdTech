@@ -380,7 +380,7 @@ func (d *diContainer) CourseSvc() service.CourseServices {
 
 func (d *diContainer) LessonSvc() service.LessonServices {
 	if d.lessonSvc == nil {
-		d.lessonSvc = lessonService.NewLessonService(d.CourseRepo(), d.LessonRepo(), d.SectionRepo(), d.AccessSvc())
+		d.lessonSvc = lessonService.NewLessonService(d.CourseRepo(), d.LessonRepo(), d.SectionRepo(), d.AccessSvc(), d.ProgRepo())
 	}
 	return d.lessonSvc
 }
@@ -645,6 +645,7 @@ func (d *diContainer) Router() http.Handler {
 
 			r.Post("/", d.LessonHdl().CreateLesson)
 			r.Get("/{id}", d.LessonHdl().GetLesson)
+			r.Get("/{id}/navigation", d.LessonHdl().GetLessonNavigationContext)
 			r.Patch("/{id}", d.LessonHdl().UpdateLesson)
 			r.Patch("/{id}/status", d.LessonHdl().UpdateLessonStatus)
 			r.Delete("/{id}", d.LessonHdl().DeleteLesson)

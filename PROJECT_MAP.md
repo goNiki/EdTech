@@ -99,7 +99,7 @@
 * [**`service/access`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/access/README.md) — Матрица разрешений курсов, правила черновиков и прав создателя.
 * [**`service/course`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/course/README.md) — Каскадная публикация, автозачисление создателя, сборка дерева курса.
 * [**`service/section`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/section/README.md) — Позиционирование секций и переупорядочивание уроков.
-* [**`service/lesson`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/lesson/README.md) — Вычисление позиций `max(pos)+1`, CRUD уроков.
+* [**`service/lesson`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/lesson/README.md) — Вычисление позиций `max(pos)+1`, CRUD уроков, контекст навигации (prev/next) и силлабус.
 * [**`service/enrollment`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/enrollment/README.md) — Транзакционный инкремент счетчика студентов, запрет отчисления автора.
 * [**`service/progress`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/README.md) — Атомарный пересчет курса при завершении урока, прием эссе, таймеры, автосохранение драфтов и активные попытки.
 * [**`service/quiz`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/README.md) — Advisory lock от гонок, `FOR UPDATE`, отложенная ручная проверка эссе.
@@ -134,7 +134,7 @@
 * [**`handlers/category`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/category/README.md) — Публичный каталог категорий и создание новых.
 * [**`handlers/courses`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/courses/README.md) — Каталог, создание, управление курсом.
 * [**`handlers/section`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/section/README.md) — CRUD секций и сортировка уроков.
-* [**`handlers/lesson`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/lesson/README.md) — CRUD уроков и статусы.
+* [**`handlers/lesson`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/lesson/README.md) — CRUD уроков, статусы, контекст навигации и силлабус.
 * [**`handlers/enrollment`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/enrollment/README.md) — Самозапись, отчисление, списки учащихся.
 * [**`handlers/progress`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/progress/README.md) — Старт, таймлайн, завершение уроков, автосохранение драфтов и активные попытки.
 * [**`handlers/quiz`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/quiz/README.md) — Прохождение тестов и ручной грейдинг.

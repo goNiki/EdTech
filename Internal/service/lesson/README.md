@@ -28,6 +28,7 @@
 | [`updateLessonStatus.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/lesson/updateLessonStatus.go) | Смена статуса видимости урока (`draft`/`published`) |
 | [`deleteLesson.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/lesson/deleteLesson.go) | Удаление урока по ID |
 | [`listLessonsByCourseID.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/lesson/listLessonsByCourseID.go) | Получение всех уроков курса |
+| [`getLessonNavigation.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/lesson/getLessonNavigation.go) | Контекст навигации урока (следующий/предыдущий) и дерево силлабуса курса с прогрессом |
 
 ---
 
@@ -39,6 +40,7 @@
 | `UpdateLesson` | [`updateLesson.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/lesson/updateLesson.go) | Редактирование параметров урока | `UpdateLesson(ctx context.Context, lesson *domain.Lesson) error` |
 | `UpdateLessonStatus` | [`updateLessonStatus.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/lesson/updateLessonStatus.go) | Переключение статуса урока | `UpdateLessonStatus(ctx context.Context, lessonID int64, status string) error` |
 | `DeleteLesson` | [`deleteLesson.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/lesson/deleteLesson.go) | Удаление урока из системы | `DeleteLesson(ctx context.Context, lessonID int64) error` |
+| `GetLessonNavigationContext` | [`getLessonNavigation.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/lesson/getLessonNavigation.go) | Сборка контекста навигации (prev/next) и силлабуса с успеваемостью | `GetLessonNavigationContext(ctx context.Context, userID int64, lessonID int64) (*domain.LessonNavigationContext, error)` |
 
 ---
 

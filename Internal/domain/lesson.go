@@ -175,3 +175,45 @@ func (l *Lesson) Archive(now time.Time) {
 func (l *Lesson) IsPublished() bool {
 	return l.Status == StatusPublished
 }
+
+type LessonNavigationContext struct {
+	CurrentLesson LessonNavCurrent
+	Course        LessonNavCourse
+	PrevLesson    *LessonNavNeighbor
+	NextLesson    *LessonNavNeighbor
+	Syllabus      []LessonNavSection
+}
+
+type LessonNavCurrent struct {
+	ID        int64
+	Title     string
+	Position  int64
+	SectionID *int64
+}
+
+type LessonNavCourse struct {
+	ID    int64
+	Title string
+	Slug  string
+}
+
+type LessonNavNeighbor struct {
+	ID    int64
+	Title string
+}
+
+type LessonNavSection struct {
+	SectionID    int64
+	SectionTitle string
+	Position     int
+	Lessons      []LessonNavItem
+}
+
+type LessonNavItem struct {
+	ID          int64
+	Title       string
+	Position    int64
+	IsCompleted bool
+	Score       int
+}
+

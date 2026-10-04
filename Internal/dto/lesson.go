@@ -56,3 +56,51 @@ type UpdateLessonRequest struct {
 type CreateLessonResponse struct {
 	Lesson Lesson `json:"lesson"`
 }
+
+type LessonNavigationResponse struct {
+	Code    int                     `json:"code"`
+	Message string                  `json:"message"`
+	Data    LessonNavigationDataDTO `json:"data"`
+}
+
+type LessonNavigationDataDTO struct {
+	CurrentLesson LessonNavCurrentDTO   `json:"current_lesson"`
+	Course        LessonNavCourseDTO    `json:"course"`
+	PrevLesson    *LessonNavNeighborDTO `json:"prev_lesson"`
+	NextLesson    *LessonNavNeighborDTO `json:"next_lesson"`
+	Syllabus      []LessonNavSectionDTO `json:"syllabus"`
+}
+
+type LessonNavCurrentDTO struct {
+	ID        int64  `json:"id"`
+	Title     string `json:"title"`
+	Position  int64  `json:"position"`
+	SectionID *int64 `json:"section_id"`
+}
+
+type LessonNavCourseDTO struct {
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
+	Slug  string `json:"slug"`
+}
+
+type LessonNavNeighborDTO struct {
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
+}
+
+type LessonNavSectionDTO struct {
+	SectionID    int64              `json:"section_id"`
+	SectionTitle string             `json:"section_title"`
+	Position     int                `json:"position"`
+	Lessons      []LessonNavItemDTO `json:"lessons"`
+}
+
+type LessonNavItemDTO struct {
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	Position    int64  `json:"position"`
+	IsCompleted bool   `json:"is_completed"`
+	Score       int    `json:"score"`
+}
+
