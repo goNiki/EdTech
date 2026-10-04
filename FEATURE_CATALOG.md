@@ -211,4 +211,17 @@ flowchart TD
   * ✅ Получение своего отзыва (`GET /api/v1/courses/{courseid}/reviews/my`).
   * ✅ Публичный пагинированный каталог отзывов с детализацией распределения оценок 1–5 звезд (`GET /api/v1/courses/{courseid}/reviews`).
 
+---
+
+### 11. Домен: Сертификаты об окончании курсов (`internal/service/certificate`)
+* 📄 **Спецификация:** [internal/service/certificate/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/certificate/FUNCTIONAL_SPEC.md)
+* **Реализованный функционал:**
+  * ✅ Автоматическая выдача официального электронного сертификата при достижении 100% прогресса (`GET /api/v1/courses/{courseid}/certificate`).
+  * ✅ Защита от преждевременного выпуска: обязательная проверка `Percent == 100` и прохождения всех уроков курса (`CompletedLess == TotalLessons`).
+  * ✅ Идемпотентность выдачи: повторный запрос возвращает существующий сертификат без создания дубликатов.
+  * ✅ Неизменяемый снимок данных (Snapshotting): фиксация имени/фамилии студента (`StudentName`), названия курса (`CourseTitle`) и итогового среднего балла (`FinalScore`).
+  * ✅ Генерация защищенного криптографического кода формата `EDL-YYYY-XXXXXXXX` через `crypto/rand`.
+  * ✅ Публичная проверка валидности сертификата по коду без авторизации (`GET /api/v1/certificates/verify/{code}`).
+
+
 
