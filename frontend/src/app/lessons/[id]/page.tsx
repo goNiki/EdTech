@@ -5,6 +5,8 @@ import { api } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import PuckLessonViewer, { LessonCompletionPayload } from '@/components/player/PuckLessonViewer';
 import QuizStepperPlayer from '@/components/player/QuizStepperPlayer';
+import QuizPreflightScreen from '@/components/player/QuizPreflightScreen';
+import QuizResultScreen from '@/components/player/QuizResultScreen';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, CheckCircle, Sparkles, ArrowRight, RotateCcw, Loader2, AlertTriangle, Zap, LayoutList, Layers } from 'lucide-react';
 
@@ -15,6 +17,14 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   const [progressData, setProgressData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isAttemptStarted, setIsAttemptStarted] = useState(false);
+  const [showResultScreen, setShowResultScreen] = useState(false);
+  const [lastResult, setLastResult] = useState<{
+    score: number;
+    earnedPoints: number;
+    totalPoints: number;
+  } | null>(null);
+  const [nextLesson, setNextLesson] = useState<{ id: number; title: string } | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [playerMode, setPlayerMode] = useState<'stepper' | 'scroll'>('stepper');
@@ -27,22 +37,31 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   useEffect(() => {
     const fetchLessonAndProgress = async () => {
       try {
-        // 1. Notify backend about starting the lesson
-        await api.post(`/lessons/${id}/start`).catch(() => {});
-
-        // 2. Fetch lesson content & progress in parallel
-        const [lessonRes, progressRes] = await Promise.all([
+        // Fetch lesson content, progress, and attempts summary in parallel
+        const [lessonRes, progressRes, attemptsRes] = await Promise.all([
           api.get(`/lessons/${id}`),
           api.get(`/lessons/${id}/progress`).catch(() => null),
+          api.get(`/lessons/${id}/attempts/summary`).catch(() => null),
         ]);
 
         const lData = lessonRes.data?.data?.lesson || lessonRes.data?.lesson || lessonRes.data || {};
         setLessonData(lData);
 
         const pData = progressRes?.data?.data || progressRes?.data;
-        if (pData && (pData.status === 'completed' || pData.Status === 'completed')) {
+        const attData = attemptsRes?.data?.data || attemptsRes?.data;
+
+        const hasBeenCompleted = Boolean(
+          (pData && (pData.status === 'completed' || pData.Status === 'completed' || pData.completed_at || pData.CompletedAt)) ||
+          (pData?.score !== null && pData?.score !== undefined && pData?.score > 0) ||
+          (attData && (attData.is_passed || attData.total_attempts_made > 0))
+        );
+
+        if (hasBeenCompleted) {
           setIsCompleted(true);
-          setProgressData(pData);
+          setProgressData(pData || attData);
+        } else {
+          // Only start if not already completed
+          await api.post(`/lessons/${id}/start`).catch(() => {});
         }
       } catch (err) {
         console.error('Failed to load lesson', err);
@@ -52,6 +71,16 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
     };
     fetchLessonAndProgress();
   }, [id]);
+
+  const handleStartAttempt = async () => {
+    try {
+      await api.post(`/lessons/${id}/attempts/start`).catch(() => api.post(`/lessons/${id}/start`));
+    } catch {}
+    setShowResultScreen(false);
+    setIsAttemptStarted(true);
+    setIsCompleted(false);
+    showToast('Попытка начата! Удачи в тестировании.');
+  };
 
   const [isCompleting, setIsCompleting] = useState(false);
 
@@ -70,7 +99,51 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
     }
   }, [lessonData]);
 
+  const quizPointsInfo = React.useMemo(() => {
+    try {
+      const rawContent = lessonData?.content || lessonData?.Content;
+      if (!rawContent) return { totalPoints: 100 };
+      const parsed = typeof rawContent === 'string' ? JSON.parse(rawContent) : rawContent;
+      const blocks = parsed?.content || [];
+      let sum = 0;
+      blocks.forEach((b: any) => {
+        if (b.type?.startsWith('Quiz') || b.type === 'FileUploadBlock') {
+          sum += Number(b.props?.points) || 10;
+        }
+      });
+      return { totalPoints: sum || 100 };
+    } catch {
+      return { totalPoints: 100 };
+    }
+  }, [lessonData]);
+
   const courseId = lessonData?.course_id || lessonData?.CourseID;
+
+  // Fetch course structure to determine next lesson
+  useEffect(() => {
+    if (!courseId) return;
+    api.get(`/courses/${courseId}/structure`)
+      .then((res) => {
+        const data = res.data?.data || res.data;
+        const secs = data?.Sections || data?.sections || [];
+        const allLessons: any[] = [];
+        secs.forEach((s: any) => {
+          const ls = s.Lessons || s.lessons || [];
+          ls.forEach((l: any) => allLessons.push(l));
+        });
+        const currentIdx = allLessons.findIndex((l: any) => (l.ID || l.id) === Number(id));
+        if (currentIdx !== -1 && currentIdx + 1 < allLessons.length) {
+          const next = allLessons[currentIdx + 1];
+          setNextLesson({
+            id: next.ID || next.id,
+            title: next.Title || next.title || `Урок ${currentIdx + 2}`,
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not fetch course structure for next lesson', err);
+      });
+  }, [courseId, id]);
 
   const performExit = () => {
     if (courseId) router.push(`/dashboard/courses/${courseId}`);
@@ -78,7 +151,7 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   };
 
   const handleRequestExit = () => {
-    if (hasQuizzes && !isCompleted) {
+    if (hasQuizzes && !isCompleted && !showResultScreen) {
       setIsExitModalOpen(true);
     } else {
       performExit();
@@ -86,8 +159,10 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   };
 
   const handleRetake = () => {
+    setShowResultScreen(false);
+    setIsAttemptStarted(true);
     setIsCompleted(false);
-    showToast('Режим тренировки: вы можете заново решить задания урока.');
+    showToast('Режим тестирования: вы можете заново решить задания урока.');
   };
 
   const handleComplete = async (payload?: LessonCompletionPayload) => {
@@ -109,11 +184,34 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
         completed_at: new Date().toISOString(),
         ...(data || {}),
       }));
+
+      if (hasQuizzes) {
+        const totalPts = quizPointsInfo.totalPoints;
+        const earnedPts = Math.round((verifiedScore / 100) * totalPts);
+        setLastResult({
+          score: verifiedScore,
+          earnedPoints: earnedPts,
+          totalPoints: totalPts,
+        });
+        setShowResultScreen(true);
+      }
+
       showToast('Урок успешно завершен и проверен на сервере!');
       return data;
     } catch (error: any) {
       console.error('Failed to complete lesson on server', error);
       setIsCompleted(true);
+      const verifiedScore = payload?.score ?? 100;
+      if (hasQuizzes) {
+        const totalPts = quizPointsInfo.totalPoints;
+        const earnedPts = Math.round((verifiedScore / 100) * totalPts);
+        setLastResult({
+          score: verifiedScore,
+          earnedPoints: earnedPts,
+          totalPoints: totalPts,
+        });
+        setShowResultScreen(true);
+      }
       const msg = error.response?.data?.message || 'Результат зафиксирован локально.';
       showToast(msg);
       return null;
@@ -229,86 +327,125 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
 
         {/* Lesson Body */}
         <main className="flex-1 max-w-4xl w-full mx-auto py-8 px-6 space-y-6">
-          {/* Result Banner when already completed */}
-          {isCompleted && progressData && (
-            <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-indigo-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-black text-2xl shadow-md flex-shrink-0">
-                    <CheckCircle size={28} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">
-                        Урок пройден
-                      </span>
-                      {progressData.completed_at && (
-                        <span className="text-xs text-slate-400">
-                          {new Date(progressData.completed_at).toLocaleDateString('ru-RU', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                          })}
-                        </span>
-                      )}
+          {hasQuizzes && showResultScreen && lastResult ? (
+            <QuizResultScreen
+              score={lastResult.score}
+              earnedPoints={lastResult.earnedPoints}
+              totalMaxPoints={lastResult.totalPoints}
+              passingScore={lessonData?.passing_score || lessonData?.PassingScore || 70}
+              bestScore={progressData?.score || lastResult.score}
+              remainingAttempts={2}
+              nextLesson={nextLesson}
+              onNextLesson={nextLesson ? () => router.push(`/lessons/${nextLesson.id}`) : undefined}
+              onRetake={handleRetake}
+              onNavigateBack={performExit}
+            />
+          ) : hasQuizzes && isCompleted && !isAttemptStarted ? (
+            <QuizPreflightScreen
+              lessonTitle={lessonData?.title || lessonData?.Title || 'Контрольное тестирование'}
+              bestScore={progressData?.score ?? 100}
+              passingScore={lessonData?.passing_score || lessonData?.PassingScore || 70}
+              attemptsMade={progressData?.attempts_count || 1}
+              maxAttempts={lessonData?.max_attempts || 3}
+              attemptsHistory={progressData?.attempts || [
+                {
+                  attempt_number: 1,
+                  score: progressData?.score ?? 100,
+                  completed_at: progressData?.completed_at,
+                  is_best: true,
+                }
+              ]}
+              onStartAttempt={handleStartAttempt}
+              onReviewMaterials={() => {
+                setIsAttemptStarted(true);
+                setPlayerMode('scroll');
+              }}
+              onNavigateBack={performExit}
+            />
+          ) : (
+            <>
+              {/* Result Banner when already completed (for non-quiz lessons) */}
+              {isCompleted && !hasQuizzes && progressData && (
+                <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-indigo-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-black text-2xl shadow-md flex-shrink-0">
+                        <CheckCircle size={28} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">
+                            Урок пройден
+                          </span>
+                          {progressData.completed_at && (
+                            <span className="text-xs text-slate-400">
+                              {new Date(progressData.completed_at).toLocaleDateString('ru-RU', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                              })}
+                            </span>
+                          )}
+                        </div>
+                        <h2 className="text-xl font-extrabold text-slate-900 dark:text-white mt-1">
+                          Вы успешно завершили этот урок
+                        </h2>
+                      </div>
                     </div>
-                    <h2 className="text-xl font-extrabold text-slate-900 dark:text-white mt-1">
-                      Вы успешно завершили этот урок
-                    </h2>
+
+                    <div className="flex items-baseline gap-1.5 bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border border-emerald-100 dark:border-emerald-900/40 shadow-xs">
+                      <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                        {progressData.score ?? 100}
+                      </span>
+                      <span className="text-xs font-bold text-slate-400">/ 100 баллов</span>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-baseline gap-1.5 bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl border border-emerald-100 dark:border-emerald-900/40 shadow-xs">
-                  <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                    {progressData.score ?? 100}
-                  </span>
-                  <span className="text-xs font-bold text-slate-400">/ 100 баллов</span>
-                </div>
-              </div>
+                  {/* Feedback from teacher if available */}
+                  {progressData.feedback && (
+                    <div className="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-emerald-100 dark:border-emerald-900/40 text-xs space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">
+                        Комментарий преподавателя
+                      </span>
+                      <p className="text-slate-700 dark:text-slate-200 italic leading-relaxed">
+                        «{progressData.feedback}»
+                      </p>
+                    </div>
+                  )}
 
-              {/* Feedback from teacher if available */}
-              {progressData.feedback && (
-                <div className="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-emerald-100 dark:border-emerald-900/40 text-xs space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">
-                    Комментарий преподавателя
-                  </span>
-                  <p className="text-slate-700 dark:text-slate-200 italic leading-relaxed">
-                    «{progressData.feedback}»
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-emerald-100/60 dark:border-emerald-900/40 text-xs">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Вы можете свободно просматривать материалы или повторить урок.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRetake}
+                      className="px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                    >
+                      <RotateCcw size={13} />
+                      <span>Пройти заново</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-emerald-100/60 dark:border-emerald-900/40 text-xs">
-                <span className="text-slate-500 dark:text-slate-400">
-                  Вы можете свободно просматривать материалы или заново решить тесты для тренировки.
-                </span>
-                <button
-                  type="button"
-                  onClick={handleRetake}
-                  className="px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                >
-                  <RotateCcw size={13} />
-                  <span>Пройти заново</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {hasQuizzes && playerMode === 'stepper' ? (
-            <QuizStepperPlayer
-              contentJson={lessonData?.content || lessonData?.Content || '{}'}
-              onComplete={handleComplete}
-              initialProgress={progressData}
-              onNavigateBack={handleRequestExit}
-              lessonTitle={lessonData?.title || lessonData?.Title}
-            />
-          ) : (
-            <PuckLessonViewer
-              contentJson={lessonData?.content || lessonData?.Content || '{}'}
-              onComplete={handleComplete}
-              initialProgress={progressData}
-              onNavigateBack={handleRequestExit}
-            />
+              {hasQuizzes && playerMode === 'stepper' ? (
+                <QuizStepperPlayer
+                  contentJson={lessonData?.content || lessonData?.Content || '{}'}
+                  onComplete={handleComplete}
+                  initialProgress={progressData}
+                  onNavigateBack={handleRequestExit}
+                  lessonTitle={lessonData?.title || lessonData?.Title}
+                />
+              ) : (
+                <PuckLessonViewer
+                  contentJson={lessonData?.content || lessonData?.Content || '{}'}
+                  onComplete={handleComplete}
+                  initialProgress={progressData}
+                  onNavigateBack={handleRequestExit}
+                />
+              )}
+            </>
           )}
         </main>
 
