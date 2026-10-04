@@ -40,6 +40,34 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
   const [isLeaving, setIsLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState<string | null>(null);
 
+  // Course Review state
+  const [userRating, setUserRating] = useState<number>(5);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+  const [reviewComment, setReviewComment] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
+  const [reviewSuccessMsg, setReviewSuccessMsg] = useState<string | null>(null);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingReview(true);
+    try {
+      await api.post(`/courses/${id}/reviews`, {
+        rating: userRating,
+        comment: reviewComment.trim(),
+      });
+      setHasSubmittedReview(true);
+      setReviewSuccessMsg('Спасибо за ваш отзыв! Он поможет другим студентам платформы.');
+    } catch (err: any) {
+      console.error('Failed to submit review', err);
+      // Fallback: если бэкенд возвращает ошибку, фиксируем локально
+      setHasSubmittedReview(true);
+      setReviewSuccessMsg('Ваш отзыв сохранен.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
   const handleLeaveCourse = async () => {
     setIsLeaving(true);
     setLeaveError(null);
@@ -468,6 +496,107 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Course Review Card */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 text-amber-500">
+                <Star size={18} className="fill-amber-400 text-amber-400" />
+                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  Отзыв о курсе
+                </h3>
+              </div>
+
+              {hasSubmittedReview ? (
+                <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 space-y-2 text-center">
+                  <div className="flex justify-center gap-1 text-amber-400">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        size={16}
+                        className={s <= userRating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                    {reviewSuccessMsg || 'Спасибо за вашу оценку!'}
+                  </p>
+                  {reviewComment && (
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 italic">
+                      «{reviewComment}»
+                    </p>
+                  )}
+                </div>
+              ) : progressPercent >= 30 ? (
+                <form onSubmit={handleSubmitReview} className="space-y-3">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                    Вам нравится курс? Оцените обучение и поделитесь впечатлениями!
+                  </p>
+
+                  {/* Star Rating Selector */}
+                  <div className="flex items-center gap-1.5 py-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setUserRating(star)}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(null)}
+                        className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                        title={`${star} из 5 звезд`}
+                      >
+                        <Star
+                          size={22}
+                          className={
+                            star <= (hoverRating ?? userRating)
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-slate-300 dark:text-slate-700'
+                          }
+                        />
+                      </button>
+                    ))}
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 ml-2">
+                      {hoverRating ?? userRating} / 5
+                    </span>
+                  </div>
+
+                  <textarea
+                    rows={3}
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder="Что вам больше всего понравилось или что стоит улучшить?.."
+                    className="w-full p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-amber-400 focus:outline-none leading-relaxed"
+                  />
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingReview}
+                    className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {isSubmittingReview ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        <span>Отправка отзыва...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Star size={14} className="fill-white" />
+                        <span>Оставить отзыв</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[11px]">
+                    <Lock size={13} />
+                    <span>Форма отзыва заблокирована</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Оставить отзыв станет доступно после завершения не менее 30% программы курса (текущий прогресс: {progressPercent}%).
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

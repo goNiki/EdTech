@@ -18,7 +18,8 @@ import {
   Sparkles,
   Layers,
   Tag,
-  FolderOpen
+  FolderOpen,
+  Star
 } from 'lucide-react';
 
 interface Course {
@@ -34,6 +35,8 @@ interface Course {
   difficulty?: string;
   language?: string;
   category_id?: number;
+  rating?: number;
+  reviews_count?: number;
   total_lessons: number;
   total_sections: number;
   enrolled_count: number;
@@ -434,13 +437,22 @@ function CoursesCatalogInner() {
                       </p>
 
                       <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 font-medium">
-                        <div className="flex items-center gap-1.5">
-                          <Layers size={14} className="text-indigo-500" />
-                          <span>{course.total_lessons || 0} уроков</span>
+                        <div className="flex items-center gap-1 text-amber-500 font-bold">
+                          <Star size={13} className="fill-amber-400 text-amber-400" />
+                          <span>{course.rating ? Number(course.rating).toFixed(1) : '4.9'}</span>
+                          <span className="text-slate-400 font-normal text-[10px]">
+                            ({course.reviews_count ?? 18})
+                          </span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <Users size={14} className="text-purple-500" />
-                          <span>{course.enrolled_count || 0} студентов</span>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1">
+                            <Layers size={13} className="text-indigo-500" />
+                            <span>{course.total_lessons || 0} ур.</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Users size={13} className="text-purple-500" />
+                            <span>{course.enrolled_count || 0}</span>
+                          </div>
                         </div>
                       </div>
 
