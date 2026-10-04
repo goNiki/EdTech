@@ -224,6 +224,16 @@ Student POST /api/v1/lessons/{id}/attempts/start
   ➔ [service/progress/attempts]            : Проверяет лимит max_attempts (403 при исчерпании) и создает запись attempt
 ```
 
+### 6. Завершение тестирования с валидацией таймера и режимом обратной связи (`POST /lessons/{id}/complete`)
+```text
+Student POST /api/v1/lessons/{id}/complete
+  ➔ [handlers/progress/completeLesson]     : Прием ответов и параметров завершения
+  ➔ [service/progress/completeLesson]      : Валидация дедлайна time_limit_minutes (Grace Period 15s) -> timed_out
+                                             Расчет баллов, учет passing_score_percent и Best Score Preservation
+                                             В режиме exam_blind: скрытие correct_answer и feedback (results: nil)
+  ➔ [repository/progress]                  : Сохранение прогресса в транзакции WithTX
+```
+
 
 ---
 

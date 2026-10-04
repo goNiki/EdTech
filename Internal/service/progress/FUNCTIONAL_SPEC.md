@@ -81,22 +81,29 @@
 | `input.IsAbandoned` | `bool` | Нет | Флаг досрочного выхода из тестирования (неотвеченные = 0 баллов) |
 
 #### 🔄 Пошаговый алгоритм работы
-1. **Шаг 1 (Определение характера урока):**
+1. **Шаг 1 (Определение характера урока и настроек тестирования):**
+   - Запрашивает настройки урока `lesson.GetQuizSettings()` (`TimeLimitMinutes`, `QuestionTimeLimitSeconds`, `MaxAttempts`, `PassingScorePercent`, `FeedbackMode`, `ShuffleQuestions`).
    - Проверяет наличие Puck-блоков тестирования через `quiz.ValidateQuizSubmission`.
    - Проверяет тип урока (`lesson.Type == 'test' || 'quiz'`) и наличие привязанных тестов в `quizzes`.
-2. **Шаг 2 (Серверный расчет оценки и Anti-Cheat Guard):**
+2. **Шаг 2 (Серверная валидация времени и Grace Period):**
+   - Если `quiz_settings.TimeLimitMinutes > 0`, сервер рассчитывает `timeLimit = timeLimitMinutes + 15s (Grace Period)`.
+   - При наличии `attempt_id`: если `time.Since(attempt.StartedAt) > timeLimit`, фиксируется статус `timed_out`, попытка отклоняется с 0 баллов, `is_passed = false`.
+   - При отсутствии `attempt_id` и `TimeSpent > timeLimit`: статус фиксируется как `timed_out`, `is_passed = false`.
+3. **Шаг 3 (Серверный расчет оценки и Anti-Cheat Guard):**
    - **Лекция без тестов:** устанавливается балл 100 (или переданный `input.Score`), `is_passed = true`.
    - **Урок с тестами:** переданный клиентом `input.Score` **игнорируется**.
-     - Если передан `attempt_id`: проверяется принадлежность студенту и уроку, рассчитывается результат попытки. При `is_abandoned = true` фиксируется фактический балл за решенные задания.
-     - Если присутствуют Puck-блоки: балл вычисляется строго из `validationResult.Score` (при отсутствии ответов балл = 0).
+     - Если передан `attempt_id`: проверяется принадлежность студенту и уроку, рассчитывается результат попытки. При `is_abandoned = true` фиксируется фактический балл за решенные задания. Сдача засчитывается при `score >= passing_score_percent` (дефолт 70%).
+     - Если присутствуют Puck-блоки: балл вычисляется строго из `validationResult.Score` (при отсутствии ответов балл = 0). Сдача засчитывается при `score >= passing_score_percent`.
      - Если тест без блоков и без `attempt_id`: балл = 0, `is_passed = false`.
-3. **Шаг 3 (Best Score Preservation):**
-   - Если у студента в `lesson_progress` уже был зафиксирован более высокий результат по этому уроку, в прогрессе сохраняется максимум: `progressScore = max(current, previous)`.
-4. **Шаг 4 (Транзакционная фиксация):** В `WithTX`:
-   - Обновляет или создает запись `lesson_progress` (статус `completed`, балл `progressScore`).
-   - Сохраняет эссе/домашние задания через `quizRepo.SaveEssaySubmission`.
+4. **Шаг 4 (Best Score Preservation):**
+   - Если у студента в `lesson_progress` уже был зафиксирован более высокий результат по этому уроку, в прогрессе сохраняется максимум: `progressScore = max(current, previous)`. Ранее сданный статус `completed` сохраняется.
+5. **Шаг 5 (Транзакционная фиксация):** В `WithTX`:
+   - Обновляет или создает запись `lesson_progress` (статус `targetStatus`, балл `progressScore`).
+   - Сохраняет эссе/домашние задания через `quizRepo.SaveEssaySubmission` (если не было таймаута).
    - Пересчитывает агрегатный прогресс курса (`completedCount`, `percent`, `avgScore` с учетом нулевых оценок) и обновляет `course_progress`.
-5. **Шаг 5 (Возврат детализации):** Возвращает `LessonCompletionResult` с полями `lesson_id`, `status`, `score`, `earned_points`, `total_max_points`, `is_passed` и картой верификации блоков.
+6. **Шаг 6 (Возврат детализации и режим `exam_blind`):**
+   - В режиме `feedback_mode == "exam_blind"` из ответа полностью удаляются правильные ответы (`correct_answer`), флаги верности и пояснения (`results = nil`).
+   - Возвращает `LessonCompletionResult` с полями `lesson_id`, `status` (`completed`, `in_progress` или `timed_out`), `score`, `earned_points`, `total_max_points`, `is_passed` и картой верификации блоков.
 
 #### ⚠️ Побочные эффекты (Side Effects)
 * **База данных:**

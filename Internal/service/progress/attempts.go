@@ -18,6 +18,8 @@ func (s *service) StartLessonAttempt(ctx context.Context, userID, lessonID int64
 		return nil, fmt.Errorf("%s: get lesson: %w", op, err)
 	}
 
+	quizSettings := lesson.GetQuizSettings()
+
 	if s.quizRepo == nil {
 		return nil, fmt.Errorf("%s: quiz repo unavailable", op)
 	}
@@ -28,7 +30,7 @@ func (s *service) StartLessonAttempt(ctx context.Context, userID, lessonID int64
 			newQuiz := &domain.Quiz{
 				LessonID:    lessonID,
 				Title:       lesson.Title,
-				PassingScor: 70,
+				PassingScor: quizSettings.PassingScorePercent,
 			}
 			created, cErr := s.quizRepo.CreateQuiz(ctx, newQuiz)
 			if cErr != nil {
@@ -45,7 +47,12 @@ func (s *service) StartLessonAttempt(ctx context.Context, userID, lessonID int64
 		return nil, fmt.Errorf("%s: count user attempts: %w", op, err)
 	}
 
-	if quiz.MaxAttempts != nil && *quiz.MaxAttempts > 0 && totalAttempts >= *quiz.MaxAttempts {
+	maxAttempts := quizSettings.MaxAttempts
+	if maxAttempts <= 0 && quiz.MaxAttempts != nil && *quiz.MaxAttempts > 0 {
+		maxAttempts = *quiz.MaxAttempts
+	}
+
+	if maxAttempts > 0 && totalAttempts >= maxAttempts {
 		return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
 	}
 
@@ -72,21 +79,22 @@ func (s *service) StartLessonAttempt(ctx context.Context, userID, lessonID int64
 func (s *service) GetLessonAttemptsSummary(ctx context.Context, userID, lessonID int64) (*domain.LessonAttemptsSummary, error) {
 	const op = "service.progress.GetLessonAttemptsSummary"
 
-	_, err := s.lessonRepo.GetLessonByID(ctx, lessonID)
+	lesson, err := s.lessonRepo.GetLessonByID(ctx, lessonID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: get lesson: %w", op, err)
 	}
 
-	passingThreshold := 70
-	maxAttemptsAllowed := 0
+	quizSettings := lesson.GetQuizSettings()
+	passingThreshold := quizSettings.PassingScorePercent
+	maxAttemptsAllowed := quizSettings.MaxAttempts
 
 	if s.quizRepo != nil {
 		if quiz, qErr := s.quizRepo.GetQuizByLessonID(ctx, lessonID); qErr == nil && quiz != nil {
-			if quiz.PassingScor > 0 {
-				passingThreshold = quiz.PassingScor
-			}
-			if quiz.MaxAttempts != nil {
+			if maxAttemptsAllowed <= 0 && quiz.MaxAttempts != nil {
 				maxAttemptsAllowed = *quiz.MaxAttempts
+			}
+			if lesson.QuizSettings == nil && quiz.PassingScor > 0 {
+				passingThreshold = quiz.PassingScor
 			}
 		}
 	}

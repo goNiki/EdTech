@@ -354,3 +354,88 @@ func TestCompleteLesson_AbandonedAttemptDoesNotClearCompletedStatus(t *testing.T
 		t.Errorf("expected status completed preserved, got %s", pRepo.statusUpdated)
 	}
 }
+
+// 7. Проверка лимита попыток max_attempts из QuizSettings урока
+func TestStartAttempt_MaxAttemptsFromQuizSettings(t *testing.T) {
+	ctx := context.Background()
+	lRepo := &fullMockLessonRepo{
+		lesson: &domain.Lesson{
+			ID:       20,
+			Title:    "Контрольная работа",
+			QuizSettings: &domain.QuizSettings{
+				MaxAttempts:          2,
+				PassingScorePercent:  80,
+				TimeLimitMinutes:      20,
+			},
+		},
+	}
+	qRepo := &attemptsMockQuizRepo{
+		fullMockQuizRepo: fullMockQuizRepo{
+			quiz: &domain.Quiz{
+				ID:       15,
+				LessonID: 20,
+			},
+		},
+		attemptsCount: 2, // Лимит 2 исчерпан
+	}
+	pRepo := &fullMockProgressRepo{}
+
+	svc := progressService.NewProgressService(pRepo, lRepo, qRepo, &mockTxManager{})
+
+	// Попытка запуска третьей попытки должна быть отклонена
+	_, err := svc.StartLessonAttempt(ctx, 42, 20)
+	if err == nil {
+		t.Fatalf("expected ErrForbidden for exceeding max_attempts, got nil")
+	}
+	if !errors.Is(err, errorsAPP.ErrForbidden) {
+		t.Errorf("expected ErrForbidden, got %v", err)
+	}
+
+	// А если сделана 1 попытка из 2 - разрешено
+	qRepo.attemptsCount = 1
+	startRes, err := svc.StartLessonAttempt(ctx, 42, 20)
+	if err != nil {
+		t.Fatalf("unexpected error when under limit: %v", err)
+	}
+	if startRes.AttemptID != 777 {
+		t.Errorf("expected attemptID 777, got %d", startRes.AttemptID)
+	}
+}
+
+// 8. Проверка summary правил тестирования из QuizSettings урока
+func TestGetLessonAttemptsSummary_RulesFromQuizSettings(t *testing.T) {
+	ctx := context.Background()
+	lRepo := &fullMockLessonRepo{
+		lesson: &domain.Lesson{
+			ID: 30,
+			QuizSettings: &domain.QuizSettings{
+				MaxAttempts:          1,  // Экзаменационный срез
+				PassingScorePercent:  85, // Повышенный порог
+				FeedbackMode:         "exam_blind",
+				TimeLimitMinutes:     30,
+			},
+		},
+	}
+	qRepo := &attemptsMockQuizRepo{
+		attemptsCount: 0,
+		attemptsList:  []domain.QuizAttempt{},
+	}
+	pRepo := &fullMockProgressRepo{}
+
+	svc := progressService.NewProgressService(pRepo, lRepo, qRepo, &mockTxManager{})
+
+	summary, err := svc.GetLessonAttemptsSummary(ctx, 42, 30)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if summary.MaxAttemptsAllowed != 1 {
+		t.Errorf("expected maxAttemptsAllowed 1, got %d", summary.MaxAttemptsAllowed)
+	}
+	if summary.PassingThreshold != 85 {
+		t.Errorf("expected passingThreshold 85, got %d", summary.PassingThreshold)
+	}
+	if !summary.CanStartNewAttempt {
+		t.Errorf("expected canStartNewAttempt true")
+	}
+}

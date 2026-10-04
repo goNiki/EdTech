@@ -62,6 +62,9 @@ func (s *lessonService) UpdateLesson(ctx context.Context, userID int64, lesson *
 	if lesson.Content == "" {
 		lesson.Content = existingLesson.Content
 	}
+	if lesson.QuizSettings == nil {
+		lesson.QuizSettings = existingLesson.QuizSettings
+	}
 
 	if err := lesson.Validate(); err != nil {
 		return fmt.Errorf("%s: validation failed: %w", op, err)

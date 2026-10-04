@@ -3,6 +3,7 @@ package progress_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"edtech/internal/domain"
 	"edtech/internal/infrastructure/txmanager"
@@ -488,5 +489,162 @@ func TestCompleteLesson_BestScorePreservation(t *testing.T) {
 	// Но в прогрессе урока сохранен лучший балл: 90!
 	if pRepo.savedScore != 90 {
 		t.Errorf("expected preserved best score 90, got %d", pRepo.savedScore)
+	}
+}
+
+// Test 7: Timeout Verification - превышение time_limit_minutes + 15s приводит к timed_out и отклонению попытки
+func TestCompleteLesson_TimeoutVerification(t *testing.T) {
+	ctx := context.Background()
+	startedAt := time.Now().Add(-16 * time.Minute) // Начата 16 минут назад (лимит 15 мин + 15 сек grace period)
+
+	lRepo := &fullMockLessonRepo{
+		lesson: &domain.Lesson{
+			ID:       7,
+			CourseID: 10,
+			Type:     "test",
+			QuizSettings: &domain.QuizSettings{
+				TimeLimitMinutes:    15,
+				PassingScorePercent: 70,
+			},
+			Content: `{"content": [{"type": "QuizSingleBlock", "props": {"id": "q1", "points": 10, "options": [{"text": "A", "isCorrect": true}]}}]}`,
+		},
+		lessons: []domain.Lesson{{ID: 7, CourseID: 10}},
+	}
+	qRepo := &fullMockQuizRepo{
+		quiz: &domain.Quiz{
+			ID:          70,
+			LessonID:    7,
+			PassingScor: 70,
+		},
+		attempt: &domain.QuizAttempt{
+			ID:        555,
+			QuizID:    70,
+			UserID:    42,
+			StartedAt: startedAt,
+		},
+		totalPoints: 10,
+		earnedPts:   10,
+	}
+	pRepo := &fullMockProgressRepo{}
+
+	svc := progressService.NewProgressService(pRepo, lRepo, qRepo, &mockTxManager{})
+
+	attID := int64(555)
+	res, err := svc.CompleteLesson(ctx, 42, 7, domain.CompleteLessonInput{
+		AttemptID: &attID,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if res.Status != "timed_out" {
+		t.Errorf("expected status 'timed_out', got %q", res.Status)
+	}
+	if res.IsPassed {
+		t.Errorf("expected is_passed = false on timeout")
+	}
+	if res.Score != 0 {
+		t.Errorf("expected score = 0 on timeout, got %d", res.Score)
+	}
+	if qRepo.attempt.Passed {
+		t.Errorf("expected attempt.Passed = false")
+	}
+	if qRepo.attempt.CompletedAt == nil {
+		t.Errorf("expected attempt.CompletedAt to be set")
+	}
+}
+
+// Test 8: Exam Blind Mode - в режиме exam_blind правильные ответы скрываются
+func TestCompleteLesson_ExamBlindMode(t *testing.T) {
+	ctx := context.Background()
+
+	lRepo := &fullMockLessonRepo{
+		lesson: &domain.Lesson{
+			ID:       8,
+			CourseID: 10,
+			Type:     "test",
+			QuizSettings: &domain.QuizSettings{
+				FeedbackMode:        "exam_blind",
+				PassingScorePercent: 70,
+			},
+			Content: `{"content": [{"type": "QuizSingleBlock", "props": {"id": "q1", "points": 10, "options": [{"text": "A", "isCorrect": true}]}}]}`,
+		},
+		lessons: []domain.Lesson{{ID: 8, CourseID: 10}},
+	}
+	pRepo := &fullMockProgressRepo{}
+	qRepo := &fullMockQuizRepo{}
+
+	svc := progressService.NewProgressService(pRepo, lRepo, qRepo, &mockTxManager{})
+
+	res, err := svc.CompleteLesson(ctx, 42, 8, domain.CompleteLessonInput{
+		Answers: []domain.LessonAnswerSubmission{
+			{
+				BlockID: "q1",
+				Answer:  map[string]any{"selected_option": 0},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if res.Results != nil {
+		t.Errorf("expected Results to be nil in exam_blind mode, got %v", res.Results)
+	}
+	if res.Score != 100 {
+		t.Errorf("expected score 100, got %d", res.Score)
+	}
+	if !res.IsPassed {
+		t.Errorf("expected is_passed = true")
+	}
+}
+
+// Test 9: Custom Passing Score Percent - порог из quiz_settings учитывается
+func TestCompleteLesson_CustomPassingScorePercent(t *testing.T) {
+	ctx := context.Background()
+
+	lRepo := &fullMockLessonRepo{
+		lesson: &domain.Lesson{
+			ID:       9,
+			CourseID: 10,
+			Type:     "test",
+			QuizSettings: &domain.QuizSettings{
+				PassingScorePercent: 85, // Порог повышен до 85%
+			},
+			Content: `{"content": [
+				{"type": "QuizSingleBlock", "props": {"id": "q1", "points": 10, "options": [{"text": "A", "isCorrect": true}]}},
+				{"type": "QuizSingleBlock", "props": {"id": "q2", "points": 10, "options": [{"text": "B", "isCorrect": true}]}},
+				{"type": "QuizSingleBlock", "props": {"id": "q3", "points": 10, "options": [{"text": "C", "isCorrect": true}]}},
+				{"type": "QuizSingleBlock", "props": {"id": "q4", "points": 10, "options": [{"text": "D", "isCorrect": true}]}},
+				{"type": "QuizSingleBlock", "props": {"id": "q5", "points": 10, "options": [{"text": "E", "isCorrect": true}]}}
+			]}`,
+		},
+		lessons: []domain.Lesson{{ID: 9, CourseID: 10}},
+	}
+	pRepo := &fullMockProgressRepo{}
+	qRepo := &fullMockQuizRepo{}
+
+	svc := progressService.NewProgressService(pRepo, lRepo, qRepo, &mockTxManager{})
+
+	// Студент ответил правильно на 4 из 5 (80%).
+	// При дефолтном пороге 70% было бы зачтено, но при 85% должно быть не зачтено!
+	res, err := svc.CompleteLesson(ctx, 42, 9, domain.CompleteLessonInput{
+		Answers: []domain.LessonAnswerSubmission{
+			{BlockID: "q1", Answer: map[string]any{"selected_option": 0}},
+			{BlockID: "q2", Answer: map[string]any{"selected_option": 0}},
+			{BlockID: "q3", Answer: map[string]any{"selected_option": 0}},
+			{BlockID: "q4", Answer: map[string]any{"selected_option": 0}},
+			{BlockID: "q5", Answer: map[string]any{"selected_option": 999}}, // неверно
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if res.Score != 80 {
+		t.Errorf("expected score 80, got %d", res.Score)
+	}
+	if res.IsPassed {
+		t.Errorf("expected is_passed = false for 80%% score with 85%% passing threshold")
 	}
 }

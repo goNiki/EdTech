@@ -154,6 +154,9 @@ func (h *LessonHandler) UpdateLesson(w http.ResponseWriter, r *http.Request) {
 	if req.IsFree != nil {
 		lessonDomain.IsFree = *req.IsFree
 	}
+	if req.QuizSettings != nil {
+		lessonDomain.QuizSettings = req.QuizSettings
+	}
 
 	if err := h.lessonService.UpdateLesson(r.Context(), userID, lessonDomain); err != nil {
 		response.HandleError(w, r, h.log, err, op)

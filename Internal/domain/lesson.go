@@ -9,23 +9,54 @@ import (
 	errorsAPP "edtech/pkg/errors"
 )
 
+type QuizSettings struct {
+	TimeLimitMinutes         int    `json:"time_limit_minutes"`
+	QuestionTimeLimitSeconds int    `json:"question_time_limit_seconds"`
+	MaxAttempts              int    `json:"max_attempts"`
+	PassingScorePercent      int    `json:"passing_score_percent"`
+	FeedbackMode             string `json:"feedback_mode"`
+	ShuffleQuestions         bool   `json:"shuffle_questions"`
+}
+
 type Lesson struct {
-	ID          int64
-	CourseID    int64
-	SectionID   *int64
-	Title       string
-	Description string
-	CoverURL    string
-	Content     string
-	Type        string
-	Position    int64
-	Duration    *int
-	IsFree      bool
-	Status      string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	PublishedAt *time.Time
-	DeletedAt   *time.Time
+	ID           int64
+	CourseID     int64
+	SectionID    *int64
+	Title        string
+	Description  string
+	CoverURL     string
+	Content      string
+	Type         string
+	Position     int64
+	Duration     *int
+	IsFree       bool
+	Status       string
+	QuizSettings *QuizSettings
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	PublishedAt  *time.Time
+	DeletedAt    *time.Time
+}
+
+func (l *Lesson) GetQuizSettings() QuizSettings {
+	if l != nil && l.QuizSettings != nil {
+		s := *l.QuizSettings
+		if s.PassingScorePercent <= 0 {
+			s.PassingScorePercent = 70
+		}
+		if s.FeedbackMode == "" {
+			s.FeedbackMode = "immediate"
+		}
+		return s
+	}
+	return QuizSettings{
+		TimeLimitMinutes:         0,
+		QuestionTimeLimitSeconds: 0,
+		MaxAttempts:              0,
+		PassingScorePercent:      70,
+		FeedbackMode:             "immediate",
+		ShuffleQuestions:         false,
+	}
 }
 
 func ValidateLessonContent(content string) error {

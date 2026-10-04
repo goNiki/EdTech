@@ -18,14 +18,17 @@ func (r *repository) CreateLesson(ctx context.Context, lesson *domain.Lesson) er
 	if entity.Status == "" {
 		entity.Status = domain.StatusDraft
 	}
+	if len(entity.QuizSettings) == 0 {
+		entity.QuizSettings = []byte(`{"time_limit_minutes":0,"question_time_limit_seconds":0,"max_attempts":0,"passing_score_percent":70,"feedback_mode":"immediate","shuffle_questions":false}`)
+	}
 
-	query := `INSERT INTO lessons (course_id, section_id, title, description, cover_url, content, type, position, duration, is_free, status) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id, created_at, updated_at`
+	query := `INSERT INTO lessons (course_id, section_id, title, description, cover_url, content, type, position, duration, is_free, status, quiz_settings) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, created_at, updated_at`
 
 	err := q.QueryRow(ctx, query,
 		entity.CourseID, entity.SectionID, entity.Title, entity.Description,
 		entity.CoverURL, entity.Content, entity.Type, entity.Position,
-		entity.Duration, entity.IsFree, entity.Status,
+		entity.Duration, entity.IsFree, entity.Status, entity.QuizSettings,
 	).Scan(&entity.ID, &entity.CreatedAt, &entity.UpdatedAt)
 
 	if err != nil {

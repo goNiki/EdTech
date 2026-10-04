@@ -28,18 +28,104 @@ func (s *service) CompleteLesson(ctx context.Context, userID int64, lessonID int
 		return nil, fmt.Errorf("%s: get lesson: %w", op, err)
 	}
 
+	quizSettings := lesson.GetQuizSettings()
+	isTimedOut := s.checkQuizTimeout(ctx, quizSettings, input.AttemptID, input.TimeSpent)
+
 	validationResult, vErr := quiz.ValidateQuizSubmission(lesson.Content, input.Answers)
 	if vErr != nil {
 		return nil, fmt.Errorf("%s: validate quiz answers: %w", op, vErr)
 	}
 
-	scoreRes, rErr := s.resolveLessonScore(ctx, userID, lessonID, lesson, input, validationResult)
+	scoreRes, rErr := s.computeCompletionScore(ctx, userID, lessonID, lesson, input, validationResult, quizSettings, isTimedOut)
 	if rErr != nil {
 		return nil, fmt.Errorf("%s: %w", op, rErr)
 	}
 
-	// Best Score Preservation: check completed quiz attempts and previous progress score
-	progressScore := scoreRes.finalScore
+	progressScore, existingProgress := s.resolveBestProgressScore(ctx, userID, lessonID, scoreRes.finalScore)
+	if existingProgress != nil && existingProgress.Status == domain.ProgressStatusCompleted {
+		scoreRes.isPassed = true
+	}
+
+	targetStatus := domain.ProgressStatusCompleted
+	if !scoreRes.isPassed {
+		if existingProgress != nil && existingProgress.Status == domain.ProgressStatusCompleted {
+			targetStatus = domain.ProgressStatusCompleted
+		} else {
+			targetStatus = domain.ProgressStatusInProgress
+		}
+	}
+
+	err = s.persistProgressAndSubmissions(ctx, userID, lessonID, lesson.CourseID, progressScore, targetStatus, input.Essays, isTimedOut)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	validationResult.LessonID = lessonID
+	if isTimedOut {
+		validationResult.Status = "timed_out"
+	} else {
+		validationResult.Status = string(targetStatus)
+	}
+	validationResult.Score = scoreRes.finalScore
+	validationResult.EarnedPoints = scoreRes.earnedPoints
+	validationResult.TotalMaxPoints = scoreRes.totalPoints
+	validationResult.IsPassed = scoreRes.isPassed
+
+	// 2. В режиме feedback_mode == "exam_blind":
+	// В теле ответа CompleteLessonResponse НЕ возвращать поля correct_answer, options.is_correct и explain.
+	// Возвращать только суммарный набранный балл (score, total_points, is_passed).
+	if quizSettings.FeedbackMode == "exam_blind" {
+		validationResult.Results = nil
+	}
+
+	return validationResult, nil
+}
+
+func (s *service) checkQuizTimeout(ctx context.Context, quizSettings domain.QuizSettings, attemptID *int64, timeSpent int) bool {
+	if quizSettings.TimeLimitMinutes <= 0 {
+		return false
+	}
+
+	gracePeriod := 15 * time.Second
+	timeLimit := time.Duration(quizSettings.TimeLimitMinutes)*time.Minute + gracePeriod
+
+	if attemptID != nil && s.quizRepo != nil {
+		attempt, aErr := s.quizRepo.GetAttemptByID(ctx, *attemptID)
+		if aErr == nil && attempt != nil {
+			if time.Since(attempt.StartedAt) > timeLimit {
+				now := time.Now()
+				attempt.CompletedAt = &now
+				attempt.Passed = false
+				attempt.Score = 0
+				_ = s.quizRepo.UpdateAttempt(ctx, attempt)
+				return true
+			}
+		}
+	} else if timeSpent > 0 && time.Duration(timeSpent)*time.Second > timeLimit {
+		return true
+	}
+
+	return false
+}
+
+func (s *service) computeCompletionScore(ctx context.Context, userID, lessonID int64, lesson *domain.Lesson, input domain.CompleteLessonInput, validationResult *domain.LessonCompletionResult, quizSettings domain.QuizSettings, isTimedOut bool) (*scoreResolution, error) {
+	if isTimedOut {
+		tot := validationResult.TotalMaxPoints
+		if tot == 0 {
+			tot = 100
+		}
+		return &scoreResolution{
+			finalScore:   0,
+			earnedPoints: 0,
+			totalPoints:  tot,
+			isPassed:     false,
+		}, nil
+	}
+	return s.resolveLessonScore(ctx, userID, lessonID, lesson, input, validationResult, quizSettings)
+}
+
+func (s *service) resolveBestProgressScore(ctx context.Context, userID, lessonID int64, currentScore int) (int, *domain.LessonProgress) {
+	progressScore := currentScore
 	if s.quizRepo != nil {
 		if bestAttemptScore, bErr := s.quizRepo.GetBestScoreByLessonID(ctx, userID, lessonID); bErr == nil && bestAttemptScore > progressScore {
 			progressScore = bestAttemptScore
@@ -53,51 +139,31 @@ func (s *service) CompleteLesson(ctx context.Context, userID int64, lessonID int
 			if ep.Score != nil && *ep.Score > progressScore {
 				progressScore = *ep.Score
 			}
-			if ep.Status == domain.ProgressStatusCompleted {
-				scoreRes.isPassed = true
-			}
 		}
 	}
 
-	targetStatus := domain.ProgressStatusCompleted
-	if !scoreRes.isPassed {
-		if existingProgress != nil && existingProgress.Status == domain.ProgressStatusCompleted {
-			targetStatus = domain.ProgressStatusCompleted
-		} else {
-			targetStatus = domain.ProgressStatusInProgress
-		}
-	}
+	return progressScore, existingProgress
+}
 
-	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
-		if err := s.saveLessonProgress(ctx, userID, lessonID, lesson.CourseID, progressScore, targetStatus); err != nil {
+func (s *service) persistProgressAndSubmissions(ctx context.Context, userID, lessonID, courseID int64, progressScore int, targetStatus domain.ProgressStatus, essays []domain.EssaySubmission, isTimedOut bool) error {
+	return s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
+		if err := s.saveLessonProgress(ctx, userID, lessonID, courseID, progressScore, targetStatus); err != nil {
 			return err
 		}
 
-		if s.quizRepo != nil {
-			for _, es := range input.Essays {
-				if err := s.quizRepo.SaveEssaySubmission(ctx, userID, lesson.CourseID, lessonID, es); err != nil {
+		if s.quizRepo != nil && !isTimedOut {
+			for _, es := range essays {
+				if err := s.quizRepo.SaveEssaySubmission(ctx, userID, courseID, lessonID, es); err != nil {
 					return fmt.Errorf("save essay submission: %w", err)
 				}
 			}
 		}
 
-		return s.recalculateCourseProgress(ctx, userID, lesson.CourseID)
+		return s.recalculateCourseProgress(ctx, userID, courseID)
 	})
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	validationResult.LessonID = lessonID
-	validationResult.Status = string(targetStatus)
-	validationResult.Score = scoreRes.finalScore
-	validationResult.EarnedPoints = scoreRes.earnedPoints
-	validationResult.TotalMaxPoints = scoreRes.totalPoints
-	validationResult.IsPassed = scoreRes.isPassed
-
-	return validationResult, nil
 }
 
-func (s *service) resolveLessonScore(ctx context.Context, userID, lessonID int64, lesson *domain.Lesson, input domain.CompleteLessonInput, validationResult *domain.LessonCompletionResult) (*scoreResolution, error) {
+func (s *service) resolveLessonScore(ctx context.Context, userID, lessonID int64, lesson *domain.Lesson, input domain.CompleteLessonInput, validationResult *domain.LessonCompletionResult, quizSettings domain.QuizSettings) (*scoreResolution, error) {
 	hasPuckQuizzes := validationResult.TotalMaxPoints > 0
 	isTestLessonType := lesson.Type == "test" || lesson.Type == "quiz"
 
@@ -122,15 +188,20 @@ func (s *service) resolveLessonScore(ctx context.Context, userID, lessonID int64
 		}, nil
 	}
 
-	switch {
-	case input.AttemptID != nil:
-		return s.resolveAttemptScore(ctx, userID, lessonID, *input.AttemptID, input.IsAbandoned)
-
-	case hasPuckQuizzes:
-		passingThreshold := 70
+	passingThreshold := quizSettings.PassingScorePercent
+	if passingThreshold <= 0 {
 		if dbQuiz != nil && dbQuiz.PassingScor > 0 {
 			passingThreshold = dbQuiz.PassingScor
+		} else {
+			passingThreshold = 70
 		}
+	}
+
+	switch {
+	case input.AttemptID != nil:
+		return s.resolveAttemptScore(ctx, userID, lessonID, *input.AttemptID, input.IsAbandoned, passingThreshold)
+
+	case hasPuckQuizzes:
 		return &scoreResolution{
 			finalScore:   validationResult.Score,
 			earnedPoints: validationResult.EarnedPoints,
@@ -148,7 +219,7 @@ func (s *service) resolveLessonScore(ctx context.Context, userID, lessonID int64
 	}
 }
 
-func (s *service) resolveAttemptScore(ctx context.Context, userID, lessonID int64, attemptID int64, isAbandoned bool) (*scoreResolution, error) {
+func (s *service) resolveAttemptScore(ctx context.Context, userID, lessonID int64, attemptID int64, isAbandoned bool, passingThreshold int) (*scoreResolution, error) {
 	if s.quizRepo == nil {
 		return nil, errorsAPP.ErrQuizNotFound
 	}
@@ -184,7 +255,7 @@ func (s *service) resolveAttemptScore(ctx context.Context, userID, lessonID int6
 		if attempt.Score > 100 {
 			attempt.Score = 100
 		}
-		attempt.Passed = attempt.Score >= quizObj.PassingScor
+		attempt.Passed = attempt.Score >= passingThreshold
 		if uErr := s.quizRepo.UpdateAttempt(ctx, attempt); uErr != nil {
 			return nil, fmt.Errorf("update attempt: %w", uErr)
 		}

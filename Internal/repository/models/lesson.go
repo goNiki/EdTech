@@ -13,10 +13,11 @@ type Lesson struct {
 	Type        string
 	Position    int64
 	Duration    *int
-	IsFree      bool
-	Status      string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	PublishedAt *time.Time
-	DeletedAt   *time.Time
+	IsFree       bool
+	Status       string
+	QuizSettings []byte
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	PublishedAt  *time.Time
+	DeletedAt    *time.Time
 }
