@@ -1,6 +1,8 @@
 package upload
 
 import (
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -38,9 +40,18 @@ func (h *UploadHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 32 MB max memory in form parsing
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		response.HandleError(w, r, h.log, errorsAPP.ErrFileTooLarge, op)
+	// 30 MB max upload request body size to protect against disk exhaustion DoS
+	const maxUploadBodySize = 30 * 1024 * 1024
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBodySize)
+
+	// 10 MB in-memory parsing buffer; excess is rejected by MaxBytesReader
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			response.HandleError(w, r, h.log, errorsAPP.ErrFileTooLarge, op)
+			return
+		}
+		response.HandleError(w, r, h.log, fmt.Errorf("%w: %v", errorsAPP.ErrValidationFailed, err), op)
 		return
 	}
 
