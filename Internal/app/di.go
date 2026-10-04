@@ -618,6 +618,7 @@ func (d *diContainer) Router() http.Handler {
 
 				// Analytics & Grading
 				r.Get("/{courseid}/analytics", d.AnalyticsHdl().GetCourseAnalytics)
+				r.Get("/{courseid}/analytics/export", d.AnalyticsHdl().ExportGradebook)
 				r.Get("/{courseid}/students/{userid}/drilldown", d.AnalyticsHdl().GetStudentDrilldown)
 				r.Get("/{courseid}/grading/pending", d.AnalyticsHdl().ListPendingHomeworks)
 

@@ -14,13 +14,17 @@ import (
 	"edtech/internal/interfaces/middleware/auth"
 	"edtech/internal/service"
 	errorsAPP "edtech/pkg/errors"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type mockAnalyticsService struct {
 	service.AnalyticsServices
-	result    *domain.TeacherPendingHomeworksResult
-	err       error
-	calledCID int64
+	result         *domain.TeacherPendingHomeworksResult
+	exportData     []byte
+	exportFilename string
+	err            error
+	calledCID      int64
 }
 
 func (m *mockAnalyticsService) ListTeacherPendingHomeworks(ctx context.Context, teacherID, courseID, page, pageSize int64) (*domain.TeacherPendingHomeworksResult, error) {
@@ -29,6 +33,14 @@ func (m *mockAnalyticsService) ListTeacherPendingHomeworks(ctx context.Context, 
 		return nil, m.err
 	}
 	return m.result, nil
+}
+
+func (m *mockAnalyticsService) ExportCourseGradebookCSV(ctx context.Context, teacherID, courseID int64) ([]byte, string, error) {
+	m.calledCID = courseID
+	if m.err != nil {
+		return nil, "", m.err
+	}
+	return m.exportData, m.exportFilename, nil
 }
 
 type mockAuthMiddleware struct {
@@ -154,6 +166,107 @@ func TestListTeacherPendingHomeworks_ForbiddenCourseAccess(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	h.ListTeacherPendingHomeworks(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden, got %d", rec.Code)
+	}
+}
+
+func TestExportGradebook_Success(t *testing.T) {
+	csvData := []byte{0xEF, 0xBB, 0xBF}
+	csvData = append(csvData, []byte("ID;Студент;Email\n1;Иван;ivan@mail.ru")...)
+	filename := "gradebook_course_13_2026-10-04.csv"
+
+	svc := &mockAnalyticsService{
+		exportData:     csvData,
+		exportFilename: filename,
+	}
+	mw := &mockAuthMiddleware{userID: 1, userRole: "teacher"}
+	h := analyticsHandler.NewAnalyticsHandler(svc, mw)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/courses/13/analytics/export?format=csv", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("courseid", "13")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	rec := httptest.NewRecorder()
+	h.ExportGradebook(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d, body: %s", rec.Code, rec.Body.String())
+	}
+
+	contentType := rec.Header().Get("Content-Type")
+	if contentType != "text/csv; charset=utf-8" {
+		t.Errorf("expected Content-Type 'text/csv; charset=utf-8', got %q", contentType)
+	}
+
+	contentDisposition := rec.Header().Get("Content-Disposition")
+	expectedDisp := `attachment; filename="gradebook_course_13_2026-10-04.csv"`
+	if contentDisposition != expectedDisp {
+		t.Errorf("expected Content-Disposition %q, got %q", expectedDisp, contentDisposition)
+	}
+
+	cacheControl := rec.Header().Get("Cache-Control")
+	if cacheControl != "no-cache" {
+		t.Errorf("expected Cache-Control 'no-cache', got %q", cacheControl)
+	}
+
+	if rec.Body.String() != string(csvData) {
+		t.Errorf("expected body %q, got %q", string(csvData), rec.Body.String())
+	}
+}
+
+func TestExportGradebook_InvalidFormat(t *testing.T) {
+	svc := &mockAnalyticsService{}
+	mw := &mockAuthMiddleware{userID: 1, userRole: "teacher"}
+	h := analyticsHandler.NewAnalyticsHandler(svc, mw)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/courses/13/analytics/export?format=xml", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("courseid", "13")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	rec := httptest.NewRecorder()
+	h.ExportGradebook(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 Bad Request, got %d", rec.Code)
+	}
+}
+
+func TestExportGradebook_Unauthorized(t *testing.T) {
+	svc := &mockAnalyticsService{}
+	mw := &mockAuthMiddleware{userID: 0}
+	h := analyticsHandler.NewAnalyticsHandler(svc, mw)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/courses/13/analytics/export", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("courseid", "13")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	rec := httptest.NewRecorder()
+	h.ExportGradebook(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 Unauthorized, got %d", rec.Code)
+	}
+}
+
+func TestExportGradebook_Forbidden(t *testing.T) {
+	svc := &mockAnalyticsService{
+		err: errorsAPP.ErrForbidden,
+	}
+	mw := &mockAuthMiddleware{userID: 99, userRole: "teacher"}
+	h := analyticsHandler.NewAnalyticsHandler(svc, mw)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/courses/13/analytics/export", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("courseid", "13")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	rec := httptest.NewRecorder()
+	h.ExportGradebook(rec, req)
 
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 Forbidden, got %d", rec.Code)

@@ -13,6 +13,7 @@
 | **Детальное досье студента (Drilldown)** | Полный аудиторский след обучения конкретного студента: успеваемость по каждому уроку и протокол ответов на тестах | `GetStudentDrilldown()` |
 | **Единая очередь непроверенных ДЗ** | Пагинированный список открытых ответов и эссе по курсу, требующих оценки преподавателя | `ListPendingHomeworks()` |
 | **Кросс-курсовая очередь проверки** | Единая очередь непроверенных работ преподавателя по всем его курсам с фильтрацией и сводкой счетчиков по курсам | `ListTeacherPendingHomeworks()` |
+| **Экспорт ведомости успеваемости** | Формирование официальной ведомости успеваемости курса в формате CSV с UTF-8 BOM для Excel | `ExportCourseGradebookCSV()` |
 
 ---
 
@@ -109,6 +110,31 @@
 
 ---
 
+### ⚡ Функция: `ExportCourseGradebookCSV(ctx, teacherID, courseID)`
+
+* **Файл и строки:** [`export_gradebook.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/export_gradebook.go)
+* **Бизнес-назначение:** Выгрузка ведомости успеваемости студентов в официальном формате CSV для импорта в MS Excel и школьные/университетские системы учета.
+* **Связанная фича:** *Экспорт ведомости успеваемости*
+
+#### 📥 Входные параметры
+| Параметр | Тип | Обязателен | Бизнес-смысл и ограничения |
+|---|---|:---:|---|
+| `teacherID` | `int64` | Да | Идентификатор запрашивающего преподавателя (должен быть автором или админом) |
+| `courseID` | `int64` | Да | Идентификатор курса |
+
+#### 🔄 Пошаговый алгоритм работы
+1. **Шаг 1 (Авторизация):** Валидирует права через `checkTeacherAccess(teacherID, courseID)`. Если вызывающий не автор и не админ ➔ 403 Forbidden.
+2. **Шаг 2 (Выборка данных):** Вызывает `analyticsRepo.GetCourseGradebook`, за один CTE-запрос извлекая данные всех студентов курса, прогресс, уроки, баллы и сертификаты.
+3. **Шаг 3 (Формирование потока):**
+   - Записывает UTF-8 BOM (`\xEF\xBB\xBF`) для предотвращения искажения кириллицы в Microsoft Excel.
+   - Инициализирует CSV Writer с точкой с запятой (`;`) в роли разделителя колонок.
+   - Записывает заголовок: `ID;Студент;Email;Дата записи;Прогресс (%);Пройдено уроков;Всего уроков;Средний балл (%);Статус;Сертификат`.
+   - Записывает строки для каждого учащегося.
+4. **Шаг 4 (Генерация имени):** Формирует имя файла: `gradebook_course_{courseID}_{YYYY-MM-DD}.csv`.
+
+---
+
 ## 💡 Подсказка для аналитика (Где менять логику?)
 * *Лимиты пагинации очереди проверки:* [`listPendingHomeworks.go#L17-L22`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/listPendingHomeworks.go#L17-L22), [`list_teacher_pending.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/list_teacher_pending.go).
+* *Формат колонок и кодировка ведомости:* [`export_gradebook.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/export_gradebook.go).
 * *Правила доступа к аналитике курса:* [`service.go#L38-L53`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/service.go#L38-L53).

@@ -3,6 +3,7 @@ package analytics_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,10 +13,11 @@ import (
 )
 
 type mockAnalyticsRepo struct {
-	items   []domain.PendingHomeworkItem
-	total   int64
-	summary []domain.CoursePendingSummaryItem
-	err     error
+	items     []domain.PendingHomeworkItem
+	total     int64
+	summary   []domain.CoursePendingSummaryItem
+	gradebook []domain.GradebookRecord
+	err       error
 }
 
 func (m *mockAnalyticsRepo) GetCourseAnalyticsSummary(ctx context.Context, courseID int64) (domain.CourseAnalyticsSummary, error) {
@@ -38,6 +40,13 @@ func (m *mockAnalyticsRepo) ListTeacherPendingHomeworks(ctx context.Context, tea
 
 func (m *mockAnalyticsRepo) GetStudentDrilldown(ctx context.Context, userID, courseID int64) (*domain.StudentDrilldownReport, error) {
 	return nil, nil
+}
+
+func (m *mockAnalyticsRepo) GetCourseGradebook(ctx context.Context, courseID int64) ([]domain.GradebookRecord, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.gradebook, nil
 }
 
 type mockCourseRepo struct {
@@ -256,5 +265,89 @@ func TestListTeacherPendingHomeworks_EmptyResults_NonNilSlices(t *testing.T) {
 	}
 	if res.CoursesSummary == nil {
 		t.Error("expected non-nil CoursesSummary slice")
+	}
+}
+
+func TestExportCourseGradebookCSV_Success(t *testing.T) {
+	certCode := "EDL-2026-AB12CD34"
+	enrolledAt := time.Date(2026, 10, 1, 10, 0, 0, 0, time.UTC)
+
+	records := []domain.GradebookRecord{
+		{
+			UserID:           101,
+			StudentName:      "Иван Иванов",
+			Email:            "ivan@mail.ru",
+			EnrolledAt:       enrolledAt,
+			ProgressPercent:  100,
+			CompletedLessons: 12,
+			TotalLessons:     12,
+			AverageScore:     94,
+			Status:           "Завершен",
+			CertificateCode:  &certCode,
+		},
+		{
+			UserID:           102,
+			StudentName:      "Анна Смирнова",
+			Email:            "anna@mail.ru",
+			EnrolledAt:       enrolledAt.Add(24 * time.Hour),
+			ProgressPercent:  65,
+			CompletedLessons: 8,
+			TotalLessons:     12,
+			AverageScore:     88,
+			Status:           "В процессе",
+			CertificateCode:  nil,
+		},
+	}
+
+	repo := &mockAnalyticsRepo{gradebook: records}
+	courseRepo := &mockCourseRepo{
+		course: &domain.Course{Id: 13, Title: "Math", CreatedBy: 1},
+	}
+	accessSvc := &mockAccessService{canEdit: true}
+
+	svc := analyticsService.NewAnalyticsService(repo, courseRepo, accessSvc, nil)
+
+	data, filename, err := svc.ExportCourseGradebookCSV(context.Background(), 1, 13)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if filename == "" {
+		t.Error("expected non-empty filename")
+	}
+
+	// Проверяем UTF-8 BOM
+	if len(data) < 3 || data[0] != 0xEF || data[1] != 0xBB || data[2] != 0xBF {
+		t.Errorf("expected UTF-8 BOM prefix, got %v", data[:3])
+	}
+
+	csvContent := string(data)
+	if !strings.Contains(csvContent, "ID;Студент;Email;Дата записи;Прогресс (%);Пройдено уроков;Всего уроков;Средний балл (%);Статус;Сертификат") {
+		t.Errorf("expected header row in csv, got:\n%s", csvContent)
+	}
+	if !strings.Contains(csvContent, "101;Иван Иванов;ivan@mail.ru;01.10.2026;100%;12;12;94%;Завершен;Выдан (EDL-2026-AB12CD34)") {
+		t.Errorf("expected student 101 row in csv, got:\n%s", csvContent)
+	}
+	if !strings.Contains(csvContent, "102;Анна Смирнова;anna@mail.ru;02.10.2026;65%;8;12;88%;В процессе;—") {
+		t.Errorf("expected student 102 row in csv, got:\n%s", csvContent)
+	}
+}
+
+func TestExportCourseGradebookCSV_Forbidden(t *testing.T) {
+	repo := &mockAnalyticsRepo{}
+	courseRepo := &mockCourseRepo{
+		course: &domain.Course{Id: 13, Title: "Math", CreatedBy: 42},
+	}
+	accessSvc := &mockAccessService{canEdit: false}
+
+	svc := analyticsService.NewAnalyticsService(repo, courseRepo, accessSvc, nil)
+
+	_, _, err := svc.ExportCourseGradebookCSV(context.Background(), 99, 13)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if !errors.Is(err, errorsAPP.ErrForbidden) {
+		t.Errorf("expected ErrForbidden, got %v", err)
 	}
 }

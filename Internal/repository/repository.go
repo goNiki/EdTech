@@ -91,6 +91,7 @@ type AnalyticsRepository interface {
 	ListPendingHomeworks(ctx context.Context, courseID int64, limit, offset int64) ([]domain.PendingHomeworkItem, int64, error)
 	ListTeacherPendingHomeworks(ctx context.Context, teacherID int64, courseID int64, limit, offset int64) ([]domain.PendingHomeworkItem, int64, []domain.CoursePendingSummaryItem, error)
 	GetStudentDrilldown(ctx context.Context, userID, courseID int64) (*domain.StudentDrilldownReport, error)
+	GetCourseGradebook(ctx context.Context, courseID int64) ([]domain.GradebookRecord, error)
 }
 
 type RefreshRepository interface {

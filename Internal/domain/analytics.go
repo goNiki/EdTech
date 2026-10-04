@@ -101,3 +101,16 @@ type StudentDrilldownReport struct {
 	LessonLogs      []StudentLessonLog
 	TestAttempts    []StudentTestAttemptLog
 }
+
+type GradebookRecord struct {
+	UserID           int64
+	StudentName      string
+	Email            string
+	EnrolledAt       time.Time
+	ProgressPercent  int
+	CompletedLessons int
+	TotalLessons     int
+	AverageScore     int
+	Status           string
+	CertificateCode  *string
+}

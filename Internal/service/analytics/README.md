@@ -24,6 +24,7 @@
 | [`getStudentDrilldown.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/getStudentDrilldown.go) | Детальный отчет по урокам и тестам конкретного студента |
 | [`listPendingHomeworks.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/listPendingHomeworks.go) | Пагинированный список заданий конкретного курса, ожидающих проверки |
 | [`list_teacher_pending.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/list_teacher_pending.go) | Глобальная очередь непроверенных работ преподавателя по всем его курсам с агрегированной сводкой |
+| [`export_gradebook.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/export_gradebook.go) | Формирование официальной ведомости успеваемости курса в формате CSV с UTF-8 BOM |
 
 ---
 
@@ -34,6 +35,7 @@
 | `GetStudentDrilldown` | [`getStudentDrilldown.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/getStudentDrilldown.go) | Детализированный отчет по студенту на курсе | `(s *analyticsService) GetStudentDrilldown(ctx, teacherID, courseID, studentID int64) (*domain.StudentDrilldownReport, error)` |
 | `ListPendingHomeworks` | [`listPendingHomeworks.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/listPendingHomeworks.go) | Список работ курса со статусом `NeedsGrading` для ручной оценки | `(s *analyticsService) ListPendingHomeworks(ctx, teacherID, courseID, page, pageSize int64) ([]domain.PendingHomeworkItem, int64, error)` |
 | `ListTeacherPendingHomeworks` | [`list_teacher_pending.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/list_teacher_pending.go) | Кросс-курсовая очередь домашних заданий преподавателя со сводкой | `(s *analyticsService) ListTeacherPendingHomeworks(ctx, teacherID, courseID, page, pageSize int64) (*domain.TeacherPendingHomeworksResult, error)` |
+| `ExportCourseGradebookCSV` | [`export_gradebook.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/export_gradebook.go) | Выгрузка ведомости успеваемости студентов в CSV с UTF-8 BOM для Excel | `(s *analyticsService) ExportCourseGradebookCSV(ctx context.Context, teacherID, courseID int64) ([]byte, string, error)` |
 
 ---
 

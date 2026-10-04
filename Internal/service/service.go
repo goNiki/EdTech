@@ -161,6 +161,7 @@ type AnalyticsServices interface {
 	GetStudentDrilldown(ctx context.Context, teacherID, courseID, studentID int64) (*domain.StudentDrilldownReport, error)
 	ListPendingHomeworks(ctx context.Context, teacherID, courseID int64, page, pageSize int64) ([]domain.PendingHomeworkItem, int64, error)
 	ListTeacherPendingHomeworks(ctx context.Context, teacherID int64, courseID int64, page, pageSize int64) (*domain.TeacherPendingHomeworksResult, error)
+	ExportCourseGradebookCSV(ctx context.Context, teacherID, courseID int64) ([]byte, string, error)
 }
 
 // --- Access Interfaces ---

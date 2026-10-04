@@ -103,7 +103,7 @@
 * [**`service/enrollment`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/enrollment/README.md) — Транзакционный инкремент счетчика студентов, запрет отчисления автора.
 * [**`service/progress`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/README.md) — Атомарный пересчет курса при завершении урока, прием эссе, таймеры, автосохранение драфтов и активные попытки.
 * [**`service/quiz`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/README.md) — Advisory lock от гонок, `FOR UPDATE`, отложенная ручная проверка эссе.
-* [**`service/analytics`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/README.md) — Защита доступа преподавателя, аналитика, drilldown и кросс-курсовая очередь проверки.
+* [**`service/analytics`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/README.md) — Защита доступа преподавателя, аналитика, drilldown, кросс-курсовая очередь проверки, экспорт ведомости в CSV.
 * [**`service/category`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/category/README.md) — Каталог категорий курсов, подсчет опубликованных курсов, CRUD категорий.
 * [**`service/resource`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/resource/README.md) — Учебные материалы уроков.
 * [**`service/review`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/review/README.md) — Рейтинги 1–5 звезд, проверка прогресса >= 30%, транзакционный пересчет статистики.
@@ -121,7 +121,7 @@
 * [**`repository/enrollment`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/enrollment/README.md) — Однопроходный CTE-запрос студентов с прогрессом и долгами.
 * [**`repository/progress`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/progress/README.md) — Идемпотентный `ON CONFLICT DO UPDATE`, авто-дата 100%.
 * [**`repository/quiz`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/quiz/README.md) — `pg_advisory_xact_lock`, `SELECT ... FOR UPDATE`, хранение эссе с `is_correct NULL`.
-* [**`repository/analytics`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/analytics/README.md) — 4-блочный CTE-запрос сводки курса без N+1.
+* [**`repository/analytics`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/analytics/README.md) — 4-блочный CTE-запрос сводки курса без N+1, выгрузка ведомости успеваемости.
 * [**`repository/permission`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/permission/README.md) — `SELECT EXISTS(...)` по ролям и действиям.
 * [**`repository/resource`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/resource/README.md) — Вложения уроков.
 * [**`repository/review`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/review/README.md) — SQL отзывов, ON CONFLICT upsert, расчет среднего рейтинга и распределения звезд.

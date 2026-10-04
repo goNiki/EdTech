@@ -16,6 +16,7 @@
 | [`get_student_drilldown.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/analytics/get_student_drilldown.go) | `GET /api/v1/courses/{courseid}/students/{userid}/drilldown` | Детализированная успеваемость конкретного студента |
 | [`list_pending_hw.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/analytics/list_pending_hw.go) | `GET /api/v1/courses/{courseid}/grading/pending` | Список работ курса, ожидающих ручной проверки |
 | [`list_teacher_pending.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/analytics/list_teacher_pending.go) | `GET /api/v1/teacher/grading/pending` | Глобальная очередь проверки преподавателя со сводкой по всем его курсам |
+| [`export_gradebook.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/analytics/export_gradebook.go) | `GET /api/v1/courses/{courseid}/analytics/export` | Скачивание официальной ведомости успеваемости в формате CSV (UTF-8 BOM) |
 
 ---
 
