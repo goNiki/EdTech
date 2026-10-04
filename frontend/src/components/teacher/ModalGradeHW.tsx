@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { api } from '@/lib/api';
-import { X, CheckCircle, Paperclip, Send } from 'lucide-react';
+import { X, CheckCircle, Paperclip, Send, AlertCircle } from 'lucide-react';
 import { PendingHWItem } from './PendingHomeworksQueue';
 
 interface ModalGradeHWProps {
@@ -12,14 +12,22 @@ interface ModalGradeHWProps {
 }
 
 export default function ModalGradeHW({ hw, onClose, onGraded }: ModalGradeHWProps) {
-  const [points, setPoints] = useState<number>(hw?.max_points || 10);
+  const [points, setPoints] = useState<number | string>(hw?.max_points || 10);
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!hw) return null;
 
+  const maxPoints = hw.max_points || 20;
+  const numPoints = Number(points);
+  const isInvalidNegative = numPoints < 0;
+  const isInvalidOverMax = numPoints > maxPoints;
+  const isPointsInvalid = isInvalidNegative || isInvalidOverMax || isNaN(numPoints) || points === '';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isPointsInvalid) return;
+
     setIsSubmitting(true);
     try {
       const attId = hw.attempt_id || hw.id;
@@ -94,18 +102,40 @@ export default function ModalGradeHW({ hw, onClose, onGraded }: ModalGradeHWProp
         {/* Grading form */}
         <form onSubmit={handleSubmit} className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              Выставить баллы (из {hw.max_points || 20}) *
-            </label>
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Выставить баллы (из {maxPoints}) *
+              </label>
+              {isPointsInvalid && (
+                <span className="text-[11px] font-bold text-rose-500 flex items-center gap-1">
+                  <AlertCircle size={12} />
+                  <span>{isInvalidOverMax ? `Максимум ${maxPoints} б.` : isInvalidNegative ? 'Не может быть < 0' : 'Укажите число'}</span>
+                </span>
+              )}
+            </div>
             <input
               type="number"
               min={0}
-              max={hw.max_points || 100}
+              max={maxPoints}
               required
               value={points}
-              onChange={(e) => setPoints(Number(e.target.value))}
-              className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              onChange={(e) => setPoints(e.target.value === '' ? '' : Number(e.target.value))}
+              className={`w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl text-xs font-bold transition-all focus:outline-none ${
+                isPointsInvalid
+                  ? 'border-rose-500 text-rose-600 dark:text-rose-400 bg-rose-50/40 dark:bg-rose-950/20 focus:ring-2 focus:ring-rose-500'
+                  : 'border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 focus:ring-2 focus:ring-indigo-500'
+              }`}
             />
+            {isInvalidOverMax && (
+              <p className="text-[11px] font-semibold text-rose-500">
+                Балл не может превышать {maxPoints}
+              </p>
+            )}
+            {isInvalidNegative && (
+              <p className="text-[11px] font-semibold text-rose-500">
+                Балл не может быть отрицательным
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -125,14 +155,18 @@ export default function ModalGradeHW({ hw, onClose, onGraded }: ModalGradeHWProp
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50"
+              className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
             >
               Отмена
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2"
+              disabled={isSubmitting || isPointsInvalid}
+              className={`px-6 py-2.5 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 ${
+                isPointsInvalid || isSubmitting
+                  ? 'bg-slate-400 dark:bg-slate-700 cursor-not-allowed opacity-60'
+                  : 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer active:scale-95'
+              }`}
             >
               <Send size={14} />
               <span>{isSubmitting ? 'Сохранение...' : 'Утвердить оценку'}</span>
