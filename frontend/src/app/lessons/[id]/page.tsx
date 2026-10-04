@@ -9,6 +9,7 @@ import QuizPreflightScreen from '@/components/player/QuizPreflightScreen';
 import QuizResultScreen from '@/components/player/QuizResultScreen';
 import LessonHeaderNav, { LessonNavContext } from '@/components/player/LessonHeaderNav';
 import HomeworkFeedbackCard, { HomeworkFeedbackData } from '@/components/player/HomeworkFeedbackCard';
+import FocusModeToggle from '@/components/player/FocusModeToggle';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, CheckCircle, CheckCircle2, Clock, Sparkles, ArrowRight, RotateCcw, Loader2, AlertTriangle, Zap, LayoutList, Layers } from 'lucide-react';
 
@@ -20,6 +21,7 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   const [navData, setNavData] = useState<LessonNavContext | null>(null);
   const [homeworkFeedback, setHomeworkFeedback] = useState<HomeworkFeedbackData | null>(null);
   const [pendingLessonId, setPendingLessonId] = useState<number | null>(null);
+  const [isFocusMode, setIsFocusMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isAttemptStarted, setIsAttemptStarted] = useState(false);
@@ -290,8 +292,13 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   return (
     <ProtectedRoute allowedRoles={['student', 'teacher', 'author', 'admin']}>
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col overflow-x-hidden">
+        {/* Zen Focus Mode Top Progress Bar */}
+        {isFocusMode && (
+          <div className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 z-50 animate-pulse" />
+        )}
+
         {/* Sticky Player Header */}
-        <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+        <header className={`sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-3 ${isFocusMode ? 'hidden' : ''}`}>
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <button
               onClick={handleRequestExit}
@@ -344,6 +351,12 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
               navData={navData}
               onNavigateToLesson={handleNavigateToLesson}
               onRequestExit={handleRequestExit}
+            />
+
+            {/* Zen / Focus Mode Toggle */}
+            <FocusModeToggle
+              isFocusMode={isFocusMode}
+              onToggle={() => setIsFocusMode(!isFocusMode)}
             />
 
             {isCompleted ? (
@@ -417,7 +430,7 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
         </header>
 
         {/* Lesson Body */}
-        <main className="flex-1 max-w-4xl w-full mx-auto py-6 sm:py-8 px-4 sm:px-6 space-y-6">
+        <main className={`flex-1 w-full mx-auto px-4 sm:px-6 space-y-6 transition-all duration-300 ${isFocusMode ? 'max-w-3xl py-8 sm:py-12' : 'max-w-4xl py-6 sm:py-8'}`}>
           {/* Homework Teacher Review & Feedback Card */}
           {homeworkFeedback?.has_submission && (!isAttemptStarted || isCompleted) && (
             <HomeworkFeedbackCard data={homeworkFeedback} />
@@ -550,7 +563,7 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
         </main>
 
         {/* Footer Navigation */}
-        <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-4 px-6 text-center">
+        <footer className={`border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-4 px-6 text-center ${isFocusMode ? 'hidden' : ''}`}>
           <button
             onClick={handleRequestExit}
             className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
