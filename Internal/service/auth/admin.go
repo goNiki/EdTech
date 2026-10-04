@@ -79,3 +79,22 @@ func (s *service) SetUserBanned(ctx context.Context, adminID int64, targetUserID
 
 	return nil
 }
+
+func (s *service) ListUsersForAdmin(ctx context.Context, adminID int64, filter domain.UserFilter, pagination domain.Pagination) ([]domain.User, int64, error) {
+	const op = "service.auth.ListUsersForAdmin"
+
+	admin, err := s.repo.GetUserByID(ctx, adminID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("%s: get admin: %w", op, err)
+	}
+	if !admin.IsAdmin() {
+		return nil, 0, errorsAPP.ErrForbidden
+	}
+
+	users, total, err := s.repo.ListUsers(ctx, filter, pagination)
+	if err != nil {
+		return nil, 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return users, total, nil
+}

@@ -122,3 +122,10 @@ func (u *User) UpdateProfile(input UpdateProfileInput) {
 		u.AvatarURL = input.AvatarURL
 	}
 }
+
+type UserFilter struct {
+	Search   *string
+	Role     *Role
+	IsBanned *bool
+}
+

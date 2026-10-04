@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"edtech/internal/domain"
 	"edtech/internal/dto"
@@ -86,3 +87,78 @@ func (h *AuthHandler) SetUserBanned(w http.ResponseWriter, r *http.Request) {
 
 	response.OK(w, r, map[string]string{"message": msg})
 }
+
+func (h *AuthHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
+	const op = "http.handlers.auth.ListUsers"
+	log := logger.GetLogger(r.Context(), op)
+
+	adminID := h.authMiddleware.GetUserID(r.Context())
+	if adminID == 0 {
+		response.HandleError(w, r, log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
+
+	query := r.URL.Query()
+
+	var filter domain.UserFilter
+	if search := query.Get("search"); search != "" {
+		filter.Search = &search
+	}
+	if roleStr := query.Get("role"); roleStr != "" {
+		role := domain.Role(roleStr)
+		filter.Role = &role
+	}
+	if isBannedStr := query.Get("is_banned"); isBannedStr != "" {
+		if isBanned, err := strconv.ParseBool(isBannedStr); err == nil {
+			filter.IsBanned = &isBanned
+		}
+	}
+
+	page := int64(1)
+	if pageStr := query.Get("page"); pageStr != "" {
+		if p, err := strconv.ParseInt(pageStr, 10, 64); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	pageSize := int64(20)
+	if pageSizeStr := query.Get("page_size"); pageSizeStr != "" {
+		if ps, err := strconv.ParseInt(pageSizeStr, 10, 64); err == nil && ps > 0 {
+			pageSize = ps
+		}
+	}
+
+	pagination := domain.Pagination{
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	users, total, err := h.authService.ListUsersForAdmin(r.Context(), adminID, filter, pagination)
+	if err != nil {
+		response.HandleError(w, r, log, err, op)
+		return
+	}
+
+	items := make([]dto.AdminUserItemResponse, 0, len(users))
+	for _, u := range users {
+		items = append(items, dto.AdminUserItemResponse{
+			ID:        u.ID,
+			Email:     u.Email,
+			Username:  u.Username,
+			FirstName: u.FirstName,
+			LastName:  u.LastName,
+			Role:      u.Role,
+			IsBanned:  u.IsBanned,
+			CreatedAt: u.CreatedAt.UTC().Format(time.RFC3339),
+		})
+	}
+
+	pagination.Sanitize()
+	response.OK(w, r, dto.AdminUsersListResponse{
+		Users:    items,
+		Total:    total,
+		Page:     pagination.Page,
+		PageSize: pagination.PageSize,
+	})
+}
+

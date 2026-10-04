@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"edtech/internal/domain"
 	errorsAPP "edtech/pkg/errors"
 	"time"
 )
@@ -94,4 +95,22 @@ type ChangeUserRoleRequest struct {
 
 type SetUserBannedRequest struct {
 	IsBanned bool `json:"is_banned"`
+}
+
+type AdminUserItemResponse struct {
+	ID        int64       `json:"id"`
+	Email     string      `json:"email"`
+	Username  string      `json:"username"`
+	FirstName *string     `json:"first_name,omitempty"`
+	LastName  *string     `json:"last_name,omitempty"`
+	Role      domain.Role `json:"role"`
+	IsBanned  bool        `json:"is_banned"`
+	CreatedAt string      `json:"created_at"`
+}
+
+type AdminUsersListResponse struct {
+	Users    []AdminUserItemResponse `json:"users"`
+	Total    int64                   `json:"total"`
+	Page     int64                   `json:"page"`
+	PageSize int64                   `json:"page_size"`
 }

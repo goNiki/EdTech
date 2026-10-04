@@ -19,6 +19,7 @@ type UserRepository interface {
 	SetEmailVerified(ctx context.Context, userID int64, verified bool) error
 	UpdateRole(ctx context.Context, userID int64, role domain.Role) error
 	SetBannedStatus(ctx context.Context, userID int64, isBanned bool) error
+	ListUsers(ctx context.Context, filter domain.UserFilter, pagination domain.Pagination) ([]domain.User, int64, error)
 }
 
 type CategoryRepository interface {
@@ -160,4 +161,3 @@ type NotificationRepository interface {
 	MarkAsRead(ctx context.Context, userID, notificationID int64) error
 	MarkAllAsRead(ctx context.Context, userID int64) error
 }
-

@@ -134,6 +134,9 @@ func (m *mockUserRepo) UpdateRole(ctx context.Context, userID int64, role domain
 func (m *mockUserRepo) SetBannedStatus(ctx context.Context, userID int64, isBanned bool) error {
 	return nil
 }
+func (m *mockUserRepo) ListUsers(ctx context.Context, filter domain.UserFilter, pagination domain.Pagination) ([]domain.User, int64, error) {
+	return nil, 0, nil
+}
 
 type mockCourseRepo struct {
 	course *domain.Course

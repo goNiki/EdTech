@@ -669,6 +669,7 @@ func (d *diContainer) Router() http.Handler {
 		r.Route("/api/v1/admin", func(r chi.Router) {
 			r.Use(d.MwAuth().JWTMiddleware)
 
+			r.Get("/users", d.AuthHdl().ListUsers)
 			r.Patch("/users/{id}/role", d.AuthHdl().ChangeUserRole)
 			r.Patch("/users/{id}/ban", d.AuthHdl().SetUserBanned)
 		})

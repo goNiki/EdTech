@@ -20,6 +20,7 @@
 | **Кабинет преподавателя (Teacher)** | Мастер создания курса со слагом, конструктор учебного плана (секций и уроков) с реордерингом, визуальный конструктор Puck (Content-as-Data), аналитика и проверка ДЗ. | [frontend/src/app/teacher/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/FUNCTIONAL_SPEC.md) |
 | **Файловое хранилище (Uploads)** | Загрузка бинарных файлов (обложки, аватарки, домашние задания, архивы), проверка magic bytes, ограничение 25 МБ, раздача статики. | [internal/service/upload/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/upload/FUNCTIONAL_SPEC.md) |
 | **Тестирование и античит (Quiz)** | Конструирование тестов, защита попыток (Advisory Lock), античит-санитизация Puck JSON и серверный подсчет баллов. | [internal/service/quiz/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/FUNCTIONAL_SPEC.md) |
+| **Аутентификация и администрирование (Auth)** | Регистрация, JWT-авторизация, смена паролей, управление ролями/банами и административный реестр пользователей. | [internal/service/auth/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/FUNCTIONAL_SPEC.md) |
 
 ---
 
@@ -233,6 +234,21 @@ flowchart TD
   * ✅ Пометка отдельного уведомления как прочитанного (`PATCH /api/v1/notifications/{id}/read`) с защитой от чужих ID (`ErrNotificationNotFound`).
   * ✅ Пакетная пометка всех уведомлений пользователя прочитанными (`POST /api/v1/notifications/read-all`).
   * ✅ Событийная интеграция при выставлении преподавателем оценки за домашнее задание (`GradeAttemptAnswer`): генерация персонализированного уведомления студенту с оценкой и ссылкой на урок.
+
+---
+
+### 13. Домен: Аутентификация и администрирование пользователей (`internal/service/auth`)
+* 📄 **Спецификация:** [internal/service/auth/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/FUNCTIONAL_SPEC.md)
+* **Реализованный функционал:**
+  * ✅ Регистрация пользователей с валидацией уникальности (`POST /api/v1/auth/register`).
+  * ✅ Вход и выпуск Access/Refresh пары токенов (`POST /api/v1/auth/login`).
+  * ✅ Ротация Refresh-токенов с защитой от кражи (`POST /api/v1/auth/refresh`).
+  * ✅ Завершение сеанса (`POST /api/v1/auth/logout`).
+  * ✅ Получение и обновление профиля (`GET /api/v1/auth/me`, `PATCH /api/v1/auth/profile`).
+  * ✅ Безопасная смена пароля с проверкой старого и отзывом всех сессий (`POST /api/v1/auth/change-password`).
+  * ✅ Административное управление ролями пользователей (`PATCH /api/v1/admin/users/{id}/role`).
+  * ✅ Административная блокировка/разблокировка пользователей с моментальным отзывом сессий (`PATCH /api/v1/admin/users/{id}/ban`).
+  * ✅ Административный просмотр реестра пользователей с фильтрацией (роль, статус бана, поиск по email/имени) и пагинацией (`GET /api/v1/admin/users`).
 
 
 
