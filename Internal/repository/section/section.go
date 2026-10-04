@@ -189,16 +189,26 @@ func (r *repositorySection) UpdateStatusByCourseID(ctx context.Context, courseID
 
 func (r *repositorySection) ReorderSections(ctx context.Context, courseID int64, sectionIDs []int64) error {
 	const op = "repository.section.ReorderSections"
+	if len(sectionIDs) == 0 {
+		return nil
+	}
+
+	positions := make([]int32, len(sectionIDs))
+	for i := range sectionIDs {
+		positions[i] = int32(i + 1)
+	}
+
+	query := `
+		UPDATE sections AS s
+		SET position = v.new_pos, updated_at = NOW()
+		FROM (SELECT unnest($1::bigint[]) AS id, unnest($2::int[]) AS new_pos) AS v
+		WHERE s.id = v.id AND s.course_id = $3 AND s.deleted_at IS NULL
+	`
+
 	q := txmanager.GetQueryExecutor(ctx, r.Pool)
-
-	query := `UPDATE sections SET position = $1, updated_at = NOW() WHERE id = $2 AND course_id = $3 AND deleted_at IS NULL`
-
-	for idx, id := range sectionIDs {
-		pos := idx + 1
-		_, err := q.Exec(ctx, query, pos, id, courseID)
-		if err != nil {
-			return fmt.Errorf("%s: update position for section %d: %w: %w", op, id, errorsAPP.ErrInternalDB, err)
-		}
+	_, err := q.Exec(ctx, query, sectionIDs, positions, courseID)
+	if err != nil {
+		return fmt.Errorf("%s: batch update sections: %w: %w", op, errorsAPP.ErrInternalDB, err)
 	}
 
 	return nil
