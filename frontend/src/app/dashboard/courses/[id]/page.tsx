@@ -25,6 +25,8 @@ import {
   AlertTriangle,
   Loader2
 } from 'lucide-react';
+import { CertificateData, fetchCourseCertificate } from '@/lib/certificates';
+import CertificateModal from '@/components/certificate/CertificateModal';
 
 export default function StudentCoursePlayerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -65,6 +67,43 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
       setReviewSuccessMsg('Ваш отзыв сохранен.');
     } finally {
       setIsSubmittingReview(false);
+    }
+  };
+
+  // Certificate state
+  const [certificateData, setCertificateData] = useState<CertificateData | null>(null);
+  const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
+  const [isLoadingCert, setIsLoadingCert] = useState(false);
+
+  const handleOpenCertificate = async () => {
+    if (certificateData) {
+      setIsCertificateModalOpen(true);
+      return;
+    }
+    setIsLoadingCert(true);
+    try {
+      let currentUserName = 'Студент платформы';
+      if (typeof window !== 'undefined') {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          try {
+            const u = JSON.parse(userStr);
+            currentUserName = u.name || u.full_name || u.username || currentUserName;
+          } catch {}
+        }
+      }
+
+      const cert = await fetchCourseCertificate(Number(id), {
+        studentName: currentUserName,
+        courseTitle: courseData?.Title || courseData?.title,
+        score: calculatedAvgScore,
+      });
+      setCertificateData(cert);
+      setIsCertificateModalOpen(true);
+    } catch (err) {
+      console.error('Failed to get certificate', err);
+    } finally {
+      setIsLoadingCert(false);
     }
   };
 
@@ -283,6 +322,48 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
           </div>
         </div>
 
+        {/* Course Completion Banner (100% Progress) */}
+        {progressPercent >= 100 && (
+          <div className="relative overflow-hidden p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 border border-amber-300/40">
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center flex-shrink-0 text-white shadow-inner">
+                <Award size={36} className="text-yellow-100" />
+              </div>
+              <div className="space-y-1 text-center md:text-left">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-[10px] font-black uppercase tracking-wider">
+                  <Sparkles size={12} />
+                  Курс успешно завершен!
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black tracking-tight">
+                  Поздравляем с блестящим окончанием курса!
+                </h3>
+                <p className="text-xs sm:text-sm text-amber-100/90 max-w-xl leading-relaxed">
+                  Вы полностью изучили все модули программы и успешно сдали задания. Ваш официальный цифровой сертификат готов.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleOpenCertificate}
+              disabled={isLoadingCert}
+              className="px-6 py-3.5 rounded-2xl bg-white text-slate-900 hover:bg-amber-50 font-extrabold text-xs sm:text-sm shadow-xl flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95 flex-shrink-0"
+            >
+              {isLoadingCert ? (
+                <>
+                  <Loader2 size={18} className="animate-spin text-amber-500" />
+                  <span>Загрузка диплома...</span>
+                </>
+              ) : (
+                <>
+                  <Award size={18} className="text-amber-500" />
+                  <span>Посмотреть сертификат</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
         {/* Main Grid: Left Curriculum (8 cols), Right Sticky Progress (4 cols) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left: Modules & Lessons */}
@@ -496,6 +577,20 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                   </span>
                 </div>
               </div>
+
+              {progressPercent >= 100 && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={handleOpenCertificate}
+                    disabled={isLoadingCert}
+                    className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                  >
+                    <Award size={15} />
+                    <span>Посмотреть сертификат</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Course Review Card */}
@@ -652,6 +747,15 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
             </div>
           </div>
         </div>
+      )}
+
+      {/* Certificate Modal */}
+      {certificateData && (
+        <CertificateModal
+          isOpen={isCertificateModalOpen}
+          onClose={() => setIsCertificateModalOpen(false)}
+          certificate={certificateData}
+        />
       )}
     </div>
   );
