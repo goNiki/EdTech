@@ -2,12 +2,13 @@ package lesson
 
 import (
 	"context"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	"fmt"
 )
 
-func (r *repository) GetMaxPositionByCourseID(ctx context.Context, q db.QueryExecutor, courseId int64) (int64, error) {
+func (r *repository) GetMaxPositionByCourseID(ctx context.Context, courseId int64) (int64, error) {
 	const op = "repositiry.couse.lessonrepo.getmaxpositionbycourseid"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `SELECT COALESCE(MAX(position), 0) FROM lessons WHERE course_id = $1`
 

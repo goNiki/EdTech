@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository/models"
 	"edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
@@ -48,8 +48,9 @@ func buildCourseFilterQuery(filter domain.CourseFilter) (string, []any) {
 	return where, args
 }
 
-func (r *repository) ListPublicCourses(ctx context.Context, q db.QueryExecutor, pagination domain.Pagination, filter domain.CourseFilter) ([]domain.Course, error) {
+func (r *repository) ListPublicCourses(ctx context.Context, pagination domain.Pagination, filter domain.CourseFilter) ([]domain.Course, error) {
 	const op = "repository.course.ListPublicCourses"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	whereClause, args := buildCourseFilterQuery(filter)
 

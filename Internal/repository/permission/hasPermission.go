@@ -2,12 +2,13 @@ package permission
 
 import (
 	"context"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	"fmt"
 )
 
-func (r *repository) HasPermission(ctx context.Context, q db.QueryExecutor, roleName string, resource string, action string) (bool, error) {
+func (r *repository) HasPermission(ctx context.Context, roleName string, resource string, action string) (bool, error) {
 	const op = "repository.permission.haspermisssio"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT EXISTS( 

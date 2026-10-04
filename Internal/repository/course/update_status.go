@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 )
 
-func (r *repository) UpdateCourseStatus(ctx context.Context, q db.QueryExecutor, courseID int64, status string) error {
+func (r *repository) UpdateCourseStatus(ctx context.Context, courseID int64, status string) error {
 	const op = "repository.course.UpdateCourseStatus"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `UPDATE courses SET status = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL`
 

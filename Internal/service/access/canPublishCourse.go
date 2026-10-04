@@ -12,7 +12,7 @@ import (
 
 func (s *service) CanPublishCourse(ctx context.Context, course *domain.Course, userID int64) (bool, error) {
 
-	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, s.db, userID, course.Id)
+	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, userID, course.Id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil
@@ -20,7 +20,7 @@ func (s *service) CanPublishCourse(ctx context.Context, course *domain.Course, u
 		return false, fmt.Errorf("%w: %v", errorsAPP.ErrInternalDB, err)
 	}
 
-	access, err := s.permissionrepo.HasPermission(ctx, s.db, role, domain.ResourceCourse, domain.ActionPublish)
+	access, err := s.permissionrepo.HasPermission(ctx, role, domain.ResourceCourse, domain.ActionPublish)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil

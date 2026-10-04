@@ -3,7 +3,6 @@ package course
 import (
 	"context"
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
 	"fmt"
 	"time"
@@ -14,7 +13,7 @@ import (
 func (s *service) PublishCourse(ctx context.Context, userID int64, courseID int64) error {
 	const op = "service.course.PublishCourse"
 
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, courseID)
+	course, err := s.courserepo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -30,14 +29,14 @@ func (s *service) PublishCourse(ctx context.Context, userID int64, courseID int6
 
 	course.Publish(time.Now())
 
-	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, q db.QueryExecutor) error {
-		if err := s.courserepo.PublishCourse(ctx, q, course); err != nil {
+	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
+		if err := s.courserepo.PublishCourse(ctx, course); err != nil {
 			return err
 		}
-		if err := s.sectionrepo.UpdateStatusByCourseID(ctx, q, courseID, domain.StatusPublished); err != nil {
+		if err := s.sectionrepo.UpdateStatusByCourseID(ctx, courseID, domain.StatusPublished); err != nil {
 			return err
 		}
-		return s.lessonrepo.UpdateStatusByCourseID(ctx, q, courseID, domain.StatusPublished)
+		return s.lessonrepo.UpdateStatusByCourseID(ctx, courseID, domain.StatusPublished)
 	})
 
 	if err != nil {

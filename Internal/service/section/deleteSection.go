@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
@@ -14,15 +13,15 @@ import (
 func (s *sectionService) DeleteSection(ctx context.Context, userID int64, sectionID int64) error {
 	const op = "service.section.DeleteSection"
 
-	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, q db.QueryExecutor) error {
+	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
 		// Load the section to find its courseID
-		existing, err := s.sectionRepo.GetSectionByID(ctx, q, sectionID)
+		existing, err := s.sectionRepo.GetSectionByID(ctx, sectionID)
 		if err != nil {
 			return err
 		}
 
 		// RBAC: check that user can edit the course
-		course, err := s.courseRepo.GetCourseByID(ctx, q, existing.CourseID)
+		course, err := s.courseRepo.GetCourseByID(ctx, existing.CourseID)
 		if err != nil {
 			return err
 		}
@@ -41,7 +40,7 @@ func (s *sectionService) DeleteSection(ctx context.Context, userID int64, sectio
 			return errorsAPP.ErrForbidden
 		}
 
-		return s.sectionRepo.DeleteSection(ctx, q, sectionID)
+		return s.sectionRepo.DeleteSection(ctx, sectionID)
 	})
 
 	if err != nil {

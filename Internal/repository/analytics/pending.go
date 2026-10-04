@@ -6,12 +6,13 @@ import (
 	"time"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 )
 
-func (r *repositoryAnalytics) ListPendingHomeworks(ctx context.Context, q db.QueryExecutor, courseID int64, limit, offset int64) ([]domain.PendingHomeworkItem, int64, error) {
+func (r *repositoryAnalytics) ListPendingHomeworks(ctx context.Context, courseID int64, limit, offset int64) ([]domain.PendingHomeworkItem, int64, error) {
 	const op = "repository.analytics.ListPendingHomeworks"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	countQuery := `
 		SELECT COUNT(*)

@@ -1,7 +1,6 @@
 package progress
 
 import (
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository"
 	services "edtech/internal/service"
@@ -14,7 +13,6 @@ type service struct {
 	lessonRepo   repository.LessonRepository
 	quizRepo     repository.QuizRepository
 	txManager    txmanager.TransactionManager
-	db           db.QueryExecutor
 }
 
 func NewProgressService(
@@ -22,13 +20,11 @@ func NewProgressService(
 	lessonRepo repository.LessonRepository,
 	quizRepo repository.QuizRepository,
 	txManager txmanager.TransactionManager,
-	database db.QueryExecutor,
 ) *service {
 	return &service{
 		progressRepo: progressRepo,
 		lessonRepo:   lessonRepo,
 		quizRepo:     quizRepo,
 		txManager:    txManager,
-		db:           database,
 	}
 }

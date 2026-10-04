@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 )
 
-func (r *repositoryImpl) SaveEssaySubmission(ctx context.Context, q db.QueryExecutor, userID, courseID, lessonID int64, essay domain.EssaySubmission) error {
+func (r *repositoryImpl) SaveEssaySubmission(ctx context.Context, userID, courseID, lessonID int64, essay domain.EssaySubmission) error {
 	const op = "repository.quiz.SaveEssaySubmission"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	if essay.AnswerText == "" {
 		return nil
@@ -71,8 +72,9 @@ func (r *repositoryImpl) SaveEssaySubmission(ctx context.Context, q db.QueryExec
 	return nil
 }
 
-func (r *repositoryImpl) GetLessonSubmissions(ctx context.Context, q db.QueryExecutor, userID, lessonID int64) ([]domain.LessonSubmissionDetail, error) {
+func (r *repositoryImpl) GetLessonSubmissions(ctx context.Context, userID, lessonID int64) ([]domain.LessonSubmissionDetail, error) {
 	const op = "repository.quiz.GetLessonSubmissions"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT 

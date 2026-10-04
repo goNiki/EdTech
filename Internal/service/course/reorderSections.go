@@ -10,7 +10,7 @@ import (
 func (s *service) ReorderSections(ctx context.Context, userID, courseID int64, sectionIDs []int64) error {
 	const op = "service.course.ReorderSections"
 
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, courseID)
+	course, err := s.courserepo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return fmt.Errorf("%s: get course: %w", op, err)
 	}
@@ -23,7 +23,7 @@ func (s *service) ReorderSections(ctx context.Context, userID, courseID int64, s
 		return fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
 	}
 
-	if err := s.sectionrepo.ReorderSections(ctx, s.db, courseID, sectionIDs); err != nil {
+	if err := s.sectionrepo.ReorderSections(ctx, courseID, sectionIDs); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 

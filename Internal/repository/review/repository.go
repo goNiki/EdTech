@@ -1,4 +1,4 @@
-package review
+﻿package review
 
 import (
 	"context"
@@ -6,21 +6,25 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type repo struct{}
-
-func NewReviewRepository() repository.ReviewRepository {
-	return &repo{}
+type repo struct {
+	Pool *pgxpool.Pool
 }
 
-func (r *repo) UpsertReview(ctx context.Context, q db.QueryExecutor, review *domain.Review) (*domain.Review, error) {
+func NewReviewRepository(pool *pgxpool.Pool) repository.ReviewRepository {
+	return &repo{Pool: pool}
+}
+
+func (r *repo) UpsertReview(ctx context.Context, review *domain.Review) (*domain.Review, error) {
 	const op = "repository.review.UpsertReview"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		INSERT INTO course_reviews (course_id, user_id, rating, comment, created_at, updated_at)
@@ -40,8 +44,9 @@ func (r *repo) UpsertReview(ctx context.Context, q db.QueryExecutor, review *dom
 	return &res, nil
 }
 
-func (r *repo) DeleteReview(ctx context.Context, q db.QueryExecutor, courseID, userID int64) error {
+func (r *repo) DeleteReview(ctx context.Context, courseID, userID int64) error {
 	const op = "repository.review.DeleteReview"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `DELETE FROM course_reviews WHERE course_id = $1 AND user_id = $2`
 
@@ -56,8 +61,9 @@ func (r *repo) DeleteReview(ctx context.Context, q db.QueryExecutor, courseID, u
 	return nil
 }
 
-func (r *repo) GetReviewByUserAndCourse(ctx context.Context, q db.QueryExecutor, courseID, userID int64) (*domain.Review, error) {
+func (r *repo) GetReviewByUserAndCourse(ctx context.Context, courseID, userID int64) (*domain.Review, error) {
 	const op = "repository.review.GetReviewByUserAndCourse"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT r.id, r.course_id, r.user_id, r.rating, r.comment, r.created_at, r.updated_at,
@@ -80,8 +86,9 @@ func (r *repo) GetReviewByUserAndCourse(ctx context.Context, q db.QueryExecutor,
 	return &res, nil
 }
 
-func (r *repo) ListReviewsByCourse(ctx context.Context, q db.QueryExecutor, courseID int64, limit, offset int) ([]domain.Review, int64, error) {
+func (r *repo) ListReviewsByCourse(ctx context.Context, courseID int64, limit, offset int) ([]domain.Review, int64, error) {
 	const op = "repository.review.ListReviewsByCourse"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	countQuery := `SELECT COUNT(*) FROM course_reviews WHERE course_id = $1`
 	var total int64
@@ -135,8 +142,9 @@ func (r *repo) ListReviewsByCourse(ctx context.Context, q db.QueryExecutor, cour
 	return reviews, total, nil
 }
 
-func (r *repo) GetCourseRatingSummary(ctx context.Context, q db.QueryExecutor, courseID int64) (float64, int, error) {
+func (r *repo) GetCourseRatingSummary(ctx context.Context, courseID int64) (float64, int, error) {
 	const op = "repository.review.GetCourseRatingSummary"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT COALESCE(AVG(rating), 0.0)::FLOAT8, COUNT(*)::INT

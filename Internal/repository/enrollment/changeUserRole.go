@@ -2,13 +2,14 @@ package enrollment
 
 import (
 	"context"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 	"fmt"
 )
 
-func (r *repository) ChangeUserRole(ctx context.Context, q db.QueryExecutor, courseID int64, targetUserID int64, newRole string) error {
+func (r *repository) ChangeUserRole(ctx context.Context, courseID int64, targetUserID int64, newRole string) error {
 	const op = "repository.enrollment.changeuserrole"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `UPDATE users_courses SET role = $1 WHERE user_id = $2 AND course_id = $3`
 

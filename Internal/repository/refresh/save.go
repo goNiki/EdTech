@@ -2,13 +2,14 @@ package refresh
 
 import (
 	"context"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	"fmt"
 	"time"
 )
 
-func (r *repository) Save(ctx context.Context, q db.QueryExecutor, reftoken string, id int64, expiresAt time.Time) error {
+func (r *repository) Save(ctx context.Context, reftoken string, id int64, expiresAt time.Time) error {
 	const op = "repository.refresh.Save"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `INSERT INTO refresh_tokens (token, user_id, expires_at) VALUES ($1, $2, $3)`
 

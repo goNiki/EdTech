@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 )
 
-func (r *repositoryImpl) CreateBatchAnswers(ctx context.Context, q db.QueryExecutor, answers []domain.QuizAttemptAnswer) error {
+func (r *repositoryImpl) CreateBatchAnswers(ctx context.Context, answers []domain.QuizAttemptAnswer) error {
 	const op = "repository.quiz.CreateBatchAnswers"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	if len(answers) == 0 {
 		return nil
@@ -44,8 +45,9 @@ func (r *repositoryImpl) CreateBatchAnswers(ctx context.Context, q db.QueryExecu
 	return nil
 }
 
-func (r *repositoryImpl) UpdateAttemptAnswer(ctx context.Context, q db.QueryExecutor, answerID int64, points int, feedback *string, isCorrect bool) error {
+func (r *repositoryImpl) UpdateAttemptAnswer(ctx context.Context, answerID int64, points int, feedback *string, isCorrect bool) error {
 	const op = "repository.quiz.UpdateAttemptAnswer"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE quiz_attempt_answers 
@@ -63,8 +65,9 @@ func (r *repositoryImpl) UpdateAttemptAnswer(ctx context.Context, q db.QueryExec
 	return nil
 }
 
-func (r *repositoryImpl) CountUngradedAnswers(ctx context.Context, q db.QueryExecutor, attemptID int64) (int, error) {
+func (r *repositoryImpl) CountUngradedAnswers(ctx context.Context, attemptID int64) (int, error) {
 	const op = "repository.quiz.CountUngradedAnswers"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `SELECT COUNT(*) FROM quiz_attempt_answers WHERE attempt_id = $1 AND is_correct IS NULL`
 
@@ -77,8 +80,9 @@ func (r *repositoryImpl) CountUngradedAnswers(ctx context.Context, q db.QueryExe
 	return count, nil
 }
 
-func (r *repositoryImpl) GetAnswerPointsAndCorrectness(ctx context.Context, q db.QueryExecutor, answerID int64) (bool, int, error) {
+func (r *repositoryImpl) GetAnswerPointsAndCorrectness(ctx context.Context, answerID int64) (bool, int, error) {
 	const op = "repository.quiz.GetAnswerPointsAndCorrectness"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT qa.is_correct, qq.points 
@@ -96,8 +100,9 @@ func (r *repositoryImpl) GetAnswerPointsAndCorrectness(ctx context.Context, q db
 	return isCorrect, points, nil
 }
 
-func (r *repositoryImpl) UpdateLessonProgressAfterQuiz(ctx context.Context, q db.QueryExecutor, userID, lessonID int64, score int) error {
+func (r *repositoryImpl) UpdateLessonProgressAfterQuiz(ctx context.Context, userID, lessonID int64, score int) error {
 	const op = "repository.quiz.UpdateLessonProgressAfterQuiz"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		INSERT INTO lesson_progress (
@@ -115,8 +120,9 @@ func (r *repositoryImpl) UpdateLessonProgressAfterQuiz(ctx context.Context, q db
 	return nil
 }
 
-func (r *repositoryImpl) SumAttemptPoints(ctx context.Context, q db.QueryExecutor, attemptID int64) (int, error) {
+func (r *repositoryImpl) SumAttemptPoints(ctx context.Context, attemptID int64) (int, error) {
 	const op = "repository.quiz.SumAttemptPoints"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `SELECT COALESCE(COUNT(*), 0) FROM quiz_attempt_answers WHERE attempt_id = $1 AND is_correct = TRUE`
 

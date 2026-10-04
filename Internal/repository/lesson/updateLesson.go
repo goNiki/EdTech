@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 )
 
-func (r *repository) UpdateLesson(ctx context.Context, q db.QueryExecutor, lesson *domain.Lesson) error {
+func (r *repository) UpdateLesson(ctx context.Context, lesson *domain.Lesson) error {
 	const op = "repository.lesson.update"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	status := lesson.Status
 	if status == "" {

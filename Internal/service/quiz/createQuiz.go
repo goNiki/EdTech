@@ -20,13 +20,13 @@ func (s *service) CreateQuiz(ctx context.Context, userID int64, quiz *domain.Qui
 	}
 
 	// Проверяем существование урока
-	lesson, err := s.lessonRepo.GetLessonByID(ctx, s.db, quiz.LessonID)
+	lesson, err := s.lessonRepo.GetLessonByID(ctx, quiz.LessonID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: get lesson: %w", op, err)
 	}
 
 	// Проверяем права на редактирование курса
-	course, err := s.courseRepo.GetCourseByID(ctx, s.db, lesson.CourseID)
+	course, err := s.courseRepo.GetCourseByID(ctx, lesson.CourseID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: get course: %w", op, err)
 	}
@@ -39,7 +39,7 @@ func (s *service) CreateQuiz(ctx context.Context, userID int64, quiz *domain.Qui
 		return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
 	}
 
-	createdQuiz, err := s.quizRepo.CreateQuiz(ctx, s.db, quiz)
+	createdQuiz, err := s.quizRepo.CreateQuiz(ctx, quiz)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

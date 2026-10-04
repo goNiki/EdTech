@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/repository"
 	services "edtech/internal/service"
 	errorsAPP "edtech/pkg/errors"
@@ -15,19 +14,17 @@ var _ services.CategoryServices = (*serviceImpl)(nil)
 
 type serviceImpl struct {
 	repo repository.CategoryRepository
-	db   db.QueryExecutor
 }
 
-func NewCategoryService(repo repository.CategoryRepository, database db.QueryExecutor) services.CategoryServices {
+func NewCategoryService(repo repository.CategoryRepository) services.CategoryServices {
 	return &serviceImpl{
 		repo: repo,
-		db:   database,
 	}
 }
 
 func (s *serviceImpl) ListCategories(ctx context.Context) ([]domain.Category, error) {
 	const op = "service.category.ListCategories"
-	cats, err := s.repo.ListCategories(ctx, s.db)
+	cats, err := s.repo.ListCategories(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -39,7 +36,7 @@ func (s *serviceImpl) CreateCategory(ctx context.Context, category *domain.Categ
 	if category.Name == "" || category.Slug == "" {
 		return 0, fmt.Errorf("%s: %w", op, errorsAPP.ErrValidationFailed)
 	}
-	created, err := s.repo.CreateCategory(ctx, s.db, category)
+	created, err := s.repo.CreateCategory(ctx, category)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -48,7 +45,7 @@ func (s *serviceImpl) CreateCategory(ctx context.Context, category *domain.Categ
 
 func (s *serviceImpl) GetCategoryByID(ctx context.Context, id int64) (*domain.Category, error) {
 	const op = "service.category.GetCategoryByID"
-	cat, err := s.repo.GetCategoryByID(ctx, s.db, id)
+	cat, err := s.repo.GetCategoryByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -57,7 +54,7 @@ func (s *serviceImpl) GetCategoryByID(ctx context.Context, id int64) (*domain.Ca
 
 func (s *serviceImpl) GetCategoryBySlug(ctx context.Context, slug string) (*domain.Category, error) {
 	const op = "service.category.GetCategoryBySlug"
-	cat, err := s.repo.GetCategoryBySlug(ctx, s.db, slug)
+	cat, err := s.repo.GetCategoryBySlug(ctx, slug)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -66,7 +63,7 @@ func (s *serviceImpl) GetCategoryBySlug(ctx context.Context, slug string) (*doma
 
 func (s *serviceImpl) UpdateCategory(ctx context.Context, category *domain.Category) error {
 	const op = "service.category.UpdateCategory"
-	if err := s.repo.UpdateCategory(ctx, s.db, category); err != nil {
+	if err := s.repo.UpdateCategory(ctx, category); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
@@ -74,7 +71,7 @@ func (s *serviceImpl) UpdateCategory(ctx context.Context, category *domain.Categ
 
 func (s *serviceImpl) DeleteCategory(ctx context.Context, id int64) error {
 	const op = "service.category.DeleteCategory"
-	if err := s.repo.DeleteCategory(ctx, s.db, id); err != nil {
+	if err := s.repo.DeleteCategory(ctx, id); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil

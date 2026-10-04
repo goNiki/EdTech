@@ -13,7 +13,7 @@ import (
 func (s *lessonService) UpdateLesson(ctx context.Context, userID int64, lesson *domain.Lesson) error {
 	const op = "service.lesson.UpdateLesson"
 
-	existingLesson, err := s.lessonrepo.GetLessonByID(ctx, s.db, lesson.ID)
+	existingLesson, err := s.lessonrepo.GetLessonByID(ctx, lesson.ID)
 	if err != nil {
 		if errors.Is(err, errorsAPP.ErrNotFoundLesson) {
 			return fmt.Errorf("%s: %w", op, err)
@@ -22,7 +22,7 @@ func (s *lessonService) UpdateLesson(ctx context.Context, userID int64, lesson *
 	}
 
 	// RBAC: check that user can edit the course this lesson belongs to
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, int64(existingLesson.CourseID))
+	course, err := s.courserepo.GetCourseByID(ctx, int64(existingLesson.CourseID))
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -68,7 +68,7 @@ func (s *lessonService) UpdateLesson(ctx context.Context, userID int64, lesson *
 		return fmt.Errorf("%s: validation failed: %w", op, err)
 	}
 
-	err = s.lessonrepo.UpdateLesson(ctx, s.db, lesson)
+	err = s.lessonrepo.UpdateLesson(ctx, lesson)
 	if err != nil {
 		if errors.Is(err, errorsAPP.ErrNothingToUpdate) {
 			return fmt.Errorf("%s: %w", op, err)

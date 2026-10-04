@@ -2,12 +2,13 @@ package auth
 
 import (
 	"context"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	"fmt"
 )
 
-func (r *repository) ExistingByUsernName(ctx context.Context, q db.QueryExecutor, username string) (bool, error) {
+func (r *repository) ExistingByUsernName(ctx context.Context, username string) (bool, error) {
 	const op = "repository.auth.existingbyusername"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT EXISTS(
@@ -28,8 +29,9 @@ func (r *repository) ExistingByUsernName(ctx context.Context, q db.QueryExecutor
 
 }
 
-func (r *repository) ExistingByEmail(ctx context.Context, q db.QueryExecutor, email string) (bool, error) {
+func (r *repository) ExistingByEmail(ctx context.Context, email string) (bool, error) {
 	const op = "repository.auth.existingbyemail"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT EXISTS(

@@ -14,7 +14,7 @@ func (s *service) BuildCoursePermissions(ctx context.Context, course *domain.Cou
 	isCreator := course.CreatedBy == userID
 
 	// Получаем роль пользователя в данном курсе за 1 запрос к БД
-	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, s.db, userID, course.Id)
+	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, userID, course.Id)
 	isEnrolled := err == nil && role != ""
 
 	// 1. CanView

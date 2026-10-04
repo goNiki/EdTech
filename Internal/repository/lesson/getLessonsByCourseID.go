@@ -5,14 +5,15 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository/models"
 	"edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
 )
 
-func (r *repository) GetLessonsByCourseID(ctx context.Context, q db.QueryExecutor, courseID int64) ([]domain.Lesson, error) {
+func (r *repository) GetLessonsByCourseID(ctx context.Context, courseID int64) ([]domain.Lesson, error) {
 	const op = "repository.lesson.getbycourseid"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `SELECT id, course_id, section_id, title, description, cover_url, content, type, position, duration, is_free, status, created_at, updated_at, published_at, deleted_at 
 		FROM lessons WHERE course_id = $1 AND deleted_at IS NULL ORDER BY position ASC`

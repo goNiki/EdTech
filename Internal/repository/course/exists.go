@@ -2,13 +2,14 @@ package course
 
 import (
 	"context"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 	"fmt"
 )
 
-func (r *repository) ExistingBySlug(ctx context.Context, q db.QueryExecutor, slug string) (bool, error) {
+func (r *repository) ExistingBySlug(ctx context.Context, slug string) (bool, error) {
 	const op = "repository.course.ExistingBySlug"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT EXISTS(
@@ -27,6 +28,6 @@ func (r *repository) ExistingBySlug(ctx context.Context, q db.QueryExecutor, slu
 	return exists, nil
 }
 
-func (r *repository) ExistsBySlug(ctx context.Context, q db.QueryExecutor, slug string) (bool, error) {
-	return r.ExistingBySlug(ctx, q, slug)
+func (r *repository) ExistsBySlug(ctx context.Context, slug string) (bool, error) {
+	return r.ExistingBySlug(ctx, slug)
 }

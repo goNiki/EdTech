@@ -1,7 +1,6 @@
 package course
 
 import (
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository"
 	services "edtech/internal/service"
@@ -14,10 +13,9 @@ type service struct {
 	accessService services.AccessService
 	enrolledrepo  repository.EnrolledRepository
 	txManager     txmanager.TransactionManager
-	db            db.QueryExecutor
 }
 
-func NewCourseService(courserepo repository.CourseRepository, sectionrepo repository.SectionRepository, lessonrepo repository.LessonRepository, accessService services.AccessService, enrolledrepo repository.EnrolledRepository, txManager txmanager.TransactionManager, database db.QueryExecutor) *service {
+func NewCourseService(courserepo repository.CourseRepository, sectionrepo repository.SectionRepository, lessonrepo repository.LessonRepository, accessService services.AccessService, enrolledrepo repository.EnrolledRepository, txManager txmanager.TransactionManager) *service {
 	return &service{
 		courserepo:    courserepo,
 		sectionrepo:   sectionrepo,
@@ -25,6 +23,5 @@ func NewCourseService(courserepo repository.CourseRepository, sectionrepo reposi
 		accessService: accessService,
 		enrolledrepo:  enrolledrepo,
 		txManager:     txManager,
-		db:            database,
 	}
 }

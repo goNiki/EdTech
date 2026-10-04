@@ -1,16 +1,17 @@
 package section
 
 import (
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/repository"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type repositorySection struct {
-	db db.QueryExecutor
+	Pool *pgxpool.Pool
 }
 
-func NewSectionRepository(database db.QueryExecutor) repository.SectionRepository {
+func NewSectionRepository(pool *pgxpool.Pool) repository.SectionRepository {
 	return &repositorySection{
-		db: database,
+		Pool: pool,
 	}
 }

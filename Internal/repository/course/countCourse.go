@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 )
 
-func (r *repository) CountCourses(ctx context.Context, q db.QueryExecutor, filter domain.CourseFilter) (int64, error) {
+func (r *repository) CountCourses(ctx context.Context, filter domain.CourseFilter) (int64, error) {
 	const op = "repository.course.CountCourses"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	whereClause, args := buildCourseFilterQuery(filter)
 	query := "SELECT COUNT(*) FROM courses " + whereClause

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	repomodels "edtech/internal/repository/models"
 	repoconverter "edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
@@ -15,8 +15,9 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *repositoryImpl) CreateAttempt(ctx context.Context, q db.QueryExecutor, attempt *domain.QuizAttempt) (*domain.QuizAttempt, error) {
+func (r *repositoryImpl) CreateAttempt(ctx context.Context, attempt *domain.QuizAttempt) (*domain.QuizAttempt, error) {
 	const op = "repository.quiz.CreateAttempt"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	startedAt := attempt.StartedAt
 	if startedAt.IsZero() {
@@ -65,8 +66,9 @@ func (r *repositoryImpl) CreateAttempt(ctx context.Context, q db.QueryExecutor, 
 	return attempt, nil
 }
 
-func (r *repositoryImpl) GetAttemptByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.QuizAttempt, error) {
+func (r *repositoryImpl) GetAttemptByID(ctx context.Context, id int64) (*domain.QuizAttempt, error) {
 	const op = "repository.quiz.GetAttemptByID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT 
@@ -100,8 +102,9 @@ func (r *repositoryImpl) GetAttemptByID(ctx context.Context, q db.QueryExecutor,
 	return repoconverter.QuizAttemptToDomain(&attempt), nil
 }
 
-func (r *repositoryImpl) GetAttemptForUpdate(ctx context.Context, q db.QueryExecutor, attemptID int64) (*domain.QuizAttempt, error) {
+func (r *repositoryImpl) GetAttemptForUpdate(ctx context.Context, attemptID int64) (*domain.QuizAttempt, error) {
 	const op = "repository.quiz.GetAttemptForUpdate"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT 
@@ -136,8 +139,9 @@ func (r *repositoryImpl) GetAttemptForUpdate(ctx context.Context, q db.QueryExec
 	return repoconverter.QuizAttemptToDomain(&attempt), nil
 }
 
-func (r *repositoryImpl) UpdateAttempt(ctx context.Context, q db.QueryExecutor, attempt *domain.QuizAttempt) error {
+func (r *repositoryImpl) UpdateAttempt(ctx context.Context, attempt *domain.QuizAttempt) error {
 	const op = "repository.quiz.UpdateAttempt"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE quiz_attempts 
@@ -155,8 +159,9 @@ func (r *repositoryImpl) UpdateAttempt(ctx context.Context, q db.QueryExecutor, 
 	return nil
 }
 
-func (r *repositoryImpl) CountUserAttempts(ctx context.Context, q db.QueryExecutor, userID, quizID int64) (int, error) {
+func (r *repositoryImpl) CountUserAttempts(ctx context.Context, userID, quizID int64) (int, error) {
 	const op = "repository.quiz.CountUserAttempts"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `SELECT COUNT(*) FROM quiz_attempts WHERE user_id = $1 AND quiz_id = $2`
 
@@ -169,8 +174,9 @@ func (r *repositoryImpl) CountUserAttempts(ctx context.Context, q db.QueryExecut
 	return count, nil
 }
 
-func (r *repositoryImpl) CountUserAttemptsForUpdate(ctx context.Context, q db.QueryExecutor, userID, quizID int64) (int, error) {
+func (r *repositoryImpl) CountUserAttemptsForUpdate(ctx context.Context, userID, quizID int64) (int, error) {
 	const op = "repository.quiz.CountUserAttemptsForUpdate"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `SELECT COUNT(*) FROM (SELECT id FROM quiz_attempts WHERE user_id = $1 AND quiz_id = $2 FOR UPDATE) AS locked_attempts`
 
@@ -183,8 +189,9 @@ func (r *repositoryImpl) CountUserAttemptsForUpdate(ctx context.Context, q db.Qu
 	return count, nil
 }
 
-func (r *repositoryImpl) ListAttemptsForGrading(ctx context.Context, q db.QueryExecutor, courseID int64, quizID *int64, limit, offset int) ([]domain.QuizAttempt, int64, error) {
+func (r *repositoryImpl) ListAttemptsForGrading(ctx context.Context, courseID int64, quizID *int64, limit, offset int) ([]domain.QuizAttempt, int64, error) {
 	const op = "repository.quiz.ListAttemptsForGrading"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	countQuery := `
 		SELECT COUNT(DISTINCT qa.id) 

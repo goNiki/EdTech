@@ -11,7 +11,7 @@ import (
 func (s *service) ArchiveCourse(ctx context.Context, userID int64, courseID int64) error {
 	const op = "service.course.ArchiveCourse"
 
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, courseID)
+	course, err := s.courserepo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return fmt.Errorf("%s: get course: %w", op, err)
 	}
@@ -30,7 +30,7 @@ func (s *service) ArchiveCourse(ctx context.Context, userID int64, courseID int6
 
 	course.Archive(time.Now())
 
-	if err := s.courserepo.ArchiveCourse(ctx, s.db, course); err != nil {
+	if err := s.courserepo.ArchiveCourse(ctx, course); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 

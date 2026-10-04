@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
@@ -14,7 +13,7 @@ import (
 func (s *service) UnenrollUser(ctx context.Context, userID int64, courseID int64) error {
 	const op = "service.enrollment.UnenrollUser"
 
-	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, s.db, userID, courseID)
+	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, userID, courseID)
 	if err != nil {
 		if errors.Is(err, errorsAPP.ErrNotFoundCourse) {
 			return fmt.Errorf("%s: %w", op, errorsAPP.ErrNotEnrolled)
@@ -29,11 +28,11 @@ func (s *service) UnenrollUser(ctx context.Context, userID int64, courseID int64
 		return fmt.Errorf("%s: %w", op, errorsAPP.ErrCreatorCannotUnenroll)
 	}
 
-	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, tx db.QueryExecutor) error {
-		if err := s.enrolledrepo.UnenrollUser(ctx, tx, userID, courseID); err != nil {
+	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
+		if err := s.enrolledrepo.UnenrollUser(ctx, userID, courseID); err != nil {
 			return err
 		}
-		if err := s.courserepo.DecrementEnrolledCount(ctx, tx, courseID); err != nil {
+		if err := s.courserepo.DecrementEnrolledCount(ctx, courseID); err != nil {
 			return err
 		}
 		return nil
@@ -49,7 +48,7 @@ func (s *service) UnenrollUser(ctx context.Context, userID int64, courseID int64
 func (s *service) TeacherUnenrollUser(ctx context.Context, teacherID int64, targetUserID int64, courseID int64) error {
 	const op = "service.enrollment.TeacherUnenrollUser"
 
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, courseID)
+	course, err := s.courserepo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

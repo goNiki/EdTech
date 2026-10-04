@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 )
 
-func (r *repository) GetRoleUserInCourse(ctx context.Context, q db.QueryExecutor, userID, courceID int64) (string, error) {
+func (r *repository) GetRoleUserInCourse(ctx context.Context, userID, courceID int64) (string, error) {
 	const op = "repository.enrolled.GetRoleUserInCourse"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `SELECT role FROM users_courses WHERE user_id = $1 AND course_id = $2`
 

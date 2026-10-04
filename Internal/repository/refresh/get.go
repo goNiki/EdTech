@@ -3,7 +3,7 @@ package refresh
 import (
 	"context"
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	repomodels "edtech/internal/repository/models"
 	repoconverter "edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
@@ -13,8 +13,9 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *repository) GetByToken(ctx context.Context, q db.QueryExecutor, refreshToken string) (domain.RefreshTokenData, error) {
+func (r *repository) GetByToken(ctx context.Context, refreshToken string) (domain.RefreshTokenData, error) {
 	const op = "repository.refresh.GetByToken"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT 

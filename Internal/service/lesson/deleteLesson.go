@@ -13,7 +13,7 @@ func (s *lessonService) DeleteLesson(ctx context.Context, userID int64, lessonID
 	const op = "service.lesson.DeleteLesson"
 
 	// Load the lesson to find its courseID
-	existingLesson, err := s.lessonrepo.GetLessonByID(ctx, s.db, lessonID)
+	existingLesson, err := s.lessonrepo.GetLessonByID(ctx, lessonID)
 	if err != nil {
 		if errors.Is(err, errorsAPP.ErrNotFoundLesson) {
 			return fmt.Errorf("%s: %w", op, err)
@@ -22,7 +22,7 @@ func (s *lessonService) DeleteLesson(ctx context.Context, userID int64, lessonID
 	}
 
 	// RBAC: check that user can edit the course this lesson belongs to
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, int64(existingLesson.CourseID))
+	course, err := s.courserepo.GetCourseByID(ctx, int64(existingLesson.CourseID))
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -41,7 +41,7 @@ func (s *lessonService) DeleteLesson(ctx context.Context, userID int64, lessonID
 		return fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
 	}
 
-	if err := s.lessonrepo.DeleteLessonByID(ctx, s.db, lessonID); err != nil {
+	if err := s.lessonrepo.DeleteLessonByID(ctx, lessonID); err != nil {
 		if errors.Is(err, errorsAPP.ErrNotFoundLesson) {
 			return fmt.Errorf("%s: %w", op, err)
 		}

@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
 )
 
-func (r *repository) CreateLesson(ctx context.Context, q db.QueryExecutor, lesson *domain.Lesson) error {
+func (r *repository) CreateLesson(ctx context.Context, lesson *domain.Lesson) error {
 	const op = "repository.lesson.create"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	entity := converter.LessonToEntity(lesson)
 	if entity.Status == "" {

@@ -3,14 +3,15 @@ package enrollment
 import (
 	"context"
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	repomodels "edtech/internal/repository/models"
 	repoconverter "edtech/internal/repository/models/converter"
 	"fmt"
 )
 
-func (r *repository) ListCourseStudents(ctx context.Context, q db.QueryExecutor, courseID int64, limit, offset int64) ([]domain.User, int, error) {
+func (r *repository) ListCourseStudents(ctx context.Context, courseID int64, limit, offset int64) ([]domain.User, int, error) {
 	const op = "repository.enrollment.listcoursestudents"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	// Count query
 	countQuery := `

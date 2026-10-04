@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/service/quiz"
 	errorsAPP "edtech/pkg/errors"
 
@@ -17,7 +16,7 @@ import (
 func (s *service) CompleteLesson(ctx context.Context, userID int64, lessonID int64, score *int, answers []domain.LessonAnswerSubmission, essays []domain.EssaySubmission) (*domain.LessonCompletionResult, error) {
 	const op = "service.progress.CompleteLesson"
 
-	lesson, err := s.lessonRepo.GetLessonByID(ctx, s.db, lessonID)
+	lesson, err := s.lessonRepo.GetLessonByID(ctx, lessonID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: get lesson: %w", op, err)
 	}
@@ -36,9 +35,9 @@ func (s *service) CompleteLesson(ctx context.Context, userID int64, lessonID int
 	}
 	validationResult.Score = finalScore
 
-	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, tx db.QueryExecutor) error {
+	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
 		// 1. Update or create lesson progress
-		err = s.progressRepo.UpdateLessonProgressStatus(ctx, tx, userID, lessonID, domain.ProgressStatusCompleted)
+		err = s.progressRepo.UpdateLessonProgressStatus(ctx, userID, lessonID, domain.ProgressStatusCompleted)
 		if err != nil {
 			if errors.Is(err, errorsAPP.ErrLessonProgressNotFound) {
 				now := time.Now()
@@ -52,33 +51,33 @@ func (s *service) CompleteLesson(ctx context.Context, userID int64, lessonID int
 					StartedAt:   &now,
 					UpdatedAt:   now,
 				}
-				if cErr := s.progressRepo.CreateLessonProgress(ctx, tx, lp); cErr != nil {
+				if cErr := s.progressRepo.CreateLessonProgress(ctx, lp); cErr != nil {
 					return fmt.Errorf("create lesson progress: %w", cErr)
 				}
 			} else {
 				return fmt.Errorf("update lesson progress: %w", err)
 			}
 		} else {
-			if sErr := s.progressRepo.UpdateLessonProgressScore(ctx, tx, userID, lessonID, finalScore); sErr != nil {
+			if sErr := s.progressRepo.UpdateLessonProgressScore(ctx, userID, lessonID, finalScore); sErr != nil {
 				return fmt.Errorf("update lesson progress score: %w", sErr)
 			}
 		}
 
 		// 2. Handle Homework / Essay submissions
 		for _, es := range essays {
-			if err := s.quizRepo.SaveEssaySubmission(ctx, tx, userID, lesson.CourseID, lessonID, es); err != nil {
+			if err := s.quizRepo.SaveEssaySubmission(ctx, userID, lesson.CourseID, lessonID, es); err != nil {
 				return fmt.Errorf("save essay submission: %w", err)
 			}
 		}
 
 		// 3. Recalculate Course Progress
-		courseLessons, err := s.lessonRepo.GetLessonsByCourseID(ctx, tx, lesson.CourseID)
+		courseLessons, err := s.lessonRepo.GetLessonsByCourseID(ctx, lesson.CourseID)
 		if err != nil {
 			return fmt.Errorf("get course lessons: %w", err)
 		}
 
 		if len(courseLessons) > 0 {
-			allProgress, pErr := s.progressRepo.GetAllLessonProgressByCourse(ctx, tx, userID, lesson.CourseID)
+			allProgress, pErr := s.progressRepo.GetAllLessonProgressByCourse(ctx, userID, lesson.CourseID)
 			if pErr != nil {
 				return fmt.Errorf("get all lesson progress: %w", pErr)
 			}
@@ -103,7 +102,7 @@ func (s *service) CompleteLesson(ctx context.Context, userID int64, lessonID int
 				avgScore = float64(totalScore) / float64(scoreCount)
 			}
 
-			if err := s.progressRepo.UpsertCourseProgressWithScore(ctx, tx, userID, lesson.CourseID, completedCount, total, percent, avgScore); err != nil {
+			if err := s.progressRepo.UpsertCourseProgressWithScore(ctx, userID, lesson.CourseID, completedCount, total, percent, avgScore); err != nil {
 				return fmt.Errorf("upsert course progress: %w", err)
 			}
 		}

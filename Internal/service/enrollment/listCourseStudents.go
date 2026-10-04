@@ -11,7 +11,7 @@ import (
 func (s *service) ListCourseStudents(ctx context.Context, courseID int64, page int64, pageSize int64) ([]domain.User, int, error) {
 	const op = "service.enrollment.ListCourseStudents"
 
-	if _, err := s.courserepo.GetCourseByID(ctx, s.db, courseID); err != nil {
+	if _, err := s.courserepo.GetCourseByID(ctx, courseID); err != nil {
 		return nil, 0, fmt.Errorf("%s: get course: %w", op, err)
 	}
 
@@ -23,7 +23,7 @@ func (s *service) ListCourseStudents(ctx context.Context, courseID int64, page i
 	}
 	offset := (page - 1) * pageSize
 
-	students, total, err := s.enrolledrepo.ListCourseStudents(ctx, s.db, courseID, pageSize, offset)
+	students, total, err := s.enrolledrepo.ListCourseStudents(ctx, courseID, pageSize, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -34,7 +34,7 @@ func (s *service) ListCourseStudents(ctx context.Context, courseID int64, page i
 func (s *service) ListCourseStudentsWithProgress(ctx context.Context, teacherID, courseID int64, page, pageSize int64) ([]domain.CourseStudentItem, int64, error) {
 	const op = "service.enrollment.ListCourseStudentsWithProgress"
 
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, courseID)
+	course, err := s.courserepo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("%s: get course: %w", op, err)
 	}
@@ -55,7 +55,7 @@ func (s *service) ListCourseStudentsWithProgress(ctx context.Context, teacherID,
 	}
 	offset := (page - 1) * pageSize
 
-	students, total, err := s.enrolledrepo.ListCourseStudentsWithProgress(ctx, s.db, courseID, pageSize, offset)
+	students, total, err := s.enrolledrepo.ListCourseStudentsWithProgress(ctx, courseID, pageSize, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("%s: %w", op, err)
 	}

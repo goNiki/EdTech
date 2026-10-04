@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
 	"errors"
 	"fmt"
@@ -17,7 +16,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (domain
 
 	hashRefreshToken := s.hasherManager.HashRefreshToken(refreshToken)
 
-	tokenData, err := s.refreshRepo.GetByToken(ctx, s.db, hashRefreshToken)
+	tokenData, err := s.refreshRepo.GetByToken(ctx, hashRefreshToken)
 	if err != nil {
 		if errors.Is(err, errorsAPP.ErrRefreshTokenNotFound) {
 			return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, errorsAPP.ErrInvalidRefreshToken)
@@ -28,11 +27,11 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (domain
 	now := time.Now()
 
 	if !tokenData.IsValid(now) {
-		_ = s.refreshRepo.DeleteRefreshToken(ctx, s.db, hashRefreshToken)
+		_ = s.refreshRepo.DeleteRefreshToken(ctx, hashRefreshToken)
 		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, errorsAPP.ErrInvalidRefreshToken)
 	}
 
-	user, err := s.repo.GetUserByID(ctx, s.db, tokenData.UserID)
+	user, err := s.repo.GetUserByID(ctx, tokenData.UserID)
 	if err != nil {
 		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -43,14 +42,14 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (domain
 
 	var newTokens domain.AuthTokens
 
-	err = s.txmanager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, q db.QueryExecutor) error {
+	err = s.txmanager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
 
-		if err := s.refreshRepo.DeleteRefreshToken(ctx, q, hashRefreshToken); err != nil {
+		if err := s.refreshRepo.DeleteRefreshToken(ctx, hashRefreshToken); err != nil {
 			return err
 		}
 
 		var err error
-		newTokens, err = s.generateAndSaveTokens(ctx, q, user, now)
+		newTokens, err = s.generateAndSaveTokens(ctx, user, now)
 		if err != nil {
 			return err
 		}

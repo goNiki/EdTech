@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
@@ -15,20 +14,20 @@ import (
 func (s *service) StartAttempt(ctx context.Context, userID int64, quizID int64) (*domain.QuizAttempt, error) {
 	const op = "service.quiz.StartAttempt"
 
-	quiz, err := s.quizRepo.GetQuizByID(ctx, s.db, quizID)
+	quiz, err := s.quizRepo.GetQuizByID(ctx, quizID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: get quiz: %w", op, err)
 	}
 
 	var attempt *domain.QuizAttempt
 
-	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, tx db.QueryExecutor) error {
+	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
 		// Advisory lock для защиты от phantom reads при проверке лимита попыток
-		if lockErr := s.quizRepo.AcquireAdvisoryLock(ctx, tx, userID, quizID); lockErr != nil {
+		if lockErr := s.quizRepo.AcquireAdvisoryLock(ctx, userID, quizID); lockErr != nil {
 			return lockErr
 		}
 
-		count, txErr := s.quizRepo.CountUserAttemptsForUpdate(ctx, tx, userID, quizID)
+		count, txErr := s.quizRepo.CountUserAttemptsForUpdate(ctx, userID, quizID)
 		if txErr != nil {
 			return txErr
 		}
@@ -46,7 +45,7 @@ func (s *service) StartAttempt(ctx context.Context, userID int64, quizID int64) 
 		}
 
 		var createErr error
-		attempt, createErr = s.quizRepo.CreateAttempt(ctx, tx, newAttempt)
+		attempt, createErr = s.quizRepo.CreateAttempt(ctx, newAttempt)
 		if createErr != nil {
 			return createErr
 		}

@@ -12,7 +12,7 @@ import (
 func (s *service) UpdateCourse(ctx context.Context, courseID int64, userID int64, input domain.UpdateCourseInput) (*domain.Course, error) {
 	const op = "service.course.UpdateCourse"
 
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, courseID)
+	course, err := s.courserepo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: get course: %w", op, err)
 	}
@@ -28,7 +28,7 @@ func (s *service) UpdateCourse(ctx context.Context, courseID int64, userID int64
 	if input.Slug != nil {
 		cleanSlug := utils.NormalizeSlug(*input.Slug)
 		if cleanSlug != course.Slug {
-			uniqueSlug, err := s.resolveUniqueSlug(ctx, s.db, cleanSlug)
+			uniqueSlug, err := s.resolveUniqueSlug(ctx, cleanSlug)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", op, err)
 			}
@@ -44,7 +44,7 @@ func (s *service) UpdateCourse(ctx context.Context, courseID int64, userID int64
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := s.courserepo.UpdateCourse(ctx, s.db, course); err != nil {
+	if err := s.courserepo.UpdateCourse(ctx, course); err != nil {
 		return nil, fmt.Errorf("%s: save updated course: %w", op, err)
 	}
 

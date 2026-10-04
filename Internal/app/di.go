@@ -23,6 +23,7 @@ import (
 	uploadHandler "edtech/internal/interfaces/handlers/upload"
 	categoryHandler "edtech/internal/interfaces/handlers/category"
 	reviewHandler "edtech/internal/interfaces/handlers/review"
+	certHandler "edtech/internal/interfaces/handlers/certificate"
 	mwauth "edtech/internal/interfaces/middleware/auth"
 	mwlogger "edtech/internal/interfaces/middleware/logger"
 	"edtech/internal/infrastructure/storage"
@@ -31,6 +32,7 @@ import (
 	analyticsRepo "edtech/internal/repository/analytics"
 	authRepo "edtech/internal/repository/auth"
 	categoryRepo "edtech/internal/repository/category"
+	certRepo "edtech/internal/repository/certificate"
 	courseRepo "edtech/internal/repository/course"
 	enrolledRepo "edtech/internal/repository/enrollment"
 	lessonRepo "edtech/internal/repository/lesson"
@@ -46,6 +48,7 @@ import (
 	analyticsService "edtech/internal/service/analytics"
 	authService "edtech/internal/service/auth"
 	categoryService "edtech/internal/service/category"
+	certService "edtech/internal/service/certificate"
 	courseService "edtech/internal/service/course"
 	enrolledService "edtech/internal/service/enrollment"
 	lessonService "edtech/internal/service/lesson"
@@ -94,6 +97,7 @@ type diContainer struct {
 	analyticsHdl  *analyticsHandler.AnalyticsHandler
 	categoryHdl   *categoryHandler.CategoryHandler
 	reviewHdl     *reviewHandler.ReviewHandler
+	certHdl       *certHandler.CertificateHandler
 
 	// services
 	accessSvc    service.AccessService
@@ -108,6 +112,7 @@ type diContainer struct {
 	analyticsSvc service.AnalyticsServices
 	categorySvc  service.CategoryServices
 	reviewSvc    service.ReviewServices
+	certSvc      service.CertificateServices
 
 	// repositories
 	userRepo      repository.UserRepository
@@ -122,6 +127,7 @@ type diContainer struct {
 	analyticsRepo repository.AnalyticsRepository
 	categoryRepo  repository.CategoryRepository
 	reviewRepo    repository.ReviewRepository
+	certRepo      repository.CertificateRepository
 }
 
 func (d *diContainer) initConfig() {
@@ -316,72 +322,79 @@ func (d *diContainer) CategoryRepo() repository.CategoryRepository {
 
 func (d *diContainer) ReviewRepo() repository.ReviewRepository {
 	if d.reviewRepo == nil {
-		d.reviewRepo = reviewRepo.NewReviewRepository()
+		d.reviewRepo = reviewRepo.NewReviewRepository(d.DB().Pool)
 	}
 	return d.reviewRepo
+}
+
+func (d *diContainer) CertRepo() repository.CertificateRepository {
+	if d.certRepo == nil {
+		d.certRepo = certRepo.NewCertificateRepository(d.DB().Pool)
+	}
+	return d.certRepo
 }
 
 // Services
 
 func (d *diContainer) SectionSvc() service.SectionServices {
 	if d.sectionSvc == nil {
-		d.sectionSvc = sectionService.NewSectionService(d.SectionRepo(), d.LessonRepo(), d.CourseRepo(), d.AccessSvc(), d.TxManager(), d.DB().Pool)
+		d.sectionSvc = sectionService.NewSectionService(d.SectionRepo(), d.LessonRepo(), d.CourseRepo(), d.AccessSvc(), d.TxManager())
 	}
 	return d.sectionSvc
 }
 
 func (d *diContainer) AccessSvc() service.AccessService {
 	if d.accessSvc == nil {
-		d.accessSvc = accessService.NewAccessService(d.CourseRepo(), d.EnrolledRepo(), d.PermRepo(), d.DB().Pool)
+		d.accessSvc = accessService.NewAccessService(d.CourseRepo(), d.EnrolledRepo(), d.PermRepo())
 	}
 	return d.accessSvc
 }
 
 func (d *diContainer) AuthSvc() service.AuthService {
 	if d.authSvc == nil {
-		d.authSvc = authService.NewAuthService(d.UserRepo(), d.JWTManager(), d.Hasher(), d.RefreshRepo(), d.DB().Pool, d.TxManager())
+		d.authSvc = authService.NewAuthService(d.UserRepo(), d.JWTManager(), d.Hasher(), d.RefreshRepo(), d.TxManager())
 	}
 	return d.authSvc
 }
 
 func (d *diContainer) CourseSvc() service.CourseServices {
 	if d.courseSvc == nil {
-		d.courseSvc = courseService.NewCourseService(d.CourseRepo(), d.SectionRepo(), d.LessonRepo(), d.AccessSvc(), d.EnrolledRepo(), d.TxManager(), d.DB().Pool)
+		d.courseSvc = courseService.NewCourseService(d.CourseRepo(), d.SectionRepo(), d.LessonRepo(), d.AccessSvc(), d.EnrolledRepo(), d.TxManager())
 	}
 	return d.courseSvc
 }
 
 func (d *diContainer) LessonSvc() service.LessonServices {
 	if d.lessonSvc == nil {
-		d.lessonSvc = lessonService.NewLessonService(d.CourseRepo(), d.LessonRepo(), d.SectionRepo(), d.AccessSvc(), d.DB().Pool)
+		d.lessonSvc = lessonService.NewLessonService(d.CourseRepo(), d.LessonRepo(), d.SectionRepo(), d.AccessSvc())
 	}
 	return d.lessonSvc
 }
 
 func (d *diContainer) EnrolledSvc() service.EnrolledServices {
 	if d.enrolledSvc == nil {
-		d.enrolledSvc = enrolledService.NewEnrolmentService(d.CourseRepo(), d.EnrolledRepo(), d.UserRepo(), d.AccessSvc(), d.DB().Pool, d.TxManager())
+		d.enrolledSvc = enrolledService.NewEnrolmentService(d.CourseRepo(), d.EnrolledRepo(), d.UserRepo(), d.AccessSvc(), d.TxManager())
 	}
 	return d.enrolledSvc
 }
 
 func (d *diContainer) ProgressSvc() service.ProgressServices {
 	if d.progressSvc == nil {
-		d.progressSvc = progressService.NewProgressService(d.ProgRepo(), d.LessonRepo(), d.QuizRepo(), d.TxManager(), d.DB().Pool)
+		d.progressSvc = progressService.NewProgressService(d.ProgRepo(), d.LessonRepo(), d.QuizRepo(), d.TxManager())
 	}
 	return d.progressSvc
 }
 
 func (d *diContainer) QuizSvc() service.QuizServices {
 	if d.quizSvc == nil {
-		d.quizSvc = quizService.NewQuizService(d.QuizRepo(), d.CourseRepo(), d.LessonRepo(), d.AccessSvc(), d.ProgressSvc(), d.TxManager(), d.DB().Pool)
+		d.quizSvc = quizService.NewQuizService(d.QuizRepo(), d.CourseRepo(), d.LessonRepo(), d.AccessSvc(), d.ProgressSvc(), d.TxManager())
 	}
 	return d.quizSvc
 }
 
 func (d *diContainer) AnalyticsSvc() service.AnalyticsServices {
 	if d.analyticsSvc == nil {
-		d.analyticsSvc = analyticsService.NewAnalyticsService(d.AnalyticsRepo(), d.CourseRepo(), d.AccessSvc(), d.TxManager(), d.DB().Pool)
+		d.analyticsSvc = analyticsService.NewAnalyticsService(d.AnalyticsRepo(), d.CourseRepo(), d.AccessSvc(), d.TxManager())
 	}
 	return d.analyticsSvc
 }
@@ -395,16 +408,23 @@ func (d *diContainer) UploadSvc() service.UploadServices {
 
 func (d *diContainer) CategorySvc() service.CategoryServices {
 	if d.categorySvc == nil {
-		d.categorySvc = categoryService.NewCategoryService(d.CategoryRepo(), d.DB().Pool)
+		d.categorySvc = categoryService.NewCategoryService(d.CategoryRepo())
 	}
 	return d.categorySvc
 }
 
 func (d *diContainer) ReviewSvc() service.ReviewServices {
 	if d.reviewSvc == nil {
-		d.reviewSvc = reviewService.NewReviewService(d.ReviewRepo(), d.CourseRepo(), d.EnrolledRepo(), d.ProgRepo(), d.TxManager(), d.DB().Pool)
+		d.reviewSvc = reviewService.NewReviewService(d.ReviewRepo(), d.CourseRepo(), d.EnrolledRepo(), d.ProgRepo(), d.TxManager())
 	}
 	return d.reviewSvc
+}
+
+func (d *diContainer) CertSvc() service.CertificateServices {
+	if d.certSvc == nil {
+		d.certSvc = certService.NewCertificateService(d.CertRepo(), d.CourseRepo(), d.UserRepo(), d.ProgRepo())
+	}
+	return d.certSvc
 }
 
 // Handlers
@@ -486,6 +506,13 @@ func (d *diContainer) ReviewHdl() *reviewHandler.ReviewHandler {
 	return d.reviewHdl
 }
 
+func (d *diContainer) CertHdl() *certHandler.CertificateHandler {
+	if d.certHdl == nil {
+		d.certHdl = certHandler.NewCertificateHandler(d.CertSvc(), d.Logger(), d.MwAuth())
+	}
+	return d.certHdl
+}
+
 // Router
 
 func (d *diContainer) Router() http.Handler {
@@ -559,6 +586,9 @@ func (d *diContainer) Router() http.Handler {
 				r.Post("/{courseid}/reviews", d.ReviewHdl().AddOrUpdateReview)
 				r.Delete("/{courseid}/reviews", d.ReviewHdl().DeleteReview)
 				r.Get("/{courseid}/reviews/my", d.ReviewHdl().GetMyReview)
+
+				// Certificates
+				r.Get("/{courseid}/certificate", d.CertHdl().GetOrIssueCertificate)
 
 				// Enrollment
 				r.Post("/{courseid}/enroll", d.EnrollmentHdl().SelfEnroll)
@@ -643,6 +673,11 @@ func (d *diContainer) Router() http.Handler {
 				r.Use(d.MwAuth().JWTMiddleware)
 				r.Post("/", d.CategoryHdl().CreateCategory)
 			})
+		})
+
+		// Certificates (Public Verification)
+		r.Route("/api/v1/certificates", func(r chi.Router) {
+			r.Get("/verify/{code}", d.CertHdl().VerifyCertificate)
 		})
 
 		d.router = r

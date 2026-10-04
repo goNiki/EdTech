@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/infrastructure/hasher"
 	"edtech/internal/infrastructure/jwt"
 	"edtech/internal/infrastructure/txmanager"
@@ -9,7 +8,6 @@ import (
 )
 
 type service struct {
-	db            db.QueryExecutor
 	txmanager     txmanager.TransactionManager
 	repo          repository.UserRepository
 	jwtManager    jwt.TokenManager
@@ -22,11 +20,9 @@ func NewAuthService(
 	jwtManager jwt.TokenManager,
 	hasherManager hasher.HasherManager,
 	refreshRepo repository.RefreshRepository,
-	database db.QueryExecutor,
 	txmanager txmanager.TransactionManager,
 ) *service {
 	return &service{
-		db:            database,
 		repo:          repo,
 		jwtManager:    jwtManager,
 		hasherManager: hasherManager,

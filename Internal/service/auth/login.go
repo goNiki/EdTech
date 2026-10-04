@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
 	"fmt"
 	"time"
@@ -12,7 +11,7 @@ import (
 func (s *service) Login(ctx context.Context, email, password string) (domain.AuthTokens, error) {
 	const op = "service.auth.Login"
 
-	user, err := s.repo.GetUserByEmail(ctx, s.db, email)
+	user, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
 		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -31,20 +30,20 @@ func (s *service) Login(ctx context.Context, email, password string) (domain.Aut
 	}
 
 	now := time.Now()
-	tokens, err := s.generateAndSaveTokens(ctx, s.db, user, now)
+	tokens, err := s.generateAndSaveTokens(ctx, user, now)
 	if err != nil {
 		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	user.Login(now)
 
-	_ = s.repo.UpdateLastLogin(ctx, s.db, user.ID, now)
+	_ = s.repo.UpdateLastLogin(ctx, user.ID, now)
 
 	return tokens, nil
 
 }
 
-func (s *service) generateAndSaveTokens(ctx context.Context, q db.QueryExecutor, user *domain.User, now time.Time) (domain.AuthTokens, error) {
+func (s *service) generateAndSaveTokens(ctx context.Context, user *domain.User, now time.Time) (domain.AuthTokens, error) {
 	const op = "service.auth.generateAndSaveTokens"
 
 	accessToken, err := s.jwtManager.GenerateAccessToken(user, now)
@@ -59,11 +58,11 @@ func (s *service) generateAndSaveTokens(ctx context.Context, q db.QueryExecutor,
 
 	hashRefreshToken := s.hasherManager.HashRefreshToken(refreshToken)
 
-	if err := s.refreshRepo.DeleteAllByUserID(ctx, q, user.ID); err != nil {
+	if err := s.refreshRepo.DeleteAllByUserID(ctx, user.ID); err != nil {
 		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if err := s.refreshRepo.Save(ctx, q, hashRefreshToken, user.ID, expiresIn); err != nil {
+	if err := s.refreshRepo.Save(ctx, hashRefreshToken, user.ID, expiresIn); err != nil {
 		return domain.AuthTokens{}, fmt.Errorf("%s: %w", op, err)
 	}
 

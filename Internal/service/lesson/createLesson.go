@@ -18,7 +18,7 @@ func (s *lessonService) CreateLesson(ctx context.Context, userID int64, lesson *
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, int64(lesson.CourseID))
+	course, err := s.courserepo.GetCourseByID(ctx, int64(lesson.CourseID))
 	if err != nil {
 		if errors.Is(err, errorsAPP.ErrNotFoundCourse) {
 			return 0, fmt.Errorf("%s: %w", op, err)
@@ -39,14 +39,14 @@ func (s *lessonService) CreateLesson(ctx context.Context, userID int64, lesson *
 		return 0, fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
 	}
 
-	position, err := s.lessonrepo.GetMaxPositionByCourseID(ctx, s.db, int64(lesson.CourseID))
+	position, err := s.lessonrepo.GetMaxPositionByCourseID(ctx, int64(lesson.CourseID))
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
 	lesson.Position = position + 1
 
-	err = s.lessonrepo.CreateLesson(ctx, s.db, lesson)
+	err = s.lessonrepo.CreateLesson(ctx, lesson)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}

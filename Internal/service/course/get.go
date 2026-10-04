@@ -9,7 +9,7 @@ import (
 func (s *service) GetCourseByID(ctx context.Context, id int64) (*domain.Course, error) {
 	const op = "service.course.GetCourseByID"
 
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, id)
+	course, err := s.courserepo.GetCourseByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -20,7 +20,7 @@ func (s *service) GetCourseByID(ctx context.Context, id int64) (*domain.Course, 
 func (s *service) GetCourseBySlug(ctx context.Context, slug string) (*domain.Course, error) {
 	const op = "service.course.GetCourseBySlug"
 
-	course, err := s.courserepo.GetCourseBySlug(ctx, s.db, slug)
+	course, err := s.courserepo.GetCourseBySlug(ctx, slug)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -31,13 +31,13 @@ func (s *service) GetCourseBySlug(ctx context.Context, slug string) (*domain.Cou
 func (s *service) GetCourseWithLessons(ctx context.Context, courseID int64) (domain.CourseWithLessons, error) {
 	const op = "service.course.GetCourseWithLessons"
 
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, courseID)
+	course, err := s.courserepo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	// 2. Получаем уроки курса
-	lessons, err := s.lessonrepo.GetLessonsByCourseID(ctx, s.db, courseID)
+	lessons, err := s.lessonrepo.GetLessonsByCourseID(ctx, courseID)
 	if err != nil {
 		return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, err)
 	}

@@ -12,7 +12,7 @@ func (s *lessonService) UpdateLessonStatus(ctx context.Context, userID int64, le
 	const op = "service.lesson.UpdateLessonStatus"
 
 	// Load the lesson to find its courseID
-	existingLesson, err := s.lessonrepo.GetLessonByID(ctx, s.db, lessonID)
+	existingLesson, err := s.lessonrepo.GetLessonByID(ctx, lessonID)
 	if err != nil {
 		if errors.Is(err, errorsAPP.ErrNotFoundLesson) {
 			return fmt.Errorf("%s: %w", op, err)
@@ -21,7 +21,7 @@ func (s *lessonService) UpdateLessonStatus(ctx context.Context, userID int64, le
 	}
 
 	// RBAC: check that user can edit the course this lesson belongs to
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, int64(existingLesson.CourseID))
+	course, err := s.courserepo.GetCourseByID(ctx, int64(existingLesson.CourseID))
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -40,7 +40,7 @@ func (s *lessonService) UpdateLessonStatus(ctx context.Context, userID int64, le
 		return fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
 	}
 
-	if err := s.lessonrepo.UpdateLessonStatus(ctx, s.db, lessonID, status); err != nil {
+	if err := s.lessonrepo.UpdateLessonStatus(ctx, lessonID, status); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 

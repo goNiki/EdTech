@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -13,14 +12,14 @@ import (
 func (s *service) UpdateLessonProgress(ctx context.Context, userID int64, lessonID int64, input domain.UpdateProgressInput) error {
 	const op = "service.progress.UpdateLessonProgress"
 
-	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, tx db.QueryExecutor) error {
+	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
 		if input.TimeSpent > 0 || input.LastPosition > 0 {
-			if err := s.progressRepo.UpdateLessonProgressTime(ctx, tx, userID, lessonID, input.TimeSpent, input.LastPosition); err != nil {
+			if err := s.progressRepo.UpdateLessonProgressTime(ctx, userID, lessonID, input.TimeSpent, input.LastPosition); err != nil {
 				return err
 			}
 		}
 		if input.Status != "" {
-			if err := s.progressRepo.UpdateLessonProgressStatus(ctx, tx, userID, lessonID, input.Status); err != nil {
+			if err := s.progressRepo.UpdateLessonProgressStatus(ctx, userID, lessonID, input.Status); err != nil {
 				return err
 			}
 		}

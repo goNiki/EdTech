@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
@@ -14,15 +13,15 @@ import (
 func (s *sectionService) UpdateSectionStatus(ctx context.Context, userID int64, sectionID int64, status string) error {
 	const op = "service.section.UpdateSectionStatus"
 
-	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, q db.QueryExecutor) error {
+	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
 		// Load the section to find its courseID
-		existing, err := s.sectionRepo.GetSectionByID(ctx, q, sectionID)
+		existing, err := s.sectionRepo.GetSectionByID(ctx, sectionID)
 		if err != nil {
 			return err
 		}
 
 		// RBAC: check that user can edit the course
-		course, err := s.courseRepo.GetCourseByID(ctx, q, existing.CourseID)
+		course, err := s.courseRepo.GetCourseByID(ctx, existing.CourseID)
 		if err != nil {
 			return err
 		}
@@ -41,10 +40,10 @@ func (s *sectionService) UpdateSectionStatus(ctx context.Context, userID int64, 
 			return errorsAPP.ErrForbidden
 		}
 
-		if err := s.sectionRepo.UpdateSectionStatus(ctx, q, sectionID, status); err != nil {
+		if err := s.sectionRepo.UpdateSectionStatus(ctx, sectionID, status); err != nil {
 			return err
 		}
-		return s.lessonRepo.UpdateStatusBySectionID(ctx, q, sectionID, status)
+		return s.lessonRepo.UpdateStatusBySectionID(ctx, sectionID, status)
 	})
 
 	if err != nil {

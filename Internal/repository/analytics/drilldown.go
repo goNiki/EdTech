@@ -6,12 +6,13 @@ import (
 	"time"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 )
 
-func (r *repositoryAnalytics) GetStudentDrilldown(ctx context.Context, q db.QueryExecutor, userID, courseID int64) (*domain.StudentDrilldownReport, error) {
+func (r *repositoryAnalytics) GetStudentDrilldown(ctx context.Context, userID, courseID int64) (*domain.StudentDrilldownReport, error) {
 	const op = "repository.analytics.GetStudentDrilldown"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	// 1. Get student info
 	studentQuery := `

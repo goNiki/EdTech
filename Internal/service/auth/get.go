@@ -9,7 +9,7 @@ import (
 func (s *service) GetCurrentUser(ctx context.Context, userID int64) (*domain.User, error) {
 	const op = "service.auth.GetCurrentUser"
 
-	user, err := s.repo.GetUserByID(ctx, s.db, userID)
+	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

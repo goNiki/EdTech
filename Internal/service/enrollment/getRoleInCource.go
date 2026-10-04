@@ -11,7 +11,7 @@ import (
 func (s *service) GetRoleUserInCource(ctx context.Context, userID, courseID int64) (string, error) {
 	const op = "service.enrollment.GetRoleUserInCource"
 
-	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, s.db, userID, courseID)
+	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, userID, courseID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", nil

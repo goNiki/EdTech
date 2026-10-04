@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	repomodels "edtech/internal/repository/models"
 	repoconverter "edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
@@ -14,8 +14,9 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *repository) GetCourseByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.Course, error) {
+func (r *repository) GetCourseByID(ctx context.Context, id int64) (*domain.Course, error) {
 	const op = "repository.course.GetCourseByID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT 
@@ -85,8 +86,9 @@ func (r *repository) GetCourseByID(ctx context.Context, q db.QueryExecutor, id i
 	return repoconverter.CourseToDomain(&entity), nil
 }
 
-func (r *repository) GetCourseBySlug(ctx context.Context, q db.QueryExecutor, slug string) (*domain.Course, error) {
+func (r *repository) GetCourseBySlug(ctx context.Context, slug string) (*domain.Course, error) {
 	const op = "repository.course.getcoursebyslug"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT 

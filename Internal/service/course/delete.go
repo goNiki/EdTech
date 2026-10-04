@@ -10,7 +10,7 @@ import (
 func (s *service) DeleteCourse(ctx context.Context, courseID int64, userID int64) error {
 	const op = "service.course.DeleteCourse"
 
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, courseID)
+	course, err := s.courserepo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -23,7 +23,7 @@ func (s *service) DeleteCourse(ctx context.Context, courseID int64, userID int64
 		return fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
 	}
 
-	if err := s.courserepo.DeleteCourse(ctx, s.db, courseID); err != nil {
+	if err := s.courserepo.DeleteCourse(ctx, courseID); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 

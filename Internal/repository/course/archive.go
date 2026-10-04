@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 )
 
-func (r *repository) ArchiveCourse(ctx context.Context, q db.QueryExecutor, course *domain.Course) error {
+func (r *repository) ArchiveCourse(ctx context.Context, course *domain.Course) error {
 	const op = "repository.course.ArchiveCourse"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE courses 

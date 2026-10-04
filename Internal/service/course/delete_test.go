@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/repository"
 	"edtech/internal/service"
 	courseService "edtech/internal/service/course"
@@ -34,14 +33,14 @@ type mockDeleteCourseRepo struct {
 	delErr    error
 }
 
-func (m *mockDeleteCourseRepo) GetCourseByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.Course, error) {
+func (m *mockDeleteCourseRepo) GetCourseByID(ctx context.Context, id int64) (*domain.Course, error) {
 	if m.getErr != nil {
 		return nil, m.getErr
 	}
 	return m.course, nil
 }
 
-func (m *mockDeleteCourseRepo) DeleteCourse(ctx context.Context, q db.QueryExecutor, courseID int64) error {
+func (m *mockDeleteCourseRepo) DeleteCourse(ctx context.Context, courseID int64) error {
 	if m.delErr != nil {
 		return m.delErr
 	}
@@ -55,7 +54,7 @@ func TestDeleteCourse_ForbiddenForNonCreator(t *testing.T) {
 	repo := &mockDeleteCourseRepo{course: course}
 	access := &mockAccessService{canDelete: false}
 
-	svc := courseService.NewCourseService(repo, nil, nil, access, nil, nil, nil)
+	svc := courseService.NewCourseService(repo, nil, nil, access, nil, nil)
 
 	err := svc.DeleteCourse(ctx, 10, 2)
 	if !errors.Is(err, errorsAPP.ErrForbidden) {
@@ -69,7 +68,7 @@ func TestDeleteCourse_SuccessForCreator(t *testing.T) {
 	repo := &mockDeleteCourseRepo{course: course}
 	access := &mockAccessService{canDelete: true}
 
-	svc := courseService.NewCourseService(repo, nil, nil, access, nil, nil, nil)
+	svc := courseService.NewCourseService(repo, nil, nil, access, nil, nil)
 
 	err := svc.DeleteCourse(ctx, 10, 1)
 	if err != nil {
@@ -85,7 +84,7 @@ func TestDeleteCourse_NotFound(t *testing.T) {
 	ctx := context.Background()
 	repo := &mockDeleteCourseRepo{getErr: errorsAPP.ErrCourseNotFound}
 
-	svc := courseService.NewCourseService(repo, nil, nil, nil, nil, nil, nil)
+	svc := courseService.NewCourseService(repo, nil, nil, nil, nil, nil)
 
 	err := svc.DeleteCourse(ctx, 999, 1)
 	if !errors.Is(err, errorsAPP.ErrCourseNotFound) {

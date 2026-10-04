@@ -1,7 +1,6 @@
 package section
 
 import (
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository"
 	services "edtech/internal/service"
@@ -15,7 +14,6 @@ type sectionService struct {
 	courseRepo    repository.CourseRepository
 	accessService services.AccessService
 	txManager     txmanager.TransactionManager
-	db            db.QueryExecutor
 }
 
 func NewSectionService(
@@ -24,7 +22,6 @@ func NewSectionService(
 	courseRepo repository.CourseRepository,
 	accessService services.AccessService,
 	txManager txmanager.TransactionManager,
-	database db.QueryExecutor,
 ) *sectionService {
 	return &sectionService{
 		sectionRepo:   sectionRepo,
@@ -32,6 +29,5 @@ func NewSectionService(
 		courseRepo:    courseRepo,
 		accessService: accessService,
 		txManager:     txManager,
-		db:            database,
 	}
 }

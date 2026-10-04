@@ -14,7 +14,7 @@ import (
 func (s *service) GetLessonProgress(ctx context.Context, userID int64, lessonID int64) (*domain.LessonProgress, error) {
 	const op = "service.progress.GetLessonProgress"
 
-	progress, err := s.progressRepo.GetLessonProgress(ctx, s.db, userID, lessonID)
+	progress, err := s.progressRepo.GetLessonProgress(ctx, userID, lessonID)
 	if err != nil {
 		if errors.Is(err, errorsAPP.ErrLessonProgressNotFound) || errors.Is(err, pgx.ErrNoRows) {
 			progress = &domain.LessonProgress{
@@ -36,7 +36,7 @@ func (s *service) GetLessonProgress(ctx context.Context, userID int64, lessonID 
 	}
 
 	if s.quizRepo != nil {
-		subs, sErr := s.quizRepo.GetLessonSubmissions(ctx, s.db, userID, lessonID)
+		subs, sErr := s.quizRepo.GetLessonSubmissions(ctx, userID, lessonID)
 		if sErr != nil {
 			return nil, fmt.Errorf("%s: %w", op, sErr)
 		}
@@ -51,7 +51,7 @@ func (s *service) GetLessonProgress(ctx context.Context, userID int64, lessonID 
 func (s *service) GetCourseProgress(ctx context.Context, userID int64, courseID int64) (*domain.CourseProgress, error) {
 	const op = "service.progress.GetCourseProgress"
 
-	progress, err := s.progressRepo.GetCourseProgress(ctx, s.db, userID, courseID)
+	progress, err := s.progressRepo.GetCourseProgress(ctx, userID, courseID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -62,7 +62,7 @@ func (s *service) GetCourseProgress(ctx context.Context, userID int64, courseID 
 func (s *service) GetAllLessonProgress(ctx context.Context, userID int64, courseID int64) ([]domain.LessonProgress, error) {
 	const op = "service.progress.GetAllLessonProgress"
 
-	progressList, err := s.progressRepo.GetAllLessonProgressByCourse(ctx, s.db, userID, courseID)
+	progressList, err := s.progressRepo.GetAllLessonProgressByCourse(ctx, userID, courseID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository/models"
 	repoconverter "edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
@@ -14,8 +14,9 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *repository) CreateCourseProgress(ctx context.Context, q db.QueryExecutor, progress *domain.CourseProgress) error {
+func (r *repository) CreateCourseProgress(ctx context.Context, progress *domain.CourseProgress) error {
 	const op = "repository.progress.CreateCourseProgress"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		INSERT INTO course_progress (user_id, course_id, completed_lessons, total_lessons, progress_percentage, total_watch_time, average_score, started_at, last_accessed_at, completed_at)
@@ -50,8 +51,9 @@ func (r *repository) CreateCourseProgress(ctx context.Context, q db.QueryExecuto
 	return nil
 }
 
-func (r *repository) UpsertCourseProgress(ctx context.Context, q db.QueryExecutor, userID, courseID int64, completedLessons, totalLessons int, percentage float64) error {
+func (r *repository) UpsertCourseProgress(ctx context.Context, userID, courseID int64, completedLessons, totalLessons int, percentage float64) error {
 	const op = "repository.progress.UpsertCourseProgress"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		INSERT INTO course_progress (user_id, course_id, completed_lessons, total_lessons, progress_percentage, started_at, last_accessed_at, completed_at)
@@ -72,8 +74,9 @@ func (r *repository) UpsertCourseProgress(ctx context.Context, q db.QueryExecuto
 	return nil
 }
 
-func (r *repository) UpsertCourseProgressWithScore(ctx context.Context, q db.QueryExecutor, userID, courseID int64, completedLessons, totalLessons int, percentage float64, averageScore float64) error {
+func (r *repository) UpsertCourseProgressWithScore(ctx context.Context, userID, courseID int64, completedLessons, totalLessons int, percentage float64, averageScore float64) error {
 	const op = "repository.progress.UpsertCourseProgressWithScore"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		INSERT INTO course_progress (user_id, course_id, completed_lessons, total_lessons, progress_percentage, average_score, started_at, last_accessed_at, completed_at)
@@ -95,8 +98,9 @@ func (r *repository) UpsertCourseProgressWithScore(ctx context.Context, q db.Que
 	return nil
 }
 
-func (r *repository) GetCourseProgress(ctx context.Context, q db.QueryExecutor, userID, courseID int64) (*domain.CourseProgress, error) {
+func (r *repository) GetCourseProgress(ctx context.Context, userID, courseID int64) (*domain.CourseProgress, error) {
 	const op = "repository.progress.GetCourseProgress"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT id, user_id, course_id, completed_lessons, total_lessons, progress_percentage, total_watch_time, average_score, started_at, last_accessed_at, completed_at
@@ -129,8 +133,9 @@ func (r *repository) GetCourseProgress(ctx context.Context, q db.QueryExecutor, 
 	return repoconverter.CourseProgressToDomain(&cp), nil
 }
 
-func (r *repository) GetAllLessonProgressByCourse(ctx context.Context, q db.QueryExecutor, userID, courseID int64) ([]domain.LessonProgress, error) {
+func (r *repository) GetAllLessonProgressByCourse(ctx context.Context, userID, courseID int64) ([]domain.LessonProgress, error) {
 	const op = "repository.progress.GetAllLessonProgressByCourse"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT id, user_id, lesson_id, course_id, status, score, watch_time, last_position, started_at, completed_at, last_accessed_at

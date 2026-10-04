@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 )
 
-func (r *repository) UserExistCourse(ctx context.Context, q db.QueryExecutor, userID, courseid int64) (bool, error) {
+func (r *repository) UserExistCourse(ctx context.Context, userID, courseid int64) (bool, error) {
 	const op = "repository.enrolled.userexistcourse"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT EXISTS(

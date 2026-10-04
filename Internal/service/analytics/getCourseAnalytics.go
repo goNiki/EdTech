@@ -14,7 +14,7 @@ func (s *analyticsService) GetCourseAnalytics(ctx context.Context, teacherID, co
 		return domain.CourseAnalyticsSummary{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	summary, err := s.analyticsRepo.GetCourseAnalyticsSummary(ctx, s.db, courseID)
+	summary, err := s.analyticsRepo.GetCourseAnalyticsSummary(ctx, courseID)
 	if err != nil {
 		return domain.CourseAnalyticsSummary{}, fmt.Errorf("%s: %w", op, err)
 	}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository/models"
 	repoconverter "edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
@@ -14,8 +14,9 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *repository) CreateLessonProgress(ctx context.Context, q db.QueryExecutor, progress *domain.LessonProgress) error {
+func (r *repository) CreateLessonProgress(ctx context.Context, progress *domain.LessonProgress) error {
 	const op = "repository.progress.CreateLessonProgress"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	status := progress.Status
 	if status == "" {
@@ -53,8 +54,9 @@ func (r *repository) CreateLessonProgress(ctx context.Context, q db.QueryExecuto
 	return nil
 }
 
-func (r *repository) GetLessonProgress(ctx context.Context, q db.QueryExecutor, userID, lessonID int64) (*domain.LessonProgress, error) {
+func (r *repository) GetLessonProgress(ctx context.Context, userID, lessonID int64) (*domain.LessonProgress, error) {
 	const op = "repository.progress.GetLessonProgress"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT id, user_id, lesson_id, course_id, status, score, watch_time, last_position, started_at, completed_at, last_accessed_at
@@ -94,8 +96,9 @@ func (r *repository) GetLessonProgress(ctx context.Context, q db.QueryExecutor, 
 	return repoconverter.LessonProgressToDomain(&progress), nil
 }
 
-func (r *repository) UpdateLessonProgressTime(ctx context.Context, q db.QueryExecutor, userID, lessonID int64, additionalTime int, lastPos int) error {
+func (r *repository) UpdateLessonProgressTime(ctx context.Context, userID, lessonID int64, additionalTime int, lastPos int) error {
 	const op = "repository.progress.UpdateLessonProgressTime"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE lesson_progress 
@@ -117,8 +120,9 @@ func (r *repository) UpdateLessonProgressTime(ctx context.Context, q db.QueryExe
 	return nil
 }
 
-func (r *repository) UpdateLessonProgressStatus(ctx context.Context, q db.QueryExecutor, userID, lessonID int64, status domain.ProgressStatus) error {
+func (r *repository) UpdateLessonProgressStatus(ctx context.Context, userID, lessonID int64, status domain.ProgressStatus) error {
 	const op = "repository.progress.UpdateLessonProgressStatus"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE lesson_progress 
@@ -141,8 +145,9 @@ func (r *repository) UpdateLessonProgressStatus(ctx context.Context, q db.QueryE
 	return nil
 }
 
-func (r *repository) UpdateLessonProgressScore(ctx context.Context, q db.QueryExecutor, userID, lessonID int64, score int) error {
+func (r *repository) UpdateLessonProgressScore(ctx context.Context, userID, lessonID int64, score int) error {
 	const op = "repository.progress.UpdateLessonProgressScore"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE lesson_progress 

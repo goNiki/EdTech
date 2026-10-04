@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository"
 	"edtech/internal/service"
@@ -16,7 +15,6 @@ type analyticsService struct {
 	courseRepo    repository.CourseRepository
 	accessService service.AccessService
 	txManager     txmanager.TransactionManager
-	db            db.QueryExecutor
 }
 
 func NewAnalyticsService(
@@ -24,19 +22,17 @@ func NewAnalyticsService(
 	courseRepo repository.CourseRepository,
 	accessService service.AccessService,
 	txManager txmanager.TransactionManager,
-	database db.QueryExecutor,
 ) service.AnalyticsServices {
 	return &analyticsService{
 		analyticsRepo: analyticsRepo,
 		courseRepo:    courseRepo,
 		accessService: accessService,
 		txManager:     txManager,
-		db:            database,
 	}
 }
 
 func (s *analyticsService) checkTeacherAccess(ctx context.Context, teacherID, courseID int64) error {
-	course, err := s.courseRepo.GetCourseByID(ctx, s.db, courseID)
+	course, err := s.courseRepo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return fmt.Errorf("get course: %w", err)
 	}

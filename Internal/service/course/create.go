@@ -5,13 +5,12 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	"edtech/pkg/utils"
 
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *service) resolveUniqueSlug(ctx context.Context, q db.QueryExecutor, baseSlug string) (string, error) {
+func (s *service) resolveUniqueSlug(ctx context.Context, baseSlug string) (string, error) {
 	const op = "service.course.resolveUniqueSlug"
 
 	cleanSlug := utils.NormalizeSlug(baseSlug)
@@ -19,7 +18,7 @@ func (s *service) resolveUniqueSlug(ctx context.Context, q db.QueryExecutor, bas
 	counter := 1
 
 	for {
-		exists, err := s.courserepo.ExistsBySlug(ctx, q, candidate)
+		exists, err := s.courserepo.ExistsBySlug(ctx, candidate)
 		if err != nil {
 			return "", fmt.Errorf("%s: %w", op, err)
 		}
@@ -44,16 +43,16 @@ func (s *service) CreateCourse(ctx context.Context, course *domain.Course) (*dom
 
 	var createdCourse *domain.Course
 
-	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, q db.QueryExecutor) error {
+	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
 		// Resolve unique slug within transaction to prevent uniqueness collisions
-		uniqueSlug, err := s.resolveUniqueSlug(ctx, q, course.Slug)
+		uniqueSlug, err := s.resolveUniqueSlug(ctx, course.Slug)
 		if err != nil {
 			return err
 		}
 		course.Slug = uniqueSlug
 
 		var txErr error
-		createdCourse, txErr = s.courserepo.CreateCourse(ctx, q, course)
+		createdCourse, txErr = s.courserepo.CreateCourse(ctx, course)
 		if txErr != nil {
 			return txErr
 		}
@@ -64,7 +63,7 @@ func (s *service) CreateCourse(ctx context.Context, course *domain.Course) (*dom
 			Role:     string(domain.CreatorRole),
 		}
 
-		if txErr = s.enrolledrepo.EnrollUserToCourse(ctx, q, enrollment); txErr != nil {
+		if txErr = s.enrolledrepo.EnrollUserToCourse(ctx, enrollment); txErr != nil {
 			return txErr
 		}
 

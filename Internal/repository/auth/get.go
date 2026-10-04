@@ -3,7 +3,7 @@ package auth
 import (
 	"context"
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	repomodels "edtech/internal/repository/models"
 	repoconverter "edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
@@ -13,8 +13,9 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *repository) GetUserByEmail(ctx context.Context, q db.QueryExecutor, email string) (*domain.User, error) {
+func (r *repository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	const op = "repository.auth.getuserbyemail"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `SELECT id, email, password_hash, username, first_name, last_name, avatar_url, bio, role, email_verified, is_active, is_banned, last_login_at, created_at, updated_at, deleted_at FROM users WHERE email = $1 AND deleted_at IS NULL`
 
@@ -49,8 +50,9 @@ func (r *repository) GetUserByEmail(ctx context.Context, q db.QueryExecutor, ema
 	return repoconverter.UserToDomain(&user), nil
 }
 
-func (r *repository) GetUserByUserName(ctx context.Context, q db.QueryExecutor, username string) (*domain.User, error) {
+func (r *repository) GetUserByUserName(ctx context.Context, username string) (*domain.User, error) {
 	const op = "repository.auth.getuserbyusername"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT 
@@ -110,8 +112,9 @@ func (r *repository) GetUserByUserName(ctx context.Context, q db.QueryExecutor, 
 
 }
 
-func (r *repository) GetUserByID(ctx context.Context, q db.QueryExecutor, userID int64) (*domain.User, error) {
+func (r *repository) GetUserByID(ctx context.Context, userID int64) (*domain.User, error) {
 	const op = "repository.auth.getuserbyid"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT 

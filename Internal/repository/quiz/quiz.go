@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	repomodels "edtech/internal/repository/models"
 	repoconverter "edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
@@ -14,8 +14,9 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *repositoryImpl) CreateQuiz(ctx context.Context, q db.QueryExecutor, quiz *domain.Quiz) (*domain.Quiz, error) {
+func (r *repositoryImpl) CreateQuiz(ctx context.Context, quiz *domain.Quiz) (*domain.Quiz, error) {
 	const op = "repository.quiz.CreateQuiz"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		INSERT INTO quizzes (
@@ -64,8 +65,9 @@ func (r *repositoryImpl) CreateQuiz(ctx context.Context, q db.QueryExecutor, qui
 	return quiz, nil
 }
 
-func (r *repositoryImpl) GetQuizByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.Quiz, error) {
+func (r *repositoryImpl) GetQuizByID(ctx context.Context, id int64) (*domain.Quiz, error) {
 	const op = "repository.quiz.GetQuizByID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT 
@@ -105,7 +107,8 @@ func (r *repositoryImpl) GetQuizByID(ctx context.Context, q db.QueryExecutor, id
 	return repoconverter.QuizToDomain(&qz), nil
 }
 
-func (r *repositoryImpl) GetQuizTotalPoints(ctx context.Context, q db.QueryExecutor, quizID int64) (int, error) {
+func (r *repositoryImpl) GetQuizTotalPoints(ctx context.Context, quizID int64) (int, error) {
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 	var maxPoints int
 	err := q.QueryRow(ctx, "SELECT COALESCE(SUM(points), 1) FROM quiz_questions WHERE quiz_id = $1", quizID).Scan(&maxPoints)
 	if err != nil {

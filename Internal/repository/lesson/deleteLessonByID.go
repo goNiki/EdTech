@@ -2,13 +2,14 @@ package lesson
 
 import (
 	"context"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 	"fmt"
 )
 
-func (r *repository) DeleteLessonByID(ctx context.Context, q db.QueryExecutor, lessonID int64) error {
+func (r *repository) DeleteLessonByID(ctx context.Context, lessonID int64) error {
 	const op = "repositiry.couse.lessonrepo.DeleteLessonByID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `DELETE FROM lessons WHERE id = $1`
 

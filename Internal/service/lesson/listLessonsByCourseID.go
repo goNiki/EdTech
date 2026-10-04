@@ -13,7 +13,7 @@ import (
 func (s *lessonService) ListLessonsByCourseID(ctx context.Context, slug string) (domain.CourseWithLessons, error) {
 	const op = "service.lesson.ListLessonsByCourseID"
 
-	course, err := s.courserepo.GetCourseBySlug(ctx, s.db, slug)
+	course, err := s.courserepo.GetCourseBySlug(ctx, slug)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, errorsAPP.ErrCourseNotFound) {
 			return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, errorsAPP.ErrNotFoundCourse)
@@ -21,7 +21,7 @@ func (s *lessonService) ListLessonsByCourseID(ctx context.Context, slug string) 
 		return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	lessons, err := s.lessonrepo.GetLessonsByCourseID(ctx, s.db, course.Id)
+	lessons, err := s.lessonrepo.GetLessonsByCourseID(ctx, course.Id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.CourseWithLessons{}, fmt.Errorf("%s: %w", op, errorsAPP.ErrNotFoundLesson)

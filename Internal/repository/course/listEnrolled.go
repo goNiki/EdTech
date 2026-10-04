@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository/models"
 	"edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
@@ -56,8 +56,9 @@ func buildEnrolledFilterQuery(input *domain.InputListMyCourse) (string, []any) {
 	return where, args
 }
 
-func (r *repository) ListEnrolledCourses(ctx context.Context, q db.QueryExecutor, input *domain.InputListMyCourse) ([]domain.Course, error) {
+func (r *repository) ListEnrolledCourses(ctx context.Context, input *domain.InputListMyCourse) ([]domain.Course, error) {
 	const op = "repository.course.ListEnrolledCourses"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	whereClause, args := buildEnrolledFilterQuery(input)
 
@@ -125,8 +126,9 @@ func (r *repository) ListEnrolledCourses(ctx context.Context, q db.QueryExecutor
 	return courses, nil
 }
 
-func (r *repository) CountEnrolledCourses(ctx context.Context, q db.QueryExecutor, input *domain.InputListMyCourse) (int64, error) {
+func (r *repository) CountEnrolledCourses(ctx context.Context, input *domain.InputListMyCourse) (int64, error) {
 	const op = "repository.course.CountEnrolledCourses"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	whereClause, args := buildEnrolledFilterQuery(input)
 	query := `

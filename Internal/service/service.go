@@ -116,3 +116,8 @@ type ReviewServices interface {
 	GetMyReview(ctx context.Context, userID, courseID int64) (*domain.Review, error)
 }
 
+type CertificateServices interface {
+	GetOrIssueCertificate(ctx context.Context, userID, courseID int64) (*domain.Certificate, error)
+	VerifyCertificate(ctx context.Context, code string) (*domain.Certificate, error)
+}
+

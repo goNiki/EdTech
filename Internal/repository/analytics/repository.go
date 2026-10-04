@@ -7,11 +7,11 @@ import (
 )
 
 type repositoryAnalytics struct {
-	db *pgxpool.Pool
+	Pool *pgxpool.Pool
 }
 
-func NewAnalyticsRepo(db *pgxpool.Pool) repository.AnalyticsRepository {
+func NewAnalyticsRepo(pool *pgxpool.Pool) repository.AnalyticsRepository {
 	return &repositoryAnalytics{
-		db: db,
+		Pool: pool,
 	}
 }

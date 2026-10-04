@@ -6,15 +6,16 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-func (r *repository) CreateCourse(ctx context.Context, q db.QueryExecutor, course *domain.Course) (*domain.Course, error) {
+func (r *repository) CreateCourse(ctx context.Context, course *domain.Course) (*domain.Course, error) {
 	const op = "repository.course.CreateCourse"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	entity := converter.CourseToEntity(course)
 

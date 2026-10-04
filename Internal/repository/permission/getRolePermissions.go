@@ -2,12 +2,13 @@ package permission
 
 import (
 	"context"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	"fmt"
 )
 
-func (r *repository) GetRolePermissions(ctx context.Context, q db.QueryExecutor, rolename string) ([]string, error) {
+func (r *repository) GetRolePermissions(ctx context.Context, rolename string) ([]string, error) {
 	const op = "repository.permission.getrolepermissions"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT permissions.resource || ':' || permissions.action as permisions

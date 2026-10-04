@@ -11,19 +11,19 @@ func (s *service) GetCourseStructure(ctx context.Context, courseID int64) (domai
 	const op = "service.course.GetCourseStructure"
 
 	// 1. Получаем курс
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, courseID)
+	course, err := s.courserepo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return domain.CourseStructure{}, fmt.Errorf("%s: get course: %w", op, err)
 	}
 
 	// 2. Получаем секции курса
-	sections, err := s.sectionrepo.ListSectionsByCourseID(ctx, s.db, courseID)
+	sections, err := s.sectionrepo.ListSectionsByCourseID(ctx, courseID)
 	if err != nil {
 		return domain.CourseStructure{}, fmt.Errorf("%s: get sections: %w", op, err)
 	}
 
 	// 3. Получаем уроки курса
-	lessons, err := s.lessonrepo.GetLessonsByCourseID(ctx, s.db, courseID)
+	lessons, err := s.lessonrepo.GetLessonsByCourseID(ctx, courseID)
 	if err != nil {
 		return domain.CourseStructure{}, fmt.Errorf("%s: get lessons: %w", op, err)
 	}

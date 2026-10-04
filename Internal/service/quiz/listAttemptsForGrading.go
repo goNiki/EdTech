@@ -11,7 +11,7 @@ import (
 func (s *service) ListAttemptsForGrading(ctx context.Context, userID int64, courseID int64, quizID *int64, page int, pageSize int) ([]domain.QuizAttempt, int64, error) {
 	const op = "service.quiz.ListAttemptsForGrading"
 
-	course, err := s.courseRepo.GetCourseByID(ctx, s.db, courseID)
+	course, err := s.courseRepo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("%s: get course: %w", op, err)
 	}
@@ -32,7 +32,7 @@ func (s *service) ListAttemptsForGrading(ctx context.Context, userID int64, cour
 	}
 	offset := (page - 1) * pageSize
 
-	attempts, total, err := s.quizRepo.ListAttemptsForGrading(ctx, s.db, courseID, quizID, pageSize, offset)
+	attempts, total, err := s.quizRepo.ListAttemptsForGrading(ctx, courseID, quizID, pageSize, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("%s: %w", op, err)
 	}

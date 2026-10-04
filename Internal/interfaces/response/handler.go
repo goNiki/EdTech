@@ -54,6 +54,8 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		Error(w, r, http.StatusBadRequest, "INVALID_URL_QUERY", "Invalid URL query")
 	case errors.Is(err, errorsAPP.ErrTimeLimitExceeded):
 		Error(w, r, http.StatusBadRequest, "TIME_LIMIT_EXCEEDED", "Quiz time limit exceeded")
+	case errors.Is(err, errorsAPP.ErrCourseNotCompleted):
+		Error(w, r, http.StatusBadRequest, "COURSE_NOT_COMPLETED", "Course not completed: 100% progress required for certificate")
 
 	// 401 Unauthorized - ошибки аутентификации
 	case errors.Is(err, errorsAPP.ErrInvalidCredentials):
@@ -90,6 +92,8 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		Error(w, r, http.StatusNotFound, "ATTEMPT_NOT_FOUND", "Quiz attempt not found")
 	case errors.Is(err, errorsAPP.ErrAnswerNotFound):
 		Error(w, r, http.StatusNotFound, "ANSWER_NOT_FOUND", "Quiz answer not found")
+	case errors.Is(err, errorsAPP.ErrCertificateNotFound):
+		Error(w, r, http.StatusNotFound, "CERTIFICATE_NOT_FOUND", "Certificate not found")
 
 	// 409 Conflict - конфликты данных
 	case errors.Is(err, errorsAPP.ErrNothingToUpdate):

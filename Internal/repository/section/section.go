@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository/models"
 	"edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
@@ -14,8 +14,9 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *repositorySection) ListSectionsByCourseID(ctx context.Context, q db.QueryExecutor, courseID int64) ([]domain.Section, error) {
+func (r *repositorySection) ListSectionsByCourseID(ctx context.Context, courseID int64) ([]domain.Section, error) {
 	const op = "repository.section.ListSectionsByCourseID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT id, course_id, title, description, position, status, created_at, updated_at, deleted_at 
@@ -60,8 +61,9 @@ func (r *repositorySection) ListSectionsByCourseID(ctx context.Context, q db.Que
 	return sections, nil
 }
 
-func (r *repositorySection) GetSectionByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.Section, error) {
+func (r *repositorySection) GetSectionByID(ctx context.Context, id int64) (*domain.Section, error) {
 	const op = "repository.section.GetSectionByID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT id, course_id, title, description, position, status, created_at, updated_at, deleted_at 
@@ -91,8 +93,9 @@ func (r *repositorySection) GetSectionByID(ctx context.Context, q db.QueryExecut
 	return converter.SectionToDomain(&m), nil
 }
 
-func (r *repositorySection) CreateSection(ctx context.Context, q db.QueryExecutor, section *domain.Section) (*domain.Section, error) {
+func (r *repositorySection) CreateSection(ctx context.Context, section *domain.Section) (*domain.Section, error) {
 	const op = "repository.section.CreateSection"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	entity := converter.SectionToEntity(section)
 	if entity.Status == "" {
@@ -129,8 +132,9 @@ func (r *repositorySection) CreateSection(ctx context.Context, q db.QueryExecuto
 	return converter.SectionToDomain(entity), nil
 }
 
-func (r *repositorySection) UpdateSection(ctx context.Context, q db.QueryExecutor, section *domain.Section) error {
+func (r *repositorySection) UpdateSection(ctx context.Context, section *domain.Section) error {
 	const op = "repository.section.UpdateSection"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE sections 
@@ -154,8 +158,9 @@ func (r *repositorySection) UpdateSection(ctx context.Context, q db.QueryExecuto
 	return nil
 }
 
-func (r *repositorySection) UpdateSectionStatus(ctx context.Context, q db.QueryExecutor, sectionID int64, status string) error {
+func (r *repositorySection) UpdateSectionStatus(ctx context.Context, sectionID int64, status string) error {
 	const op = "repository.section.UpdateSectionStatus"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `UPDATE sections SET status = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL`
 
@@ -169,8 +174,9 @@ func (r *repositorySection) UpdateSectionStatus(ctx context.Context, q db.QueryE
 	return nil
 }
 
-func (r *repositorySection) UpdateStatusByCourseID(ctx context.Context, q db.QueryExecutor, courseID int64, status string) error {
+func (r *repositorySection) UpdateStatusByCourseID(ctx context.Context, courseID int64, status string) error {
 	const op = "repository.section.UpdateStatusByCourseID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `UPDATE sections SET status = $1, updated_at = NOW() WHERE course_id = $2 AND deleted_at IS NULL`
 
@@ -181,8 +187,9 @@ func (r *repositorySection) UpdateStatusByCourseID(ctx context.Context, q db.Que
 	return nil
 }
 
-func (r *repositorySection) ReorderSections(ctx context.Context, q db.QueryExecutor, courseID int64, sectionIDs []int64) error {
+func (r *repositorySection) ReorderSections(ctx context.Context, courseID int64, sectionIDs []int64) error {
 	const op = "repository.section.ReorderSections"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `UPDATE sections SET position = $1, updated_at = NOW() WHERE id = $2 AND course_id = $3 AND deleted_at IS NULL`
 
@@ -197,8 +204,9 @@ func (r *repositorySection) ReorderSections(ctx context.Context, q db.QueryExecu
 	return nil
 }
 
-func (r *repositorySection) DeleteSection(ctx context.Context, q db.QueryExecutor, sectionID int64) error {
+func (r *repositorySection) DeleteSection(ctx context.Context, sectionID int64) error {
 	const op = "repository.section.DeleteSection"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE sections 
@@ -217,8 +225,9 @@ func (r *repositorySection) DeleteSection(ctx context.Context, q db.QueryExecuto
 	return nil
 }
 
-func (r *repositorySection) GetMaxPositionByCourseID(ctx context.Context, q db.QueryExecutor, courseID int64) (int, error) {
+func (r *repositorySection) GetMaxPositionByCourseID(ctx context.Context, courseID int64) (int, error) {
 	const op = "repository.section.GetMaxPositionByCourseID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `SELECT COALESCE(MAX(position), 0) FROM sections WHERE course_id = $1 AND deleted_at IS NULL`
 

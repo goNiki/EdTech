@@ -3,13 +3,14 @@ package enrollment
 import (
 	"context"
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 	"fmt"
 )
 
-func (r *repository) EnrollUserToCourse(ctx context.Context, q db.QueryExecutor, enroll domain.EnrolledInCourse) error {
+func (r *repository) EnrollUserToCourse(ctx context.Context, enroll domain.EnrolledInCourse) error {
 	const op = "repository.enrolled.enrollusertocourse"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `INSERT INTO users_courses (user_id, course_id, role) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`
 

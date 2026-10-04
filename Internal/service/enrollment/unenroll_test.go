@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/repository"
 	"edtech/internal/service"
 	enrollmentService "edtech/internal/service/enrollment"
@@ -17,8 +16,8 @@ import (
 
 type mockTxManager struct{}
 
-func (m *mockTxManager) WithTX(ctx context.Context, opts pgx.TxOptions, fn func(ctx context.Context, q db.QueryExecutor) error) error {
-	return fn(ctx, nil)
+func (m *mockTxManager) WithTX(ctx context.Context, opts pgx.TxOptions, fn func(ctx context.Context) error) error {
+	return fn(ctx)
 }
 
 type mockEnrollmentRepo struct {
@@ -27,7 +26,7 @@ type mockEnrollmentRepo struct {
 	unenrolledID int64
 }
 
-func (m *mockEnrollmentRepo) GetRoleUserInCourse(ctx context.Context, q db.QueryExecutor, userID int64, courseID int64) (string, error) {
+func (m *mockEnrollmentRepo) GetRoleUserInCourse(ctx context.Context, userID int64, courseID int64) (string, error) {
 	role, ok := m.roles[userID]
 	if !ok {
 		return "", errorsAPP.ErrNotEnrolled
@@ -35,7 +34,7 @@ func (m *mockEnrollmentRepo) GetRoleUserInCourse(ctx context.Context, q db.Query
 	return role, nil
 }
 
-func (m *mockEnrollmentRepo) UnenrollUser(ctx context.Context, q db.QueryExecutor, userID int64, courseID int64) error {
+func (m *mockEnrollmentRepo) UnenrollUser(ctx context.Context, userID int64, courseID int64) error {
 	m.unenrolledID = userID
 	delete(m.roles, userID)
 	return nil
@@ -47,14 +46,14 @@ type mockCourseRepo struct {
 	course        *domain.Course
 }
 
-func (m *mockCourseRepo) GetCourseByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.Course, error) {
+func (m *mockCourseRepo) GetCourseByID(ctx context.Context, id int64) (*domain.Course, error) {
 	if m.course != nil {
 		return m.course, nil
 	}
 	return &domain.Course{Id: id, CreatedBy: 1}, nil
 }
 
-func (m *mockCourseRepo) DecrementEnrolledCount(ctx context.Context, q db.QueryExecutor, courseID int64) error {
+func (m *mockCourseRepo) DecrementEnrolledCount(ctx context.Context, courseID int64) error {
 	if m.enrolledCount > 0 {
 		m.enrolledCount--
 	}
@@ -77,7 +76,7 @@ func TestUnenrollUser_CreatorCannotUnenroll(t *testing.T) {
 	courseRepo := &mockCourseRepo{enrolledCount: 5}
 	txMgr := &mockTxManager{}
 
-	svc := enrollmentService.NewEnrolmentService(courseRepo, enrolledRepo, nil, nil, nil, txMgr)
+	svc := enrollmentService.NewEnrolmentService(courseRepo, enrolledRepo, nil, nil, txMgr)
 
 	err := svc.UnenrollUser(context.Background(), 1, 100)
 	if err == nil {
@@ -95,7 +94,7 @@ func TestUnenrollUser_StudentSuccess(t *testing.T) {
 	courseRepo := &mockCourseRepo{enrolledCount: 5}
 	txMgr := &mockTxManager{}
 
-	svc := enrollmentService.NewEnrolmentService(courseRepo, enrolledRepo, nil, nil, nil, txMgr)
+	svc := enrollmentService.NewEnrolmentService(courseRepo, enrolledRepo, nil, nil, txMgr)
 
 	err := svc.UnenrollUser(context.Background(), 2, 100)
 	if err != nil {
@@ -118,7 +117,7 @@ func TestTeacherUnenrollUser_Forbidden(t *testing.T) {
 	accessSvc := &mockAccessService{canManage: false}
 	txMgr := &mockTxManager{}
 
-	svc := enrollmentService.NewEnrolmentService(courseRepo, enrolledRepo, nil, accessSvc, nil, txMgr)
+	svc := enrollmentService.NewEnrolmentService(courseRepo, enrolledRepo, nil, accessSvc, txMgr)
 
 	err := svc.TeacherUnenrollUser(context.Background(), 999, 2, 100)
 	if err == nil {
@@ -137,7 +136,7 @@ func TestTeacherUnenrollUser_Success(t *testing.T) {
 	accessSvc := &mockAccessService{canManage: true}
 	txMgr := &mockTxManager{}
 
-	svc := enrollmentService.NewEnrolmentService(courseRepo, enrolledRepo, nil, accessSvc, nil, txMgr)
+	svc := enrollmentService.NewEnrolmentService(courseRepo, enrolledRepo, nil, accessSvc, txMgr)
 
 	err := svc.TeacherUnenrollUser(context.Background(), 1, 2, 100)
 	if err != nil {

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/repository"
 	"edtech/internal/service"
 	courseService "edtech/internal/service/course"
@@ -16,8 +15,8 @@ import (
 
 type mockTxManager struct{}
 
-func (m *mockTxManager) WithTX(ctx context.Context, opts pgx.TxOptions, fn func(ctx context.Context, q db.QueryExecutor) error) error {
-	return fn(ctx, nil)
+func (m *mockTxManager) WithTX(ctx context.Context, opts pgx.TxOptions, fn func(ctx context.Context) error) error {
+	return fn(ctx)
 }
 
 type mockCourseRepo struct {
@@ -33,12 +32,12 @@ func newMockCourseRepo() *mockCourseRepo {
 	}
 }
 
-func (m *mockCourseRepo) ExistsBySlug(ctx context.Context, q db.QueryExecutor, slug string) (bool, error) {
+func (m *mockCourseRepo) ExistsBySlug(ctx context.Context, slug string) (bool, error) {
 	_, ok := m.coursesBySlug[slug]
 	return ok, nil
 }
 
-func (m *mockCourseRepo) CreateCourse(ctx context.Context, q db.QueryExecutor, c *domain.Course) (*domain.Course, error) {
+func (m *mockCourseRepo) CreateCourse(ctx context.Context, c *domain.Course) (*domain.Course, error) {
 	if _, exists := m.coursesBySlug[c.Slug]; exists {
 		return nil, fmt.Errorf("duplicate key value violates unique constraint slug %s", c.Slug)
 	}
@@ -52,7 +51,7 @@ type mockEnrolledRepo struct {
 	repository.EnrolledRepository
 }
 
-func (m *mockEnrolledRepo) EnrollUserToCourse(ctx context.Context, q db.QueryExecutor, e domain.EnrolledInCourse) error {
+func (m *mockEnrolledRepo) EnrollUserToCourse(ctx context.Context, e domain.EnrolledInCourse) error {
 	return nil
 }
 
@@ -61,7 +60,7 @@ func TestCreateCourse_SlugCollisionResolution(t *testing.T) {
 	enrolledRepo := &mockEnrolledRepo{}
 	txMgr := &mockTxManager{}
 
-	svc := courseService.NewCourseService(courseRepo, nil, nil, nil, enrolledRepo, txMgr, nil)
+	svc := courseService.NewCourseService(courseRepo, nil, nil, nil, enrolledRepo, txMgr)
 
 	// Course 1
 	c1 := &domain.Course{

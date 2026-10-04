@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
@@ -16,38 +15,38 @@ func (s *service) GradeAttemptAnswer(ctx context.Context, teacherID int64, attem
 
 	var attempt *domain.QuizAttempt
 
-	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, tx db.QueryExecutor) error {
+	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
 		var txErr error
-		attempt, txErr = s.quizRepo.GetAttemptForUpdate(ctx, tx, attemptID)
+		attempt, txErr = s.quizRepo.GetAttemptForUpdate(ctx, attemptID)
 		if txErr != nil {
 			return txErr
 		}
 
-		quiz, txErr := s.quizRepo.GetQuizByID(ctx, tx, attempt.QuizID)
+		quiz, txErr := s.quizRepo.GetQuizByID(ctx, attempt.QuizID)
 		if txErr != nil {
 			return txErr
 		}
 
-		if txErr = s.checkTeacherAccess(ctx, tx, teacherID, quiz.LessonID); txErr != nil {
+		if txErr = s.checkTeacherAccess(ctx, teacherID, quiz.LessonID); txErr != nil {
 			return txErr
 		}
 
 		isCorrect := points > 0
-		if txErr = s.quizRepo.UpdateAttemptAnswer(ctx, tx, answerID, points, feedback, isCorrect); txErr != nil {
+		if txErr = s.quizRepo.UpdateAttemptAnswer(ctx, answerID, points, feedback, isCorrect); txErr != nil {
 			return txErr
 		}
 
-		ungradedCount, txErr := s.quizRepo.CountUngradedAnswers(ctx, tx, attemptID)
+		ungradedCount, txErr := s.quizRepo.CountUngradedAnswers(ctx, attemptID)
 		if txErr != nil {
 			return txErr
 		}
 
 		if ungradedCount == 0 {
-			if txErr = s.finalizeGrading(ctx, tx, quiz, attempt); txErr != nil {
+			if txErr = s.finalizeGrading(ctx, quiz, attempt); txErr != nil {
 				return txErr
 			}
 		} else {
-			if txErr = s.quizRepo.UpdateAttempt(ctx, tx, attempt); txErr != nil {
+			if txErr = s.quizRepo.UpdateAttempt(ctx, attempt); txErr != nil {
 				return txErr
 			}
 		}
@@ -62,13 +61,13 @@ func (s *service) GradeAttemptAnswer(ctx context.Context, teacherID int64, attem
 	return attempt, nil
 }
 
-func (s *service) checkTeacherAccess(ctx context.Context, tx db.QueryExecutor, teacherID, lessonID int64) error {
-	lesson, err := s.lessonRepo.GetLessonByID(ctx, tx, lessonID)
+func (s *service) checkTeacherAccess(ctx context.Context, teacherID, lessonID int64) error {
+	lesson, err := s.lessonRepo.GetLessonByID(ctx, lessonID)
 	if err != nil {
 		return fmt.Errorf("get lesson: %w", err)
 	}
 
-	course, err := s.courseRepo.GetCourseByID(ctx, tx, lesson.CourseID)
+	course, err := s.courseRepo.GetCourseByID(ctx, lesson.CourseID)
 	if err != nil {
 		return fmt.Errorf("get course: %w", err)
 	}
@@ -84,26 +83,26 @@ func (s *service) checkTeacherAccess(ctx context.Context, tx db.QueryExecutor, t
 	return nil
 }
 
-func (s *service) finalizeGrading(ctx context.Context, tx db.QueryExecutor, quiz *domain.Quiz, attempt *domain.QuizAttempt) error {
-	correctPoints, err := s.quizRepo.SumAttemptPoints(ctx, tx, attempt.ID)
+func (s *service) finalizeGrading(ctx context.Context, quiz *domain.Quiz, attempt *domain.QuizAttempt) error {
+	correctPoints, err := s.quizRepo.SumAttemptPoints(ctx, attempt.ID)
 	if err != nil {
 		return err
 	}
 
-	maxPoints, err := s.quizRepo.GetQuizTotalPoints(ctx, tx, attempt.QuizID)
+	maxPoints, err := s.quizRepo.GetQuizTotalPoints(ctx, attempt.QuizID)
 	if err != nil {
 		maxPoints = 1
 	}
 
 	attempt.CalculateScore(correctPoints, maxPoints, quiz.PassingScor)
 
-	if err = s.quizRepo.UpdateAttempt(ctx, tx, attempt); err != nil {
+	if err = s.quizRepo.UpdateAttempt(ctx, attempt); err != nil {
 		return err
 	}
 
 	if attempt.Passed {
 		_, _ = s.progressService.CompleteLesson(ctx, attempt.UserID, quiz.LessonID, &attempt.Score, nil, nil)
-		_ = s.quizRepo.UpdateLessonProgressAfterQuiz(ctx, tx, attempt.UserID, quiz.LessonID, attempt.Score)
+		_ = s.quizRepo.UpdateLessonProgressAfterQuiz(ctx, attempt.UserID, quiz.LessonID, attempt.Score)
 	}
 
 	return nil

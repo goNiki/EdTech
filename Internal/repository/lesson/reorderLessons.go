@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 )
 
-func (r *repository) ReorderLessons(ctx context.Context, q db.QueryExecutor, sectionID *int64, lessonIDs []int64) error {
+func (r *repository) ReorderLessons(ctx context.Context, sectionID *int64, lessonIDs []int64) error {
 	const op = "repository.lesson.ReorderLessons"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	for idx, id := range lessonIDs {
 		pos := int64(idx + 1)

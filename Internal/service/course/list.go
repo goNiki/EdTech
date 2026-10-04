@@ -18,7 +18,7 @@ func (s *service) ListMyCourses(ctx context.Context, input *domain.InputListMyCo
 	input.Pagination.Sanitize()
 
 	// 2. Подсчет общего количества с учетом роли и фильтров
-	total, err := s.courserepo.CountEnrolledCourses(ctx, s.db, input)
+	total, err := s.courserepo.CountEnrolledCourses(ctx, input)
 	if err != nil {
 		return domain.PaginatedCourses{}, fmt.Errorf("%s: count enrolled courses: %w", op, err)
 	}
@@ -33,7 +33,7 @@ func (s *service) ListMyCourses(ctx context.Context, input *domain.InputListMyCo
 	}
 
 	// 3. Получение отфильтрованного и отсортированного списка курсов
-	courses, err := s.courserepo.ListEnrolledCourses(ctx, s.db, input)
+	courses, err := s.courserepo.ListEnrolledCourses(ctx, input)
 	if err != nil {
 		return domain.PaginatedCourses{}, fmt.Errorf("%s: list enrolled courses: %w", op, err)
 	}
@@ -53,7 +53,7 @@ func (s *service) ListPublicCourses(ctx context.Context, pagination domain.Pagin
 	pagination.Sanitize()
 
 	// 2. Получаем общее количество опубликованных публичных курсов с учетом фильтров
-	total, err := s.courserepo.CountCourses(ctx, s.db, filter)
+	total, err := s.courserepo.CountCourses(ctx, filter)
 	if err != nil {
 		return domain.PaginatedCourses{}, fmt.Errorf("%s: count courses: %w", op, err)
 	}
@@ -69,7 +69,7 @@ func (s *service) ListPublicCourses(ctx context.Context, pagination domain.Pagin
 	}
 
 	// 4. Получаем страницу отфильтрованных и отсортированных курсов
-	courses, err := s.courserepo.ListPublicCourses(ctx, s.db, pagination, filter)
+	courses, err := s.courserepo.ListPublicCourses(ctx, pagination, filter)
 	if err != nil {
 		return domain.PaginatedCourses{}, fmt.Errorf("%s: list courses: %w", op, err)
 	}

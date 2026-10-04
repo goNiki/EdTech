@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 )
 
-func (r *repositoryAnalytics) GetCourseAnalyticsSummary(ctx context.Context, q db.QueryExecutor, courseID int64) (domain.CourseAnalyticsSummary, error) {
+func (r *repositoryAnalytics) GetCourseAnalyticsSummary(ctx context.Context, courseID int64) (domain.CourseAnalyticsSummary, error) {
 	const op = "repository.analytics.GetCourseAnalyticsSummary"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		WITH student_count AS (

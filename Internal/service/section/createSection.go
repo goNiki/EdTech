@@ -6,7 +6,6 @@ import (
 	"log/slog"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
@@ -16,7 +15,7 @@ func (s *sectionService) CreateSection(ctx context.Context, userID int64, sectio
 	const op = "service.section.CreateSection"
 
 	// RBAC: check that user can edit the course
-	course, err := s.courseRepo.GetCourseByID(ctx, s.db, section.CourseID)
+	course, err := s.courseRepo.GetCourseByID(ctx, section.CourseID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -36,9 +35,9 @@ func (s *sectionService) CreateSection(ctx context.Context, userID int64, sectio
 
 	var createdSection *domain.Section
 
-	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, q db.QueryExecutor) error {
+	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
 		if section.Position == 0 {
-			maxPos, err := s.sectionRepo.GetMaxPositionByCourseID(ctx, q, section.CourseID)
+			maxPos, err := s.sectionRepo.GetMaxPositionByCourseID(ctx, section.CourseID)
 			if err != nil {
 				return err
 			}
@@ -49,7 +48,7 @@ func (s *sectionService) CreateSection(ctx context.Context, userID int64, sectio
 		}
 
 		var err error
-		createdSection, err = s.sectionRepo.CreateSection(ctx, q, section)
+		createdSection, err = s.sectionRepo.CreateSection(ctx, section)
 		if err != nil {
 			return err
 		}

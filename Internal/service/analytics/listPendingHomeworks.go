@@ -22,7 +22,7 @@ func (s *analyticsService) ListPendingHomeworks(ctx context.Context, teacherID, 
 	}
 	offset := (page - 1) * pageSize
 
-	items, total, err := s.analyticsRepo.ListPendingHomeworks(ctx, s.db, courseID, pageSize, offset)
+	items, total, err := s.analyticsRepo.ListPendingHomeworks(ctx, courseID, pageSize, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("%s: %w", op, err)
 	}

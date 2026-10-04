@@ -6,15 +6,16 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	repoconverter "edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-func (r *repository) UpdateCourse(ctx context.Context, q db.QueryExecutor, course *domain.Course) error {
+func (r *repository) UpdateCourse(ctx context.Context, course *domain.Course) error {
 	const op = "repository.course.updatecourse"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE courses

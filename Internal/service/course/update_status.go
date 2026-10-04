@@ -3,7 +3,6 @@ package course
 import (
 	"context"
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
 	"fmt"
 
@@ -17,7 +16,7 @@ func (s *service) UpdateCourseStatus(ctx context.Context, userID int64, courseID
 		return s.PublishCourse(ctx, userID, courseID)
 	}
 
-	course, err := s.courserepo.GetCourseByID(ctx, s.db, courseID)
+	course, err := s.courserepo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -30,14 +29,14 @@ func (s *service) UpdateCourseStatus(ctx context.Context, userID int64, courseID
 		return fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
 	}
 
-	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, q db.QueryExecutor) error {
-		if err := s.courserepo.UpdateCourseStatus(ctx, q, courseID, status); err != nil {
+	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
+		if err := s.courserepo.UpdateCourseStatus(ctx, courseID, status); err != nil {
 			return err
 		}
-		if err := s.sectionrepo.UpdateStatusByCourseID(ctx, q, courseID, status); err != nil {
+		if err := s.sectionrepo.UpdateStatusByCourseID(ctx, courseID, status); err != nil {
 			return err
 		}
-		return s.lessonrepo.UpdateStatusByCourseID(ctx, q, courseID, status)
+		return s.lessonrepo.UpdateStatusByCourseID(ctx, courseID, status)
 	})
 
 	if err != nil {

@@ -6,14 +6,15 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *repositoryImpl) ListCategories(ctx context.Context, q db.QueryExecutor) ([]domain.Category, error) {
+func (r *repositoryImpl) ListCategories(ctx context.Context) ([]domain.Category, error) {
 	const op = "repository.category.ListCategories"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT 
@@ -65,8 +66,9 @@ func (r *repositoryImpl) ListCategories(ctx context.Context, q db.QueryExecutor)
 	return categories, nil
 }
 
-func (r *repositoryImpl) CreateCategory(ctx context.Context, q db.QueryExecutor, category *domain.Category) (*domain.Category, error) {
+func (r *repositoryImpl) CreateCategory(ctx context.Context, category *domain.Category) (*domain.Category, error) {
 	const op = "repository.category.CreateCategory"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		INSERT INTO categories (name, slug, description, icon_url, parent_id, position, created_at, updated_at)
@@ -88,8 +90,9 @@ func (r *repositoryImpl) CreateCategory(ctx context.Context, q db.QueryExecutor,
 	return category, nil
 }
 
-func (r *repositoryImpl) GetCategoryByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.Category, error) {
+func (r *repositoryImpl) GetCategoryByID(ctx context.Context, id int64) (*domain.Category, error) {
 	const op = "repository.category.GetCategoryByID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT id, name, slug, COALESCE(description, ''), COALESCE(icon_url, ''), parent_id, position
@@ -116,8 +119,9 @@ func (r *repositoryImpl) GetCategoryByID(ctx context.Context, q db.QueryExecutor
 	return &cat, nil
 }
 
-func (r *repositoryImpl) GetCategoryBySlug(ctx context.Context, q db.QueryExecutor, slug string) (*domain.Category, error) {
+func (r *repositoryImpl) GetCategoryBySlug(ctx context.Context, slug string) (*domain.Category, error) {
 	const op = "repository.category.GetCategoryBySlug"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		SELECT id, name, slug, COALESCE(description, ''), COALESCE(icon_url, ''), parent_id, position
@@ -144,8 +148,9 @@ func (r *repositoryImpl) GetCategoryBySlug(ctx context.Context, q db.QueryExecut
 	return &cat, nil
 }
 
-func (r *repositoryImpl) UpdateCategory(ctx context.Context, q db.QueryExecutor, category *domain.Category) error {
+func (r *repositoryImpl) UpdateCategory(ctx context.Context, category *domain.Category) error {
 	const op = "repository.category.UpdateCategory"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE categories
@@ -171,8 +176,9 @@ func (r *repositoryImpl) UpdateCategory(ctx context.Context, q db.QueryExecutor,
 	return nil
 }
 
-func (r *repositoryImpl) DeleteCategory(ctx context.Context, q db.QueryExecutor, id int64) error {
+func (r *repositoryImpl) DeleteCategory(ctx context.Context, id int64) error {
 	const op = "repository.category.DeleteCategory"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `DELETE FROM categories WHERE id = $1`
 

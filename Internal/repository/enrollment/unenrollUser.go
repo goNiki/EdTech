@@ -2,13 +2,14 @@ package enrollment
 
 import (
 	"context"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 	"fmt"
 )
 
-func (r *repository) UnenrollUser(ctx context.Context, q db.QueryExecutor, userID, courseID int64) error {
+func (r *repository) UnenrollUser(ctx context.Context, userID, courseID int64) error {
 	const op = "repository.enrollment.unenrolluser"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `DELETE FROM users_courses WHERE user_id = $1 AND course_id = $2`
 

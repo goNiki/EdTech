@@ -21,7 +21,7 @@ func (s *service) Register(ctx context.Context, input domain.RegisterInput) (*do
 		Role:         input.Role,
 	}
 
-	newUser, err := s.repo.CreateUser(ctx, s.db, createUser)
+	newUser, err := s.repo.CreateUser(ctx, createUser)
 	if err != nil {
 		// we already handled ErrEmailAlreadyExists and ErrUserNameAlreadyExists in the repo
 		return nil, fmt.Errorf("%s: %w", op, err)

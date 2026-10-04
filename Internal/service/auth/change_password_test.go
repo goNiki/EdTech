@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/repository"
 	authService "edtech/internal/service/auth"
 	errorsAPP "edtech/pkg/errors"
@@ -16,27 +15,27 @@ import (
 
 type mockTxManager struct{}
 
-func (m *mockTxManager) WithTX(ctx context.Context, opts pgx.TxOptions, fn func(ctx context.Context, q db.QueryExecutor) error) error {
-	return fn(ctx, nil)
+func (m *mockTxManager) WithTX(ctx context.Context, opts pgx.TxOptions, fn func(ctx context.Context) error) error {
+	return fn(ctx)
 }
 
 type mockUserRepo struct {
 	repository.UserRepository
-	user           *domain.User
-	getUserErr     error
-	updatedPass    string
-	updatedUserID  int64
-	updatePassErr  error
+	user          *domain.User
+	getUserErr    error
+	updatedPass   string
+	updatedUserID int64
+	updatePassErr error
 }
 
-func (m *mockUserRepo) GetUserByID(ctx context.Context, q db.QueryExecutor, userID int64) (*domain.User, error) {
+func (m *mockUserRepo) GetUserByID(ctx context.Context, userID int64) (*domain.User, error) {
 	if m.getUserErr != nil {
 		return nil, m.getUserErr
 	}
 	return m.user, nil
 }
 
-func (m *mockUserRepo) UpdatePassword(ctx context.Context, q db.QueryExecutor, userID int64, passHash string) error {
+func (m *mockUserRepo) UpdatePassword(ctx context.Context, userID int64, passHash string) error {
 	if m.updatePassErr != nil {
 		return m.updatePassErr
 	}
@@ -51,7 +50,7 @@ type mockRefreshRepo struct {
 	revokeErr     error
 }
 
-func (m *mockRefreshRepo) DeleteAllByUserID(ctx context.Context, q db.QueryExecutor, userID int64) error {
+func (m *mockRefreshRepo) DeleteAllByUserID(ctx context.Context, userID int64) error {
 	if m.revokeErr != nil {
 		return m.revokeErr
 	}
@@ -88,7 +87,7 @@ func (m *mockHasher) HashRefreshToken(token string) string {
 }
 
 func TestChangePassword_SamePassword_ReturnsErrSamePassword(t *testing.T) {
-	svc := authService.NewAuthService(nil, nil, nil, nil, nil, nil)
+	svc := authService.NewAuthService(nil, nil, nil, nil, nil)
 	err := svc.ChangePassword(context.Background(), 1, "Password123!", "Password123!")
 	if !errors.Is(err, errorsAPP.ErrSamePassword) {
 		t.Fatalf("expected ErrSamePassword, got %v", err)
@@ -96,7 +95,7 @@ func TestChangePassword_SamePassword_ReturnsErrSamePassword(t *testing.T) {
 }
 
 func TestChangePassword_ShortPassword_ReturnsErrPasswordTooShort(t *testing.T) {
-	svc := authService.NewAuthService(nil, nil, nil, nil, nil, nil)
+	svc := authService.NewAuthService(nil, nil, nil, nil, nil)
 	err := svc.ChangePassword(context.Background(), 1, "OldPassword123!", "Short1!")
 	if !errors.Is(err, errorsAPP.ErrPasswordTooShort) {
 		t.Fatalf("expected ErrPasswordTooShort, got %v", err)
@@ -107,7 +106,7 @@ func TestChangePassword_UserNotFound_ReturnsError(t *testing.T) {
 	userRepo := &mockUserRepo{
 		getUserErr: errorsAPP.ErrUserNotFound,
 	}
-	svc := authService.NewAuthService(userRepo, nil, nil, nil, nil, nil)
+	svc := authService.NewAuthService(userRepo, nil, nil, nil, nil)
 	err := svc.ChangePassword(context.Background(), 99, "OldPassword123!", "NewStrongPassword456!")
 	if err == nil || !errors.Is(err, errorsAPP.ErrUserNotFound) {
 		t.Fatalf("expected ErrUserNotFound, got %v", err)
@@ -121,7 +120,7 @@ func TestChangePassword_WrongOldPassword_ReturnsErrInvalidCredentials(t *testing
 	hasher := &mockHasher{
 		checkResult: false,
 	}
-	svc := authService.NewAuthService(userRepo, nil, hasher, nil, nil, nil)
+	svc := authService.NewAuthService(userRepo, nil, hasher, nil, nil)
 	err := svc.ChangePassword(context.Background(), 1, "WrongPassword123!", "NewStrongPassword456!")
 	if !errors.Is(err, errorsAPP.ErrInvalidCredentials) {
 		t.Fatalf("expected ErrInvalidCredentials, got %v", err)
@@ -140,7 +139,7 @@ func TestChangePassword_Success_UpdatesHashAndRevokesTokens(t *testing.T) {
 	}
 	txMgr := &mockTxManager{}
 
-	svc := authService.NewAuthService(userRepo, nil, hasher, refreshRepo, nil, txMgr)
+	svc := authService.NewAuthService(userRepo, nil, hasher, refreshRepo, txMgr)
 
 	err := svc.ChangePassword(ctx, 42, "OldCorrectPassword123!", "NewStrongPassword456!")
 	if err != nil {

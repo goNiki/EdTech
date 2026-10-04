@@ -15,7 +15,7 @@ func (s *service) ChangeUserRole(ctx context.Context, courseID int64, targetUser
 		return fmt.Errorf("%s: %w", op, errorsAPP.ErrInvalidAction)
 	}
 
-	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, s.db, targetUserID, courseID)
+	role, err := s.enrolledrepo.GetRoleUserInCourse(ctx, targetUserID, courseID)
 	if err != nil {
 		if errors.Is(err, errorsAPP.ErrNotFoundCourse) {
 			return fmt.Errorf("%s: %w", op, errorsAPP.ErrNotEnrolled)
@@ -30,7 +30,7 @@ func (s *service) ChangeUserRole(ctx context.Context, courseID int64, targetUser
 		return fmt.Errorf("%s: %w", op, errorsAPP.ErrCreatorCannotUnenroll)
 	}
 
-	if err := s.enrolledrepo.ChangeUserRole(ctx, s.db, courseID, targetUserID, newRole); err != nil {
+	if err := s.enrolledrepo.ChangeUserRole(ctx, courseID, targetUserID, newRole); err != nil {
 		return fmt.Errorf("%s: change role: %w", op, err)
 	}
 

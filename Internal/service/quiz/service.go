@@ -1,7 +1,6 @@
 package quiz
 
 import (
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository"
 	services "edtech/internal/service"
@@ -14,7 +13,6 @@ type service struct {
 	accessService   services.AccessService
 	progressService services.ProgressServices
 	txManager       txmanager.TransactionManager
-	db              db.QueryExecutor
 }
 
 func NewQuizService(
@@ -24,7 +22,6 @@ func NewQuizService(
 	accessService services.AccessService,
 	progressService services.ProgressServices,
 	txManager txmanager.TransactionManager,
-	database db.QueryExecutor,
 ) services.QuizServices {
 	return &service{
 		quizRepo:        quizRepo,
@@ -33,6 +30,5 @@ func NewQuizService(
 		accessService:   accessService,
 		progressService: progressService,
 		txManager:       txManager,
-		db:              database,
 	}
 }

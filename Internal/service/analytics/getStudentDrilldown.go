@@ -14,7 +14,7 @@ func (s *analyticsService) GetStudentDrilldown(ctx context.Context, teacherID, c
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	report, err := s.analyticsRepo.GetStudentDrilldown(ctx, s.db, studentID, courseID)
+	report, err := s.analyticsRepo.GetStudentDrilldown(ctx, studentID, courseID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

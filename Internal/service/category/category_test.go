@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/repository"
 	categoryService "edtech/internal/service/category"
 	errorsAPP "edtech/pkg/errors"
@@ -22,14 +21,14 @@ type mockCategoryRepo struct {
 	getErr     error
 }
 
-func (m *mockCategoryRepo) ListCategories(ctx context.Context, q db.QueryExecutor) ([]domain.Category, error) {
+func (m *mockCategoryRepo) ListCategories(ctx context.Context) ([]domain.Category, error) {
 	if m.listErr != nil {
 		return nil, m.listErr
 	}
 	return m.categories, nil
 }
 
-func (m *mockCategoryRepo) CreateCategory(ctx context.Context, q db.QueryExecutor, category *domain.Category) (*domain.Category, error) {
+func (m *mockCategoryRepo) CreateCategory(ctx context.Context, category *domain.Category) (*domain.Category, error) {
 	if m.createErr != nil {
 		return nil, m.createErr
 	}
@@ -37,7 +36,7 @@ func (m *mockCategoryRepo) CreateCategory(ctx context.Context, q db.QueryExecuto
 	return category, nil
 }
 
-func (m *mockCategoryRepo) GetCategoryByID(ctx context.Context, q db.QueryExecutor, id int64) (*domain.Category, error) {
+func (m *mockCategoryRepo) GetCategoryByID(ctx context.Context, id int64) (*domain.Category, error) {
 	if m.getErr != nil {
 		return nil, m.getErr
 	}
@@ -66,7 +65,7 @@ func TestListCategories_Success(t *testing.T) {
 		},
 	}
 
-	svc := categoryService.NewCategoryService(mockRepo, nil)
+	svc := categoryService.NewCategoryService(mockRepo)
 
 	cats, err := svc.ListCategories(ctx)
 	if err != nil {
@@ -91,7 +90,7 @@ func TestListCategories_RepoError(t *testing.T) {
 		listErr: errors.New("db error"),
 	}
 
-	svc := categoryService.NewCategoryService(mockRepo, nil)
+	svc := categoryService.NewCategoryService(mockRepo)
 
 	_, err := svc.ListCategories(ctx)
 	if err == nil {
@@ -101,7 +100,7 @@ func TestListCategories_RepoError(t *testing.T) {
 
 func TestCreateCategory_Validation(t *testing.T) {
 	ctx := context.Background()
-	svc := categoryService.NewCategoryService(&mockCategoryRepo{}, nil)
+	svc := categoryService.NewCategoryService(&mockCategoryRepo{})
 
 	_, err := svc.CreateCategory(ctx, &domain.Category{Name: ""})
 	if !errors.Is(err, errorsAPP.ErrValidationFailed) {
@@ -120,7 +119,7 @@ func TestCreateCategory_Success(t *testing.T) {
 		createdID: 42,
 	}
 
-	svc := categoryService.NewCategoryService(mockRepo, nil)
+	svc := categoryService.NewCategoryService(mockRepo)
 
 	id, err := svc.CreateCategory(ctx, &domain.Category{
 		Name: "Data Science",
@@ -141,7 +140,7 @@ func TestGetCategoryByID(t *testing.T) {
 		category: &domain.Category{ID: 1, Name: "Frontend"},
 	}
 
-	svc := categoryService.NewCategoryService(mockRepo, nil)
+	svc := categoryService.NewCategoryService(mockRepo)
 
 	cat, err := svc.GetCategoryByID(ctx, 1)
 	if err != nil {

@@ -6,7 +6,6 @@ import (
 	"log/slog"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
@@ -15,14 +14,14 @@ import (
 func (s *sectionService) UpdateSection(ctx context.Context, userID int64, section *domain.Section) error {
 	const op = "service.section.UpdateSection"
 
-	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, q db.QueryExecutor) error {
-		existing, err := s.sectionRepo.GetSectionByID(ctx, q, section.ID)
+	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
+		existing, err := s.sectionRepo.GetSectionByID(ctx, section.ID)
 		if err != nil {
 			return err
 		}
 
 		// RBAC: check that user can edit the course this section belongs to
-		course, err := s.courseRepo.GetCourseByID(ctx, q, existing.CourseID)
+		course, err := s.courseRepo.GetCourseByID(ctx, existing.CourseID)
 		if err != nil {
 			return err
 		}
@@ -54,7 +53,7 @@ func (s *sectionService) UpdateSection(ctx context.Context, userID int64, sectio
 			existing.Status = section.Status
 		}
 
-		return s.sectionRepo.UpdateSection(ctx, q, existing)
+		return s.sectionRepo.UpdateSection(ctx, existing)
 	})
 
 	if err != nil {

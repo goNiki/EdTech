@@ -3,14 +3,15 @@ package auth
 import (
 	"context"
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 	"fmt"
 	"time"
 )
 
-func (r *repository) UpdateLastLogin(ctx context.Context, q db.QueryExecutor, userID int64, now time.Time) error {
+func (r *repository) UpdateLastLogin(ctx context.Context, userID int64, now time.Time) error {
 	const op = "repository.auth.UpdateLastLogin"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE users
@@ -29,8 +30,9 @@ func (r *repository) UpdateLastLogin(ctx context.Context, q db.QueryExecutor, us
 	return nil
 }
 
-func (r *repository) UpdateProfile(ctx context.Context, q db.QueryExecutor, user *domain.User) error {
+func (r *repository) UpdateProfile(ctx context.Context, user *domain.User) error {
 	const op = "repository.auth.UpdateProfile"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE users
@@ -62,8 +64,9 @@ func (r *repository) UpdateProfile(ctx context.Context, q db.QueryExecutor, user
 	return nil
 }
 
-func (r *repository) UpdatePassword(ctx context.Context, q db.QueryExecutor, userID int64, passHash string) error {
+func (r *repository) UpdatePassword(ctx context.Context, userID int64, passHash string) error {
 	const op = "repository.auth.UpdatePassword"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE users
@@ -84,8 +87,9 @@ func (r *repository) UpdatePassword(ctx context.Context, q db.QueryExecutor, use
 	return nil
 }
 
-func (r *repository) SetEmailVerified(ctx context.Context, q db.QueryExecutor, userID int64, verified bool) error {
+func (r *repository) SetEmailVerified(ctx context.Context, userID int64, verified bool) error {
 	const op = "repository.auth.SetEmailVerified"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE users
@@ -106,8 +110,9 @@ func (r *repository) SetEmailVerified(ctx context.Context, q db.QueryExecutor, u
 	return nil
 }
 
-func (r *repository) UpdateRole(ctx context.Context, q db.QueryExecutor, userID int64, role domain.Role) error {
+func (r *repository) UpdateRole(ctx context.Context, userID int64, role domain.Role) error {
 	const op = "repository.auth.UpdateRole"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE users
@@ -128,8 +133,9 @@ func (r *repository) UpdateRole(ctx context.Context, q db.QueryExecutor, userID 
 	return nil
 }
 
-func (r *repository) SetBannedStatus(ctx context.Context, q db.QueryExecutor, userID int64, isBanned bool) error {
+func (r *repository) SetBannedStatus(ctx context.Context, userID int64, isBanned bool) error {
 	const op = "repository.auth.SetBannedStatus"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		UPDATE users

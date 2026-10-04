@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/repository"
 	progressService "edtech/internal/service/progress"
 	errorsAPP "edtech/pkg/errors"
@@ -20,7 +19,7 @@ type mockProgressRepo struct {
 	getErr         error
 }
 
-func (m *mockProgressRepo) GetLessonProgress(ctx context.Context, q db.QueryExecutor, userID, lessonID int64) (*domain.LessonProgress, error) {
+func (m *mockProgressRepo) GetLessonProgress(ctx context.Context, userID, lessonID int64) (*domain.LessonProgress, error) {
 	if m.getErr != nil {
 		return nil, m.getErr
 	}
@@ -33,7 +32,7 @@ type mockQuizRepo struct {
 	getErr      error
 }
 
-func (m *mockQuizRepo) GetLessonSubmissions(ctx context.Context, q db.QueryExecutor, userID, lessonID int64) ([]domain.LessonSubmissionDetail, error) {
+func (m *mockQuizRepo) GetLessonSubmissions(ctx context.Context, userID, lessonID int64) ([]domain.LessonSubmissionDetail, error) {
 	if m.getErr != nil {
 		return nil, m.getErr
 	}
@@ -49,7 +48,7 @@ func TestGetLessonProgress_NotFound_ReturnsDefaultNotStarted(t *testing.T) {
 		submissions: []domain.LessonSubmissionDetail{},
 	}
 
-	svc := progressService.NewProgressService(pRepo, nil, qRepo, nil, nil)
+	svc := progressService.NewProgressService(pRepo, nil, qRepo, nil)
 
 	prog, err := svc.GetLessonProgress(ctx, 10, 42)
 	if err != nil {
@@ -107,7 +106,7 @@ func TestGetLessonProgress_ExistingProgress_WithSubmissions(t *testing.T) {
 		},
 	}
 
-	svc := progressService.NewProgressService(pRepo, nil, qRepo, nil, nil)
+	svc := progressService.NewProgressService(pRepo, nil, qRepo, nil)
 
 	prog, err := svc.GetLessonProgress(ctx, 10, 42)
 	if err != nil {
@@ -150,7 +149,7 @@ func TestGetLessonProgress_PgxErrNoRows_ReturnsDefaultNotStarted(t *testing.T) {
 		submissions: []domain.LessonSubmissionDetail{},
 	}
 
-	svc := progressService.NewProgressService(pRepo, nil, qRepo, nil, nil)
+	svc := progressService.NewProgressService(pRepo, nil, qRepo, nil)
 
 	prog, err := svc.GetLessonProgress(ctx, 10, 42)
 	if err != nil {
@@ -169,7 +168,7 @@ func TestGetLessonProgress_RepoError_ReturnsError(t *testing.T) {
 		getErr: dbErr,
 	}
 
-	svc := progressService.NewProgressService(pRepo, nil, nil, nil, nil)
+	svc := progressService.NewProgressService(pRepo, nil, nil, nil)
 
 	prog, err := svc.GetLessonProgress(ctx, 10, 42)
 	if err == nil {

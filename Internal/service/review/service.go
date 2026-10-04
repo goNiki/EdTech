@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	"edtech/internal/infrastructure/txmanager"
 	"edtech/internal/repository"
 	services "edtech/internal/service"
@@ -20,7 +19,6 @@ type service struct {
 	enrolledRepo repository.EnrolledRepository
 	progressRepo repository.ProgressRepository
 	txManager    txmanager.TransactionManager
-	db           db.QueryExecutor
 }
 
 func NewReviewService(
@@ -29,7 +27,6 @@ func NewReviewService(
 	enrolledRepo repository.EnrolledRepository,
 	progressRepo repository.ProgressRepository,
 	txManager txmanager.TransactionManager,
-	database db.QueryExecutor,
 ) services.ReviewServices {
 	return &service{
 		reviewRepo:   reviewRepo,
@@ -37,7 +34,6 @@ func NewReviewService(
 		enrolledRepo: enrolledRepo,
 		progressRepo: progressRepo,
 		txManager:    txManager,
-		db:           database,
 	}
 }
 
@@ -49,7 +45,7 @@ func (s *service) AddOrUpdateReview(ctx context.Context, userID, courseID int64,
 	}
 
 	// 1. Verify that user is enrolled in the course
-	isEnrolled, err := s.enrolledRepo.UserExistCourse(ctx, s.db, userID, courseID)
+	isEnrolled, err := s.enrolledRepo.UserExistCourse(ctx, userID, courseID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: check enrollment: %w", op, err)
 	}
@@ -58,7 +54,7 @@ func (s *service) AddOrUpdateReview(ctx context.Context, userID, courseID int64,
 	}
 
 	// 2. Verify that user has completed at least 30% of the course
-	prog, err := s.progressRepo.GetCourseProgress(ctx, s.db, userID, courseID)
+	prog, err := s.progressRepo.GetCourseProgress(ctx, userID, courseID)
 	if err != nil || prog == nil || prog.Percent < 30 {
 		return nil, fmt.Errorf("%s: %w: minimum 30%% course progress required to leave a review", op, errorsAPP.ErrForbidden)
 	}
@@ -66,8 +62,8 @@ func (s *service) AddOrUpdateReview(ctx context.Context, userID, courseID int64,
 	var savedReview *domain.Review
 
 	// 3. Transactional Upsert and Course Rating Recalculation
-	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, tx db.QueryExecutor) error {
-		rev, uErr := s.reviewRepo.UpsertReview(ctx, tx, &domain.Review{
+	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
+		rev, uErr := s.reviewRepo.UpsertReview(ctx, &domain.Review{
 			CourseID: courseID,
 			UserID:   userID,
 			Rating:   rating,
@@ -78,12 +74,12 @@ func (s *service) AddOrUpdateReview(ctx context.Context, userID, courseID int64,
 		}
 		savedReview = rev
 
-		avgRating, count, sErr := s.reviewRepo.GetCourseRatingSummary(ctx, tx, courseID)
+		avgRating, count, sErr := s.reviewRepo.GetCourseRatingSummary(ctx, courseID)
 		if sErr != nil {
 			return fmt.Errorf("calculate rating summary: %w", sErr)
 		}
 
-		if cErr := s.courseRepo.UpdateCourseRatingStats(ctx, tx, courseID, avgRating, count); cErr != nil {
+		if cErr := s.courseRepo.UpdateCourseRatingStats(ctx, courseID, avgRating, count); cErr != nil {
 			return fmt.Errorf("update course rating: %w", cErr)
 		}
 
@@ -100,17 +96,17 @@ func (s *service) AddOrUpdateReview(ctx context.Context, userID, courseID int64,
 func (s *service) DeleteReview(ctx context.Context, userID, courseID int64) error {
 	const op = "service.review.DeleteReview"
 
-	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, tx db.QueryExecutor) error {
-		if dErr := s.reviewRepo.DeleteReview(ctx, tx, courseID, userID); dErr != nil {
+	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
+		if dErr := s.reviewRepo.DeleteReview(ctx, courseID, userID); dErr != nil {
 			return fmt.Errorf("delete review: %w", dErr)
 		}
 
-		avgRating, count, sErr := s.reviewRepo.GetCourseRatingSummary(ctx, tx, courseID)
+		avgRating, count, sErr := s.reviewRepo.GetCourseRatingSummary(ctx, courseID)
 		if sErr != nil {
 			return fmt.Errorf("calculate rating summary: %w", sErr)
 		}
 
-		if cErr := s.courseRepo.UpdateCourseRatingStats(ctx, tx, courseID, avgRating, count); cErr != nil {
+		if cErr := s.courseRepo.UpdateCourseRatingStats(ctx, courseID, avgRating, count); cErr != nil {
 			return fmt.Errorf("update course rating: %w", cErr)
 		}
 
@@ -135,12 +131,12 @@ func (s *service) ListCourseReviews(ctx context.Context, courseID int64, page, p
 	}
 	offset := (page - 1) * pageSize
 
-	reviews, total, err := s.reviewRepo.ListReviewsByCourse(ctx, s.db, courseID, pageSize, offset)
+	reviews, total, err := s.reviewRepo.ListReviewsByCourse(ctx, courseID, pageSize, offset)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	avgRating, count, err := s.reviewRepo.GetCourseRatingSummary(ctx, s.db, courseID)
+	avgRating, count, err := s.reviewRepo.GetCourseRatingSummary(ctx, courseID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: get rating summary: %w", op, err)
 	}
@@ -156,7 +152,7 @@ func (s *service) ListCourseReviews(ctx context.Context, courseID int64, page, p
 func (s *service) GetMyReview(ctx context.Context, userID, courseID int64) (*domain.Review, error) {
 	const op = "service.review.GetMyReview"
 
-	review, err := s.reviewRepo.GetReviewByUserAndCourse(ctx, s.db, courseID, userID)
+	review, err := s.reviewRepo.GetReviewByUserAndCourse(ctx, courseID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

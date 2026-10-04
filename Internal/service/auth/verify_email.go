@@ -8,7 +8,7 @@ import (
 func (s *service) VerifyEmail(ctx context.Context, userID int64) error {
 	const op = "service.auth.VerifyEmail"
 
-	user, err := s.repo.GetUserByID(ctx, s.db, userID)
+	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("%s: get user: %w", op, err)
 	}
@@ -17,7 +17,7 @@ func (s *service) VerifyEmail(ctx context.Context, userID int64) error {
 		return nil
 	}
 
-	if err := s.repo.SetEmailVerified(ctx, s.db, userID, true); err != nil {
+	if err := s.repo.SetEmailVerified(ctx, userID, true); err != nil {
 		return fmt.Errorf("%s: set email verified: %w", op, err)
 	}
 

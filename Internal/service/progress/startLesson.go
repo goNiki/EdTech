@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -14,12 +13,12 @@ import (
 func (s *service) StartLesson(ctx context.Context, userID int64, lessonID int64) error {
 	const op = "service.progress.StartLesson"
 
-	lesson, err := s.lessonRepo.GetLessonByID(ctx, s.db, lessonID)
+	lesson, err := s.lessonRepo.GetLessonByID(ctx, lessonID)
 	if err != nil {
 		return fmt.Errorf("%s: get lesson: %w", op, err)
 	}
 
-	lessons, err := s.lessonRepo.GetLessonsByCourseID(ctx, s.db, lesson.CourseID)
+	lessons, err := s.lessonRepo.GetLessonsByCourseID(ctx, lesson.CourseID)
 	if err != nil {
 		return fmt.Errorf("%s: get lessons by course: %w", op, err)
 	}
@@ -31,7 +30,7 @@ func (s *service) StartLesson(ctx context.Context, userID int64, lessonID int64)
 
 	now := time.Now()
 
-	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, tx db.QueryExecutor) error {
+	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
 		courseProg := &domain.CourseProgress{
 			UserID:         userID,
 			CourseID:       lesson.CourseID,
@@ -42,7 +41,7 @@ func (s *service) StartLesson(ctx context.Context, userID int64, lessonID int64)
 			StartedAt:      &now,
 			LastAccessedAt: now,
 		}
-		if err := s.progressRepo.CreateCourseProgress(ctx, tx, courseProg); err != nil {
+		if err := s.progressRepo.CreateCourseProgress(ctx, courseProg); err != nil {
 			return err
 		}
 
@@ -53,7 +52,7 @@ func (s *service) StartLesson(ctx context.Context, userID int64, lessonID int64)
 			Status:    domain.ProgressStatusInProgress,
 			StartedAt: &now,
 		}
-		if err := s.progressRepo.CreateLessonProgress(ctx, tx, lessonProg); err != nil {
+		if err := s.progressRepo.CreateLessonProgress(ctx, lessonProg); err != nil {
 			return err
 		}
 

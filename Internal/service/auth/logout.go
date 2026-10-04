@@ -12,7 +12,7 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 
 	hashRefreshToken := s.hasherManager.HashRefreshToken(refreshToken)
 
-	err := s.refreshRepo.DeleteRefreshToken(ctx, s.db, hashRefreshToken)
+	err := s.refreshRepo.DeleteRefreshToken(ctx, hashRefreshToken)
 	if err != nil && !errors.Is(err, errorsAPP.ErrRefreshTokenNotFound) {
 		return fmt.Errorf("%s: %w", op, err)
 	}

@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 )
 
-func (r *repository) UpdateLessonStatus(ctx context.Context, q db.QueryExecutor, lessonID int64, status string) error {
+func (r *repository) UpdateLessonStatus(ctx context.Context, lessonID int64, status string) error {
 	const op = "repository.lesson.UpdateLessonStatus"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `UPDATE lessons SET status = $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL`
 
@@ -23,8 +24,9 @@ func (r *repository) UpdateLessonStatus(ctx context.Context, q db.QueryExecutor,
 	return nil
 }
 
-func (r *repository) UpdateStatusByCourseID(ctx context.Context, q db.QueryExecutor, courseID int64, status string) error {
+func (r *repository) UpdateStatusByCourseID(ctx context.Context, courseID int64, status string) error {
 	const op = "repository.lesson.UpdateStatusByCourseID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `UPDATE lessons SET status = $1, updated_at = NOW() WHERE course_id = $2 AND deleted_at IS NULL`
 
@@ -35,8 +37,9 @@ func (r *repository) UpdateStatusByCourseID(ctx context.Context, q db.QueryExecu
 	return nil
 }
 
-func (r *repository) UpdateStatusBySectionID(ctx context.Context, q db.QueryExecutor, sectionID int64, status string) error {
+func (r *repository) UpdateStatusBySectionID(ctx context.Context, sectionID int64, status string) error {
 	const op = "repository.lesson.UpdateStatusBySectionID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `UPDATE lessons SET status = $1, updated_at = NOW() WHERE section_id = $2 AND deleted_at IS NULL`
 

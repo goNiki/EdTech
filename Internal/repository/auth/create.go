@@ -3,7 +3,7 @@ package auth
 import (
 	"context"
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	repoconverter "edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
 	"errors"
@@ -11,9 +11,10 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-func (r *repository) CreateUser(ctx context.Context, q db.QueryExecutor, createUser domain.CreateUser) (*domain.User, error) {
+func (r *repository) CreateUser(ctx context.Context, createUser domain.CreateUser) (*domain.User, error) {
 
 	const op = "repository.auth.createuser"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		INSERT INTO users (

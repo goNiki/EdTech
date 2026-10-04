@@ -2,13 +2,14 @@ package refresh
 
 import (
 	"context"
-	"edtech/internal/infrastructure/db"
+	"edtech/internal/infrastructure/txmanager"
 	errorsAPP "edtech/pkg/errors"
 	"fmt"
 )
 
-func (r *repository) DeleteRefreshToken(ctx context.Context, q db.QueryExecutor, hashToken string) error {
+func (r *repository) DeleteRefreshToken(ctx context.Context, hashToken string) error {
 	const op = "repository.refresh.DeleteRefreshToken"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		DELETE FROM refresh_tokens
@@ -27,8 +28,9 @@ func (r *repository) DeleteRefreshToken(ctx context.Context, q db.QueryExecutor,
 	return nil
 }
 
-func (r *repository) DeleteAllByUserID(ctx context.Context, q db.QueryExecutor, userID int64) error {
+func (r *repository) DeleteAllByUserID(ctx context.Context, userID int64) error {
 	const op = "repository.refresh.DeleteAllByUserID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
 		DELETE FROM refresh_tokens

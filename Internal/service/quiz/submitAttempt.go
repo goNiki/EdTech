@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"edtech/internal/domain"
-	"edtech/internal/infrastructure/db"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
@@ -17,9 +16,9 @@ func (s *service) SubmitAttempt(ctx context.Context, userID int64, attemptID int
 
 	var attempt *domain.QuizAttempt
 
-	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, tx db.QueryExecutor) error {
+	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
 		var txErr error
-		attempt, txErr = s.quizRepo.GetAttemptForUpdate(ctx, tx, attemptID)
+		attempt, txErr = s.quizRepo.GetAttemptForUpdate(ctx, attemptID)
 		if txErr != nil {
 			return txErr
 		}
@@ -32,7 +31,7 @@ func (s *service) SubmitAttempt(ctx context.Context, userID int64, attemptID int
 			return errorsAPP.ErrAttemptAlreadyCompleted
 		}
 
-		quiz, txErr := s.quizRepo.GetQuizByID(ctx, tx, attempt.QuizID)
+		quiz, txErr := s.quizRepo.GetQuizByID(ctx, attempt.QuizID)
 		if txErr != nil {
 			return txErr
 		}
@@ -41,10 +40,10 @@ func (s *service) SubmitAttempt(ctx context.Context, userID int64, attemptID int
 			return txErr
 		}
 
-		hasOpenText := s.autoGradeAnswers(ctx, tx, attemptID, answers)
+		hasOpenText := s.autoGradeAnswers(ctx, attemptID, answers)
 
 		if len(answers) > 0 {
-			if txErr = s.quizRepo.CreateBatchAnswers(ctx, tx, answers); txErr != nil {
+			if txErr = s.quizRepo.CreateBatchAnswers(ctx, answers); txErr != nil {
 				return txErr
 			}
 		}
@@ -57,12 +56,12 @@ func (s *service) SubmitAttempt(ctx context.Context, userID int64, attemptID int
 			attempt.Passed = false
 			attempt.Score = 0
 		} else {
-			if txErr = s.finalizeAttemptScore(ctx, tx, quiz, attempt, answers); txErr != nil {
+			if txErr = s.finalizeAttemptScore(ctx, quiz, attempt, answers); txErr != nil {
 				return txErr
 			}
 		}
 
-		return s.quizRepo.UpdateAttempt(ctx, tx, attempt)
+		return s.quizRepo.UpdateAttempt(ctx, attempt)
 	})
 
 	if err != nil {
@@ -82,7 +81,7 @@ func (s *service) checkTimeLimit(quiz *domain.Quiz, attempt *domain.QuizAttempt)
 	return nil
 }
 
-func (s *service) autoGradeAnswers(ctx context.Context, tx db.QueryExecutor, attemptID int64, answers []domain.QuizAttemptAnswer) bool {
+func (s *service) autoGradeAnswers(ctx context.Context, attemptID int64, answers []domain.QuizAttemptAnswer) bool {
 	hasOpenText := false
 	for i := range answers {
 		answers[i].AttemptID = attemptID
@@ -92,7 +91,7 @@ func (s *service) autoGradeAnswers(ctx context.Context, tx db.QueryExecutor, att
 			answers[i].IsCorrect = nil
 			answers[i].Points = 0
 		} else {
-			isCorrect, points, err := s.quizRepo.GetAnswerPointsAndCorrectness(ctx, tx, *answers[i].AnswerID)
+			isCorrect, points, err := s.quizRepo.GetAnswerPointsAndCorrectness(ctx, *answers[i].AnswerID)
 			if err != nil {
 				isCorrect = false
 				points = 0
@@ -108,13 +107,13 @@ func (s *service) autoGradeAnswers(ctx context.Context, tx db.QueryExecutor, att
 	return hasOpenText
 }
 
-func (s *service) finalizeAttemptScore(ctx context.Context, tx db.QueryExecutor, quiz *domain.Quiz, attempt *domain.QuizAttempt, answers []domain.QuizAttemptAnswer) error {
+func (s *service) finalizeAttemptScore(ctx context.Context, quiz *domain.Quiz, attempt *domain.QuizAttempt, answers []domain.QuizAttemptAnswer) error {
 	correctPoints := 0
 	for _, ans := range answers {
 		correctPoints += ans.Points
 	}
 
-	maxPoints, err := s.quizRepo.GetQuizTotalPoints(ctx, tx, attempt.QuizID)
+	maxPoints, err := s.quizRepo.GetQuizTotalPoints(ctx, attempt.QuizID)
 	if err != nil {
 		maxPoints = 1
 	}
@@ -123,7 +122,7 @@ func (s *service) finalizeAttemptScore(ctx context.Context, tx db.QueryExecutor,
 
 	if attempt.Passed {
 		_, _ = s.progressService.CompleteLesson(ctx, attempt.UserID, quiz.LessonID, &attempt.Score, nil, nil)
-		_ = s.quizRepo.UpdateLessonProgressAfterQuiz(ctx, tx, attempt.UserID, quiz.LessonID, attempt.Score)
+		_ = s.quizRepo.UpdateLessonProgressAfterQuiz(ctx, attempt.UserID, quiz.LessonID, attempt.Score)
 	}
 
 	return nil
