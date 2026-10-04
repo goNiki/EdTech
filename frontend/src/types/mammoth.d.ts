@@ -24,4 +24,9 @@ declare module 'mammoth' {
     input: { arrayBuffer: ArrayBuffer } | { buffer: any } | { path: string },
     options?: ConvertOptions
   ): Promise<ConvertResult>;
+
+  export function extractRawText(
+    input: { arrayBuffer: ArrayBuffer } | { buffer: any } | { path: string },
+    options?: ConvertOptions
+  ): Promise<ConvertResult>;
 }

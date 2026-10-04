@@ -8,9 +8,10 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from '@/store/useAuth';
-import { ArrowLeft, Save, Sparkles, CheckCircle2, Lock, ShieldAlert, FileUp, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles, CheckCircle2, Lock, ShieldAlert, FileUp, Loader2, Zap } from 'lucide-react';
 import { useRef } from 'react';
 import { convertDocumentToHtml } from '@/lib/document-importer';
+import BulkQuizImportModal from '@/components/editor/BulkQuizImportModal';
 
 export default function LessonEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -22,11 +23,20 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
   const [forbiddenAlert, setForbiddenAlert] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [isImportingHeader, setIsImportingHeader] = useState(false);
+  const [isBulkQuizModalOpen, setIsBulkQuizModalOpen] = useState(false);
   const headerFileInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3000);
+  };
+
+  const handleBulkQuizzesImport = (blocks: any[]) => {
+    setInitialData((prev: any) => ({
+      ...prev,
+      content: [...(prev?.content || []), ...blocks],
+    }));
+    showToast(`Успешно добавлено ${blocks.length} блоков тестов в урок!`);
   };
 
   const handleHeaderFileImport = async (file: File) => {
@@ -179,6 +189,18 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
             }}
           />
 
+          {/* Bulk Quiz Import Button */}
+          <button
+            type="button"
+            disabled={isReadOnly}
+            onClick={() => setIsBulkQuizModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer active:scale-95"
+            title="Быстрый импорт тестов из текста (Aiken, GIFT, звездочки, чекбоксы)"
+          >
+            <Zap size={14} className="fill-white" />
+            <span>⚡ Быстрый импорт тестов</span>
+          </button>
+
           <span className="text-xs text-slate-400 font-medium hidden sm:inline">
             Режим: Content-as-Data Visual Builder
           </span>
@@ -237,6 +259,13 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
           <span>{toastMsg}</span>
         </div>
       )}
+
+      {/* Bulk Quiz Import Modal */}
+      <BulkQuizImportModal
+        isOpen={isBulkQuizModalOpen}
+        onClose={() => setIsBulkQuizModalOpen(false)}
+        onImport={handleBulkQuizzesImport}
+      />
     </div>
   );
 }
