@@ -94,6 +94,8 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		Error(w, r, http.StatusNotFound, "ANSWER_NOT_FOUND", "Quiz answer not found")
 	case errors.Is(err, errorsAPP.ErrCertificateNotFound):
 		Error(w, r, http.StatusNotFound, "CERTIFICATE_NOT_FOUND", "Certificate not found")
+	case errors.Is(err, errorsAPP.ErrNotificationNotFound):
+		Error(w, r, http.StatusNotFound, "NOTIFICATION_NOT_FOUND", "Notification not found")
 
 	// 409 Conflict - конфликты данных
 	case errors.Is(err, errorsAPP.ErrNothingToUpdate):

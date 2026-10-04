@@ -13,6 +13,7 @@ type service struct {
 	accessService   services.AccessService
 	progressService services.ProgressServices
 	txManager       txmanager.TransactionManager
+	notificationSvc services.NotificationServices
 }
 
 func NewQuizService(
@@ -22,6 +23,7 @@ func NewQuizService(
 	accessService services.AccessService,
 	progressService services.ProgressServices,
 	txManager txmanager.TransactionManager,
+	notificationSvc services.NotificationServices,
 ) services.QuizServices {
 	return &service{
 		quizRepo:        quizRepo,
@@ -30,5 +32,6 @@ func NewQuizService(
 		accessService:   accessService,
 		progressService: progressService,
 		txManager:       txManager,
+		notificationSvc: notificationSvc,
 	}
 }

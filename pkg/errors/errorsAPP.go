@@ -10,11 +10,12 @@ var (
 	ErrSamePassword        = errors.New("new password cannot be the same as old password")
 	ErrPasswordTooShort    = errors.New("new password must be at least 8 characters")
 
-	// General / review / certificate errors
-	ErrNotFound            = errors.New("not found")
-	ErrReviewNotFound      = errors.New("review not found")
-	ErrCertificateNotFound = errors.New("certificate not found")
-	ErrCourseNotCompleted  = errors.New("course not completed")
+	// General / review / certificate / notification errors
+	ErrNotFound             = errors.New("not found")
+	ErrReviewNotFound       = errors.New("review not found")
+	ErrCertificateNotFound  = errors.New("certificate not found")
+	ErrNotificationNotFound = errors.New("notification not found")
+	ErrCourseNotCompleted   = errors.New("course not completed")
 
 	// Course errors
 	ErrCourseNotFound           = errors.New("course not found")

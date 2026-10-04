@@ -108,6 +108,7 @@
 * [**`service/resource`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/resource/README.md) — Учебные материалы уроков.
 * [**`service/review`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/review/README.md) — Рейтинги 1–5 звезд, проверка прогресса >= 30%, транзакционный пересчет статистики.
 * [**`service/certificate`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/certificate/README.md) — Проверка 100% прогресса, генерация кода EDL-YYYY-XXXXXXXX, публичная верификация.
+* [**`service/notification`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/notification/README.md) — In-app уведомления, получение ленты, пометка прочитанными.
 
 ### Документация подпапок репозиториев (`internal/repository/*`):
 * [**`repository/auth`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/auth/README.md) — SQL пользователей, перехват уникальности `23505`.
@@ -124,6 +125,7 @@
 * [**`repository/resource`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/resource/README.md) — Вложения уроков.
 * [**`repository/review`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/review/README.md) — SQL отзывов, ON CONFLICT upsert, расчет среднего рейтинга и распределения звезд.
 * [**`repository/certificate`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/certificate/README.md) — Таблица `certificates`, уникальные коды `EDL-YYYY-XXXXXXXX`, выдача и поиск.
+* [**`repository/notification`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/notification/README.md) — Таблица `notifications`, частичный индекс непрочитанных, выборка ленты.
 * [**`repository/models`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/models/README.md) — DTO БД таблиц и двусторонние конвертеры в домен.
 
 ### Документация подпапок обработчиков (`internal/interfaces/handlers/*`):
@@ -138,6 +140,7 @@
 * [**`handlers/analytics`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/analytics/README.md) — Дашборд успеваемости и очередь работ.
 * [**`handlers/review`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/review/README.md) — REST API отзывов курсов и оценок.
 * [**`handlers/certificate`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/certificate/README.md) — Получение сертификата студентом и публичная верификация.
+* [**`handlers/notification`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/notification/README.md) — REST API ленты уведомлений и отметок о прочтении.
 * [**`handlers/converter`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/converter/README.md) — Мапперы Domain <-> HTTP DTO.
 
 ---

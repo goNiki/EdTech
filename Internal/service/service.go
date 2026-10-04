@@ -121,3 +121,10 @@ type CertificateServices interface {
 	VerifyCertificate(ctx context.Context, code string) (*domain.Certificate, error)
 }
 
+type NotificationServices interface {
+	CreateNotification(ctx context.Context, userID int64, title, message string, nType domain.NotificationType, linkURL *string) (*domain.Notification, error)
+	GetFeed(ctx context.Context, userID int64, limit int) (*domain.NotificationFeed, error)
+	MarkAsRead(ctx context.Context, userID, notificationID int64) error
+	MarkAllAsRead(ctx context.Context, userID int64) error
+}
+

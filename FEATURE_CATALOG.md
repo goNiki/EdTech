@@ -223,5 +223,16 @@ flowchart TD
   * ✅ Генерация защищенного криптографического кода формата `EDL-YYYY-XXXXXXXX` через `crypto/rand`.
   * ✅ Публичная проверка валидности сертификата по коду без авторизации (`GET /api/v1/certificates/verify/{code}`).
 
+---
+
+### 12. Домен: Внутрисистемные уведомления (`internal/service/notification`)
+* 📄 **Спецификация:** [internal/service/notification/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/notification/FUNCTIONAL_SPEC.md)
+* **Реализованный функционал:**
+  * ✅ Центр пользовательских уведомлений (In-App Notification Center).
+  * ✅ Получение ленты последних событий с подсчетом количества непрочитанных (`GET /api/v1/notifications`).
+  * ✅ Пометка отдельного уведомления как прочитанного (`PATCH /api/v1/notifications/{id}/read`) с защитой от чужих ID (`ErrNotificationNotFound`).
+  * ✅ Пакетная пометка всех уведомлений пользователя прочитанными (`POST /api/v1/notifications/read-all`).
+  * ✅ Событийная интеграция при выставлении преподавателем оценки за домашнее задание (`GradeAttemptAnswer`): генерация персонализированного уведомления студенту с оценкой и ссылкой на урок.
+
 
 

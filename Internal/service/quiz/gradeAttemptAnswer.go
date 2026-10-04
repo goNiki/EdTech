@@ -51,6 +51,19 @@ func (s *service) GradeAttemptAnswer(ctx context.Context, teacherID int64, attem
 			}
 		}
 
+		if s.notificationSvc != nil {
+			lessonLink := fmt.Sprintf("/lessons/%d", quiz.LessonID)
+			msg := fmt.Sprintf("Преподаватель оценил ваш ответ на %d баллов", points)
+			_, _ = s.notificationSvc.CreateNotification(
+				ctx,
+				attempt.UserID,
+				"Домашнее задание проверено",
+				msg,
+				domain.NotificationTypeHomeworkGraded,
+				&lessonLink,
+			)
+		}
+
 		return nil
 	})
 

@@ -1,4 +1,4 @@
-﻿package repository
+package repository
 
 import (
 	"context"
@@ -151,5 +151,13 @@ type CertificateRepository interface {
 	CreateCertificate(ctx context.Context, cert *domain.Certificate) (*domain.Certificate, error)
 	GetCertificateByCode(ctx context.Context, code string) (*domain.Certificate, error)
 	GetCertificateByUserAndCourse(ctx context.Context, userID, courseID int64) (*domain.Certificate, error)
+}
+
+type NotificationRepository interface {
+	CreateNotification(ctx context.Context, n *domain.Notification) (*domain.Notification, error)
+	GetUserNotifications(ctx context.Context, userID int64, limit int) ([]domain.Notification, error)
+	CountUnreadNotifications(ctx context.Context, userID int64) (int64, error)
+	MarkAsRead(ctx context.Context, userID, notificationID int64) error
+	MarkAllAsRead(ctx context.Context, userID int64) error
 }
 
