@@ -1,6 +1,8 @@
 package converter
 
 import (
+	"encoding/json"
+
 	"edtech/internal/domain"
 	"edtech/internal/repository/models"
 )
@@ -8,6 +10,10 @@ import (
 func UserToDomain(m *models.User) *domain.User {
 	if m == nil {
 		return nil
+	}
+	prefs := domain.DefaultUserPreferences()
+	if len(m.Preferences) > 0 {
+		_ = json.Unmarshal(m.Preferences, &prefs)
 	}
 	return &domain.User{
 		ID:            m.ID,
@@ -18,6 +24,8 @@ func UserToDomain(m *models.User) *domain.User {
 		LastName:      m.LastName,
 		AvatarURL:     m.AvatarURL,
 		Bio:           m.Bio,
+		Headline:      m.Headline,
+		Preferences:   prefs,
 		Role:          domain.Role(m.Role),
 		EmailVerified: m.EmailVerified,
 		IsActive:      m.IsActive,

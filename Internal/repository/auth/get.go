@@ -32,7 +32,8 @@ const baseUserSelect = `
 		last_login_at, 
 		created_at, 
 		updated_at, 
-		deleted_at 
+		deleted_at,
+		preferences 
 	FROM users
 `
 
@@ -57,6 +58,7 @@ func scanUser(row pgx.Row) (*domain.User, error) {
 		&user.CreatedAt,
 		&user.UpdatedAt,
 		&user.DeletedAt,
+		&user.Preferences,
 	)
 	if err != nil {
 		return nil, err

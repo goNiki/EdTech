@@ -59,6 +59,7 @@ var (
 	ErrAttemptAlreadyCompleted = errors.New("quiz attempt already completed")
 	ErrAnswerNotFound          = errors.New("quiz answer not found")
 	ErrInvalidGradePoints      = errors.New("invalid grade points")
+	ErrInvalidPreferences      = errors.New("invalid reading preferences")
 
 	// Enrollment errors
 	ErrEnrolled                   = errors.New("failed to enroll")

@@ -252,6 +252,7 @@ flowchart TD
   * ✅ Завершение сеанса (`POST /api/v1/auth/logout`).
   * ✅ Получение и обновление профиля (`GET /api/v1/auth/me`, `PATCH /api/v1/auth/profile`).
   * ✅ Безопасная смена пароля с проверкой старого и отзывом всех сессий (`POST /api/v1/auth/change-password`).
+  * ✅ Синхронизация пользовательских предпочтений доступности и комфортного чтения (`font_scale`, `content_width`, `line_height`, `reading_theme`) с неразрушающим shallow merge (`PATCH /api/v1/auth/preferences`, `GET /api/v1/auth/me`).
   * ✅ Административное управление ролями пользователей (`PATCH /api/v1/admin/users/{id}/role`).
   * ✅ Административная блокировка/разблокировка пользователей с моментальным отзывом сессий (`PATCH /api/v1/admin/users/{id}/ban`).
   * ✅ Административный просмотр реестра пользователей с фильтрацией (роль, статус бана, поиск по email/имени) и пагинацией (`GET /api/v1/admin/users`).

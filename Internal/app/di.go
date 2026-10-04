@@ -573,6 +573,7 @@ func (d *diContainer) Router() http.Handler {
 
 				r.Get("/me", d.AuthHdl().GetCurrentUser)
 				r.Patch("/profile", d.AuthHdl().UpdateProfile)
+				r.Patch("/preferences", d.AuthHdl().UpdatePreferences)
 				r.Post("/change-password", d.AuthHdl().ChangePassword)
 				r.Post("/verify-email", d.AuthHdl().VerifyEmail)
 			})

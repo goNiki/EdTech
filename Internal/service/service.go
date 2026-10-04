@@ -126,6 +126,7 @@ type AuthOperations interface {
 type UserProfileOperations interface {
 	GetCurrentUser(ctx context.Context, userID int64) (*domain.User, error)
 	UpdateProfile(ctx context.Context, userID int64, input domain.UpdateProfileInput) (*domain.User, error)
+	UpdatePreferences(ctx context.Context, userID int64, input domain.UpdatePreferencesInput) (domain.UserPreferences, error)
 	ChangePassword(ctx context.Context, userID int64, oldPassword, newPassword string) error
 }
 

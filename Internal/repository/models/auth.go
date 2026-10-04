@@ -12,6 +12,7 @@ type User struct {
 	AvatarURL     *string
 	Bio           *string
 	Headline      *string
+	Preferences   []byte
 	Role          string
 	EmailVerified bool
 	IsActive      bool

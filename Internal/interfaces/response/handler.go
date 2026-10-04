@@ -51,6 +51,8 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		Error(w, r, http.StatusBadRequest, "PASSWORD_TOO_SHORT", "New password must be at least 8 characters")
 	case errors.Is(err, errorsAPP.ErrInvalidGradePoints):
 		Error(w, r, http.StatusBadRequest, "INVALID_GRADE_POINTS", err.Error())
+	case errors.Is(err, errorsAPP.ErrInvalidPreferences):
+		Error(w, r, http.StatusBadRequest, "INVALID_PREFERENCES", err.Error())
 	// 400 Bad Request - ошибки URL параметров
 	case errors.Is(err, errorsAPP.ErrInvalidURLParam):
 		Error(w, r, http.StatusBadRequest, "INVALID_URL_PARAM", "Invalid URL parametr")

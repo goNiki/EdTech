@@ -95,7 +95,7 @@
 | **SQL Migrations** | `migrators` | [`migrators/README.md`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/migrators/README.md) | 21 версионированная SQL-миграция схемы данных Goose |
 
 ### Документация подпапок сервисов (`internal/service/*`):
-* [**`service/auth`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/README.md) — Сессии, bcrypt хэши, одиночная активная сессия, бан-правила.
+* [**`service/auth`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/README.md) — Сессии, bcrypt хэши, одиночная активная сессия, бан-правила, синхронизация настроек чтения.
 * [**`service/access`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/access/README.md) — Матрица разрешений курсов, правила черновиков и прав создателя.
 * [**`service/course`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/course/README.md) — Каскадная публикация, автозачисление создателя, сборка дерева курса, профиль автора.
 * [**`service/section`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/section/README.md) — Позиционирование секций и переупорядочивание уроков.
@@ -112,7 +112,7 @@
 * [**`service/upload`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/upload/README.md) — Прием и валидация файлов (до 25 МБ, презентации до 50 МБ), пакетная загрузка Word-изображений.
 
 ### Документация подпапок репозиториев (`internal/repository/*`):
-* [**`repository/auth`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/auth/README.md) — SQL пользователей, перехват уникальности `23505`.
+* [**`repository/auth`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/auth/README.md) — SQL пользователей, JSONB shallow merge preferences, перехват уникальности `23505`.
 * [**`repository/refresh`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/refresh/README.md) — SHA-256 хранение токенов сессий, сброс всех сессий.
 * [**`repository/category`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/category/README.md) — Выборка категорий с подсчетом курсов через `LEFT JOIN`, CRUD.
 * [**`repository/course`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/course/README.md) — SQL каталога, публичный профиль автора со статистикой, атомарные `enrolled_count ± 1`, `UpdateCourseRatingStats`.
@@ -130,7 +130,7 @@
 * [**`repository/models`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/models/README.md) — DTO БД таблиц и двусторонние конвертеры в домен.
 
 ### Документация подпапок обработчиков (`internal/interfaces/handlers/*`):
-* [**`handlers/auth`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/auth/README.md) — Регистрация, вход, профиль, админ-панель.
+* [**`handlers/auth`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/auth/README.md) — Регистрация, вход, профиль, настройки чтения (preferences), админ-панель.
 * [**`handlers/category`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/category/README.md) — Публичный каталог категорий и создание новых.
 * [**`handlers/courses`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/courses/README.md) — Каталог, создание, управление курсом.
 * [**`handlers/section`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/section/README.md) — CRUD секций и сортировка уроков.

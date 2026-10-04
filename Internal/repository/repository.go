@@ -19,6 +19,7 @@ type UserRepository interface {
 	SetEmailVerified(ctx context.Context, userID int64, verified bool) error
 	UpdateRole(ctx context.Context, userID int64, role domain.Role) error
 	SetBannedStatus(ctx context.Context, userID int64, isBanned bool) error
+	UpdatePreferences(ctx context.Context, userID int64, input domain.UpdatePreferencesInput) (domain.UserPreferences, error)
 	ListUsers(ctx context.Context, filter domain.UserFilter, pagination domain.Pagination) ([]domain.User, int64, error)
 }
 

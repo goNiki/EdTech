@@ -25,6 +25,7 @@
 | [`logout.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/auth/logout.go) | `POST /api/v1/auth/logout` | Инвалидация refresh-токена |
 | [`me.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/auth/me.go) | `GET /api/v1/auth/me` | Данные текущего авторизованного пользователя |
 | [`profile.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/auth/profile.go) | `PATCH /api/v1/auth/profile` | Частичное обновление данных профиля |
+| [`preferences.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/auth/preferences.go) | `PATCH /api/v1/auth/preferences` | Обновление индивидуальных настроек доступности и чтения |
 | [`password.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/auth/password.go) | `POST /api/v1/auth/change-password` | Смена пароля учетной записи |
 | [`verify_email.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/auth/verify_email.go) | `POST /api/v1/auth/verify-email` | Подтверждение email |
 | [`admin.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/auth/admin.go) | `GET /api/v1/admin/users`, `PATCH /api/v1/admin/users/{id}/*` | Получение списка пользователей с фильтрами/пагинацией, изменение роли и бан |

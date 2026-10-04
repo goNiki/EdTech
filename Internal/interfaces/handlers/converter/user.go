@@ -18,6 +18,7 @@ func UserToDTO(d *domain.User) dto.User {
 		AvatarURL:     d.AvatarURL,
 		Bio:           d.Bio,
 		Headline:      d.Headline,
+		Preferences:   PreferencesToDTO(d.Preferences),
 		Role:          string(d.Role),
 		EmailVerified: d.EmailVerified,
 		IsActive:      d.IsActive,
@@ -51,5 +52,26 @@ func UpdateProfileRequestToDomain(req dto.UpdateProfileRequest) domain.UpdatePro
 		Bio:       req.Bio,
 		AvatarURL: req.AvatarURL,
 		Headline:  req.Headline,
+	}
+}
+
+func PreferencesToDTO(d domain.UserPreferences) dto.UserPreferencesDTO {
+	if d.FontScale == "" && d.ContentWidth == "" && d.LineHeight == "" && d.ReadingTheme == "" {
+		d = domain.DefaultUserPreferences()
+	}
+	return dto.UserPreferencesDTO{
+		FontScale:    d.FontScale,
+		ContentWidth: d.ContentWidth,
+		LineHeight:   d.LineHeight,
+		ReadingTheme: d.ReadingTheme,
+	}
+}
+
+func UpdatePreferencesRequestToDomain(req dto.UpdatePreferencesRequest) domain.UpdatePreferencesInput {
+	return domain.UpdatePreferencesInput{
+		FontScale:    req.FontScale,
+		ContentWidth: req.ContentWidth,
+		LineHeight:   req.LineHeight,
+		ReadingTheme: req.ReadingTheme,
 	}
 }

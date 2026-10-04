@@ -42,8 +42,9 @@ type User struct {
 	LastName      *string    `json:"last_name,omitempty"`
 	AvatarURL     *string    `json:"avatar_url,omitempty"`
 	Bio           *string    `json:"bio,omitempty"`
-	Headline      *string    `json:"headline,omitempty"`
-	Role          string     `json:"role"`
+	Headline      *string            `json:"headline,omitempty"`
+	Preferences   UserPreferencesDTO `json:"preferences"`
+	Role          string             `json:"role"`
 	EmailVerified bool       `json:"email_verified"`
 	IsActive      bool       `json:"is_active"`
 	LastLoginAt   *time.Time `json:"last_login_at,omitempty"`
@@ -76,6 +77,30 @@ type UpdateProfileRequest struct {
 
 type UpdateProfileResponse struct {
 	User User `json:"user"`
+}
+
+type UserPreferencesDTO struct {
+	FontScale    string `json:"font_scale"`
+	ContentWidth string `json:"content_width"`
+	LineHeight   string `json:"line_height"`
+	ReadingTheme string `json:"reading_theme"`
+}
+
+type UpdatePreferencesRequest struct {
+	FontScale    *string `json:"font_scale,omitempty" validate:"omitempty,oneof=compact medium large xlarge"`
+	ContentWidth *string `json:"content_width,omitempty" validate:"omitempty,oneof=standard wide full"`
+	LineHeight   *string `json:"line_height,omitempty" validate:"omitempty,oneof=normal relaxed"`
+	ReadingTheme *string `json:"reading_theme,omitempty" validate:"omitempty,oneof=system light dark sepia"`
+}
+
+type UpdatePreferencesData struct {
+	Preferences UserPreferencesDTO `json:"preferences"`
+}
+
+type UpdatePreferencesResponse struct {
+	Code    int                   `json:"code"`
+	Message string                `json:"message"`
+	Data    UpdatePreferencesData `json:"data"`
 }
 
 type RefreshTokenRequest struct {

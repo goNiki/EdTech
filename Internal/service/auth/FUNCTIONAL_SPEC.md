@@ -198,3 +198,33 @@
 * **Возможные ошибки:**
   * `ErrForbidden` (403) — инициатор запроса не является администратором.
   * `ErrInternalDB` (500) — ошибка выполнения запроса в базе данных.
+
+---
+
+### ⚡ Функция: `UpdatePreferences(ctx, userID, input)`
+
+* **Файл и строки:** [`preferences.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/preferences.go)
+* **Бизнес-назначение:** Сохранение и синхронизация пользовательских настроек отображения и чтения (размер шрифта, ширина полотна урока, межстрочный интервал, цветовая тема) с поддержкой неразрушающего слияния (shallow merge).
+* **Связанная фича:** *Синхронизация предпочтений чтения и доступности*
+
+#### 📥 Входные параметры
+| Параметр | Тип | Обязателен | Бизнес-смысл и ограничения |
+|---|---|:---:|---|
+| `userID` | `int64` | Да | Идентификатор авторизованного пользователя |
+| `input.FontScale` | `*string` | Нет | Размер шрифта: `compact`, `medium`, `large`, `xlarge` |
+| `input.ContentWidth` | `*string` | Нет | Ширина контента: `standard`, `wide`, `full` |
+| `input.LineHeight` | `*string` | Нет | Межстрочный интервал: `normal`, `relaxed` |
+| `input.ReadingTheme` | `*string` | Нет | Тема ридера: `system`, `light`, `dark`, `sepia` |
+
+#### 🔄 Пошаговый алгоритм работы
+1. **Шаг 1 (Валидация допустимых значений):** Вызывает `input.Validate()`. Если передано неизвестное значение перечисления, прерывает с `ErrInvalidPreferences`.
+2. **Шаг 2 (Shallow merge в базе данных):** Репозиторий конструирует JSON-объект только из непустых полей и выполняет атомарный `UPDATE users SET preferences = COALESCE(preferences, default) || patch RETURNING preferences`.
+3. **Шаг 3 (Возврат результата):** Десериализует обновленный JSONB в `domain.UserPreferences` и возвращает клиенту.
+
+#### 📤 Результат и ошибки
+* **Успешный результат:** `(domain.UserPreferences, nil)`
+* **Возможные ошибки:**
+  * `ErrInvalidPreferences` (400) — передано недопустимое значение одной из опций.
+  * `ErrUserNotFound` (404) — пользователь с данным ID не найден.
+  * `ErrInternalDB` (500) — ошибка при записи в PostgreSQL.
+

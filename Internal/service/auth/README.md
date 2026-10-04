@@ -29,6 +29,7 @@
 | [`logout.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/logout.go) | Инвалидация refresh-токена в базе данных |
 | [`get.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/get.go) | Получение данных текущего пользователя по ID |
 | [`update.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/update.go) | Обновление полей профиля и смена пароля с проверкой старого |
+| [`preferences.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/preferences.go) | Сохранение настроек отображения и чтения пользователя (font scale, width, line height, theme) |
 | [`verify_email.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/verify_email.go) | Подтверждение адреса электронной почты |
 | [`admin.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/admin.go) | Административные действия: список пользователей с фильтрацией, изменение глобальной роли и бан пользователей |
 
@@ -41,6 +42,7 @@
 | `Login` | [`login.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/login.go) | Проверка bcrypt хэша, генерация JWT пары и запись токена в БД | `Login(ctx context.Context, email, password string) (domain.AuthTokens, error)` |
 | `RefreshToken` | [`refresh.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/refresh.go) | Проверка срока жизни токена и перевыпуск новой пары | `RefreshToken(ctx context.Context, refreshToken string) (domain.AuthTokens, error)` |
 | `Logout` | [`logout.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/logout.go) | Удаление SHA-256 хэша refresh-токена из базы | `Logout(ctx context.Context, refreshToken string) error` |
+| `UpdatePreferences` | [`preferences.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/preferences.go) | Валидация и частичное обновление настроек доступности/чтения | `UpdatePreferences(ctx context.Context, userID int64, input domain.UpdatePreferencesInput) (domain.UserPreferences, error)` |
 | `ChangePassword` | [`update.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/update.go) | Сверка старого пароля и обновление на новый bcrypt хэш | `ChangePassword(ctx context.Context, userID int64, oldPassword, newPassword string) error` |
 | `ChangeUserRole` | [`admin.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/admin.go) | Изменение роли пользователя администратором | `ChangeUserRole(ctx context.Context, adminID, targetUserID int64, newRole domain.Role) error` |
 | `SetUserBanned` | [`admin.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/admin.go) | Блокировка пользователя и транзакционный сброс активных токенов | `SetUserBanned(ctx context.Context, adminID, targetUserID int64, isBanned bool) error` |
