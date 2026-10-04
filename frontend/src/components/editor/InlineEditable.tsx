@@ -37,8 +37,12 @@ import {
   Outdent,
   RemoveFormatting,
   Type,
-  Palette
+  Palette,
+  FileUp,
+  FileText,
+  Loader2
 } from 'lucide-react';
+import { convertDocumentToHtml } from '@/lib/document-importer';
 
 /**
  * Hook to safely interact with Puck's dispatch for updating block props.
@@ -1379,6 +1383,49 @@ export function RichTextWordEditor({
   const [linkUrl, setLinkUrl] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(false);
 
+  // File import state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importStatus, setImportStatus] = useState<string>('');
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [importToast, setImportToast] = useState<string | null>(null);
+
+  const handleFileImport = async (file: File) => {
+    const ext = file.name.toLowerCase();
+    if (!ext.endsWith('.docx') && !ext.endsWith('.md') && !ext.endsWith('.markdown')) {
+      alert('Пожалуйста, выберите файл документа Microsoft Word (.docx) или Markdown (.md)');
+      return;
+    }
+
+    setIsImporting(true);
+    setImportStatus('Чтение файла...');
+    try {
+      const res = await convertDocumentToHtml(file, (msg) => setImportStatus(msg));
+
+      if (editorRef.current) {
+        const currentHtml = editorRef.current.innerHTML.trim();
+        const isDefault = !currentHtml || currentHtml === '<p>Пустой текст лекции</p>' || currentHtml === '<p><br></p>';
+        const newHtml = isDefault ? res.html : `${currentHtml}<hr class="my-6 border-slate-200 dark:border-slate-800" />${res.html}`;
+        editorRef.current.innerHTML = newHtml;
+        lastHtmlRef.current = newHtml;
+        onChange(newHtml);
+      }
+
+      if (res.extractedTitle && onTitleChange && !title) {
+        onTitleChange(res.extractedTitle);
+      }
+
+      setImportToast(`Документ успешно импортирован (${res.wordCount} слов, ${res.tablesCount} таблиц)`);
+      setTimeout(() => setImportToast(null), 4000);
+    } catch (err: any) {
+      console.error('Import failed', err);
+      alert(err.message || 'Ошибка импорта документа');
+    } finally {
+      setIsImporting(false);
+      setImportStatus('');
+    }
+  };
+
   // Save current selection range inside the editor
   const saveSelection = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -2141,6 +2188,30 @@ export function RichTextWordEditor({
             <LinkIcon size={14} />
           </button>
 
+          {/* Import Word / Markdown Button */}
+          <button
+            type="button"
+            data-puck-overlay-portal="true"
+            title="Импортировать документ Word (.docx) или Markdown (.md)"
+            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+            className="edtech-inline-btn px-2.5 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900 text-xs font-bold flex items-center gap-1.5 transition-colors border border-purple-200 dark:border-purple-800 cursor-pointer"
+          >
+            <FileUp size={14} />
+            <span>Импорт .docx / .md</span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".docx,.md,.markdown"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileImport(file);
+              e.target.value = '';
+            }}
+          />
+
           <button
             type="button"
             data-puck-overlay-portal="true"
@@ -2245,31 +2316,91 @@ export function RichTextWordEditor({
         </div>
       )}
 
-      {/* Word Editable Document Sheet */}
+      {/* Relative container for Document Sheet with Drag-and-Drop and Overlays */}
       <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        data-puck-overlay-portal="true"
-        onPointerDownCapture={(e) => e.stopPropagation()}
-        onMouseDownCapture={(e) => e.stopPropagation()}
-        onKeyDownCapture={(e) => e.stopPropagation()}
-        onKeyUpCapture={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-        onMouseUp={saveSelection}
-        onKeyUp={saveSelection}
-        onSelect={saveSelection}
-        onFocus={() => {
-          onFocusBlock?.();
-          saveSelection();
+        className="relative"
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDragOver(true);
         }}
-        onInput={triggerChange}
-        onBlur={triggerChange}
-        style={{ userSelect: 'text', WebkitUserSelect: 'text', pointerEvents: 'auto' }}
-        className="edtech-inline-editable min-h-[300px] p-8 text-slate-800 dark:text-slate-100 leading-relaxed text-sm md:text-base outline-none focus:ring-2 focus:ring-indigo-500/40 prose dark:prose-invert max-w-none cursor-text select-text"
-        data-placeholder="Начните писать лекцию прямо здесь..."
-      />
+        onDragLeave={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDragOver(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDragOver(false);
+          const file = e.dataTransfer.files?.[0];
+          if (file) handleFileImport(file);
+        }}
+      >
+        {/* Drag & Drop Overlay */}
+        {isDragOver && (
+          <div className="absolute inset-0 z-30 bg-purple-500/10 backdrop-blur-xs border-4 border-dashed border-purple-500 rounded-2xl flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
+            <div className="w-14 h-14 rounded-2xl bg-purple-600 text-white flex items-center justify-center mb-3 shadow-lg">
+              <FileUp size={28} />
+            </div>
+            <h4 className="text-base font-extrabold text-purple-900 dark:text-purple-200">
+              Отпустите файл Word (.docx) или Markdown (.md)
+            </h4>
+            <p className="text-xs text-purple-700 dark:text-purple-300 mt-1 max-w-sm">
+              Текст, таблицы и иллюстрации будут автоматически сконвертированы и добавлены в этот блок лекции.
+            </p>
+          </div>
+        )}
+
+        {/* Importing Progress Overlay */}
+        {isImporting && (
+          <div className="absolute inset-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
+            <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-950/80 text-purple-600 flex items-center justify-center mb-3 shadow-md">
+              <Loader2 size={24} className="animate-spin" />
+            </div>
+            <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+              Конвертация документа...
+            </h4>
+            <p className="text-xs text-purple-600 dark:text-purple-400 font-semibold mt-1">
+              {importStatus || 'Пожалуйста, подождите...'}
+            </p>
+          </div>
+        )}
+
+        {/* Word Editable Document Sheet */}
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          data-puck-overlay-portal="true"
+          onPointerDownCapture={(e) => e.stopPropagation()}
+          onMouseDownCapture={(e) => e.stopPropagation()}
+          onKeyDownCapture={(e) => e.stopPropagation()}
+          onKeyUpCapture={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseUp={saveSelection}
+          onKeyUp={saveSelection}
+          onSelect={saveSelection}
+          onFocus={() => {
+            onFocusBlock?.();
+            saveSelection();
+          }}
+          onInput={triggerChange}
+          onBlur={triggerChange}
+          style={{ userSelect: 'text', WebkitUserSelect: 'text', pointerEvents: 'auto' }}
+          className="edtech-inline-editable min-h-[300px] p-8 text-slate-800 dark:text-slate-100 leading-relaxed text-sm md:text-base outline-none focus:ring-2 focus:ring-indigo-500/40 prose dark:prose-invert max-w-none cursor-text select-text"
+          data-placeholder="Начните писать лекцию прямо здесь или перетащите файл Word (.docx) / Markdown (.md)..."
+        />
+
+        {/* Import Success Toast */}
+        {importToast && (
+          <div className="absolute bottom-4 right-4 z-50 px-4 py-2.5 rounded-xl bg-purple-600 text-white text-xs font-bold shadow-xl flex items-center gap-2 animate-in slide-in-from-bottom-2">
+            <Check size={16} />
+            <span>{importToast}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

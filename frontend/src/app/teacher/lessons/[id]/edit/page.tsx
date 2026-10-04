@@ -8,7 +8,9 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from '@/store/useAuth';
-import { ArrowLeft, Save, Sparkles, CheckCircle2, Lock, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles, CheckCircle2, Lock, ShieldAlert, FileUp, Loader2 } from 'lucide-react';
+import { useRef } from 'react';
+import { convertDocumentToHtml } from '@/lib/document-importer';
 
 export default function LessonEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -19,10 +21,36 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [forbiddenAlert, setForbiddenAlert] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [isImportingHeader, setIsImportingHeader] = useState(false);
+  const headerFileInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3000);
+  };
+
+  const handleHeaderFileImport = async (file: File) => {
+    setIsImportingHeader(true);
+    try {
+      const res = await convertDocumentToHtml(file);
+      const newBlock = {
+        type: 'RichTextBlock',
+        props: {
+          id: `RichTextBlock-${Date.now()}`,
+          title: res.extractedTitle || 'Импортированная лекция',
+          contentHtml: res.html,
+        },
+      };
+      setInitialData((prev: any) => ({
+        ...prev,
+        content: [...(prev?.content || []), newBlock],
+      }));
+      showToast(`Документ успешно добавлен в урок (${res.wordCount} слов, ${res.tablesCount} таблиц)`);
+    } catch (err: any) {
+      alert(err.message || 'Ошибка импорта документа');
+    } finally {
+      setIsImportingHeader(false);
+    }
   };
 
   useEffect(() => {
@@ -120,6 +148,37 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            disabled={isReadOnly || isImportingHeader}
+            onClick={() => headerFileInputRef.current?.click()}
+            className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-purple-600/20 cursor-pointer"
+            title="Импортировать готовый документ Word (.docx) или Markdown (.md) как новый раздел лекции"
+          >
+            {isImportingHeader ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                <span>Импорт документа...</span>
+              </>
+            ) : (
+              <>
+                <FileUp size={14} />
+                <span>Вставить документ (.docx / .md)</span>
+              </>
+            )}
+          </button>
+          <input
+            ref={headerFileInputRef}
+            type="file"
+            accept=".docx,.md,.markdown"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleHeaderFileImport(file);
+              e.target.value = '';
+            }}
+          />
+
           <span className="text-xs text-slate-400 font-medium hidden sm:inline">
             Режим: Content-as-Data Visual Builder
           </span>
