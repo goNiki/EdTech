@@ -40,6 +40,7 @@ export default function ProfileAndSettingsPage() {
   // Form states
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [headline, setHeadline] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -158,6 +159,7 @@ export default function ProfileAndSettingsPage() {
     if (user) {
       setFirstName(user.first_name || '');
       setLastName(user.last_name || '');
+      setHeadline(user.headline || '');
       setBio(user.bio || '');
       setAvatarUrl(user.avatar_url || '');
     }
@@ -170,6 +172,7 @@ export default function ProfileAndSettingsPage() {
       const res = await api.patch('/auth/profile', {
         first_name: firstName,
         last_name: lastName,
+        headline: headline,
         bio: bio,
         avatar_url: avatarUrl,
       });
@@ -395,6 +398,23 @@ export default function ProfileAndSettingsPage() {
                 </div>
 
                 <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Специализация / Профессиональный статус (Headline)
+                  </label>
+                  <input
+                    type="text"
+                    value={headline}
+                    onChange={(e) => setHeadline(e.target.value)}
+                    placeholder="Например: Эксперт ЕГЭ по русскому языку, стаж 10 лет"
+                    maxLength={150}
+                    className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                  <p className="text-[10px] text-slate-400">
+                    Отображается в карточке автора на лендингах ваших курсов
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">О себе (Bio)</label>
                   <textarea
                     rows={4}
@@ -444,6 +464,15 @@ export default function ProfileAndSettingsPage() {
                     </p>
                   </div>
                 </div>
+
+                {user?.headline && (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1 md:col-span-2">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Специализация / Статус автора</span>
+                    <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                      {user.headline}
+                    </p>
+                  </div>
+                )}
 
                 <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1 md:col-span-2">
                   <span className="text-[10px] uppercase font-bold text-slate-400">О себе</span>

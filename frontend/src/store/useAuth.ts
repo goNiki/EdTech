@@ -8,6 +8,7 @@ export interface User {
   last_name?: string;
   username: string;
   avatar_url?: string;
+  headline?: string;
   bio?: string;
   role: string;
   email_verified?: boolean;
@@ -44,18 +45,24 @@ export const useAuth = create<AuthState>((set, get) => ({
     const currentUser = get().user;
     if (currentUser && ['teacher', 'author', 'admin'].includes(currentUser.role)) {
       get().setViewMode('teacher');
+    } else {
+      get().setViewMode('student');
     }
   },
 
   logout: () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('view_mode');
     set({ user: null, isAuthenticated: false, isLoading: false, viewMode: 'student' });
   },
 
   setViewMode: (mode: ViewMode) => {
-    localStorage.setItem('view_mode', mode);
-    set({ viewMode: mode });
+    const currentUser = get().user;
+    const isStaff = currentUser && ['teacher', 'author', 'admin'].includes(currentUser.role);
+    const finalMode = isStaff ? mode : 'student';
+    localStorage.setItem('view_mode', finalMode);
+    set({ viewMode: finalMode });
   },
 
   setUser: (user: User) => {
@@ -68,14 +75,15 @@ export const useAuth = create<AuthState>((set, get) => ({
       const { data } = await api.get('/auth/me');
       const userData = data.data || data;
       
-      let initialViewMode = get().viewMode;
+      let initialViewMode: ViewMode = 'student';
       if (typeof window !== 'undefined') {
-        const savedMode = localStorage.getItem('view_mode') as ViewMode;
-        if (savedMode) {
-          initialViewMode = savedMode;
-        } else if (['teacher', 'author', 'admin'].includes(userData.role)) {
-          initialViewMode = 'teacher';
-          localStorage.setItem('view_mode', 'teacher');
+        const isStaff = ['teacher', 'author', 'admin'].includes(userData.role);
+        if (isStaff) {
+          const savedMode = localStorage.getItem('view_mode') as ViewMode;
+          initialViewMode = (savedMode === 'student' || savedMode === 'teacher') ? savedMode : 'teacher';
+        } else {
+          initialViewMode = 'student';
+          localStorage.setItem('view_mode', 'student');
         }
       }
 

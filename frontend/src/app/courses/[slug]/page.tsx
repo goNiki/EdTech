@@ -8,6 +8,7 @@ import { fetchCourseReviews, CourseReviewsSummary } from '@/lib/reviews';
 import { useLayoutStore } from '@/store/useLayoutStore';
 import Sidebar from '@/components/layout/Sidebar';
 import TopNavbar from '@/components/layout/TopNavbar';
+import AuthorBioCard from '@/components/course/AuthorBioCard';
 import {
   Layers,
   Users,
@@ -196,6 +197,11 @@ export default function CourseLandingPage({ params }: { params: Promise<{ slug: 
               )}
             </div>
           </div>
+
+          {/* Author Profile Bio Card */}
+          {courseData.author && (
+            <AuthorBioCard author={courseData.author} />
+          )}
 
           {/* Curriculum preview */}
           <div className="space-y-4">
