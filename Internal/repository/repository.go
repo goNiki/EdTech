@@ -89,6 +89,7 @@ type LessonRepository interface {
 type AnalyticsRepository interface {
 	GetCourseAnalyticsSummary(ctx context.Context, courseID int64) (domain.CourseAnalyticsSummary, error)
 	ListPendingHomeworks(ctx context.Context, courseID int64, limit, offset int64) ([]domain.PendingHomeworkItem, int64, error)
+	ListTeacherPendingHomeworks(ctx context.Context, teacherID int64, courseID int64, limit, offset int64) ([]domain.PendingHomeworkItem, int64, []domain.CoursePendingSummaryItem, error)
 	GetStudentDrilldown(ctx context.Context, userID, courseID int64) (*domain.StudentDrilldownReport, error)
 }
 

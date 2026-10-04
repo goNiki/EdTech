@@ -103,7 +103,7 @@
 * [**`service/enrollment`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/enrollment/README.md) — Транзакционный инкремент счетчика студентов, запрет отчисления автора.
 * [**`service/progress`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/README.md) — Атомарный пересчет курса при завершении урока, прием эссе.
 * [**`service/quiz`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/README.md) — Advisory lock от гонок, `FOR UPDATE`, отложенная ручная проверка эссе.
-* [**`service/analytics`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/README.md) — Защита доступа преподавателя, аналитика и очередь непроверенных работ.
+* [**`service/analytics`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/README.md) — Защита доступа преподавателя, аналитика, drilldown и кросс-курсовая очередь проверки.
 * [**`service/category`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/category/README.md) — Каталог категорий курсов, подсчет опубликованных курсов, CRUD категорий.
 * [**`service/resource`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/resource/README.md) — Учебные материалы уроков.
 * [**`service/review`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/review/README.md) — Рейтинги 1–5 звезд, проверка прогресса >= 30%, транзакционный пересчет статистики.
@@ -138,7 +138,7 @@
 * [**`handlers/enrollment`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/enrollment/README.md) — Самозапись, отчисление, списки учащихся.
 * [**`handlers/progress`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/progress/README.md) — Старт, таймлайн и завершение уроков.
 * [**`handlers/quiz`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/quiz/README.md) — Прохождение тестов и ручной грейдинг.
-* [**`handlers/analytics`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/analytics/README.md) — Дашборд успеваемости и очередь работ.
+* [**`handlers/analytics`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/analytics/README.md) — Дашборд успеваемости, срез drilldown и глобальная очередь проверки заданий преподавателя.
 * [**`handlers/review`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/review/README.md) — REST API отзывов курсов и оценок.
 * [**`handlers/certificate`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/certificate/README.md) — Получение сертификата студентом и публичная верификация.
 * [**`handlers/notification`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/notification/README.md) — REST API ленты уведомлений и отметок о прочтении.

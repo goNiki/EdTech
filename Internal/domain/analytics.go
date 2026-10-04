@@ -45,6 +45,18 @@ type PendingHomeworkItem struct {
 	SubmittedAt     time.Time
 }
 
+type CoursePendingSummaryItem struct {
+	CourseID     int64
+	CourseTitle  string
+	PendingCount int64
+}
+
+type TeacherPendingHomeworksResult struct {
+	Items          []PendingHomeworkItem
+	Total          int64
+	CoursesSummary []CoursePendingSummaryItem
+}
+
 type StudentLessonLog struct {
 	LessonID       int64
 	LessonTitle    string

@@ -674,6 +674,13 @@ func (d *diContainer) Router() http.Handler {
 			r.Patch("/users/{id}/ban", d.AuthHdl().SetUserBanned)
 		})
 
+		// Teacher
+		r.Route("/api/v1/teacher", func(r chi.Router) {
+			r.Use(d.MwAuth().JWTMiddleware)
+
+			r.Get("/grading/pending", d.AnalyticsHdl().ListTeacherPendingHomeworks)
+		})
+
 		// Static Files (Uploads)
 		filesDir := http.Dir("./uploads")
 		r.Handle("/static/uploads/*", http.StripPrefix("/static/uploads", uploadHandler.StaticFileServer(filesDir)))

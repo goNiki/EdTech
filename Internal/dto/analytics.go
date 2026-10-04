@@ -36,6 +36,20 @@ type PaginatedPendingHomeworksResponse struct {
 	PageSize int64                `json:"page_size"`
 }
 
+type CoursePendingSummaryDTO struct {
+	CourseID     int64  `json:"course_id"`
+	CourseTitle  string `json:"course_title"`
+	PendingCount int64  `json:"pending_count"`
+}
+
+type PaginatedTeacherPendingHomeworksResponse struct {
+	Items          []PendingHomeworkDTO      `json:"items"`
+	Total          int64                     `json:"total"`
+	Page           int64                     `json:"page"`
+	PageSize       int64                     `json:"page_size"`
+	CoursesSummary []CoursePendingSummaryDTO `json:"courses_summary"`
+}
+
 type StudentLessonLogDTO struct {
 	LessonID       int64      `json:"lesson_id"`
 	LessonTitle    string     `json:"lesson_title"`

@@ -154,6 +154,7 @@ type AnalyticsServices interface {
 	GetCourseAnalytics(ctx context.Context, teacherID, courseID int64) (domain.CourseAnalyticsSummary, error)
 	GetStudentDrilldown(ctx context.Context, teacherID, courseID, studentID int64) (*domain.StudentDrilldownReport, error)
 	ListPendingHomeworks(ctx context.Context, teacherID, courseID int64, page, pageSize int64) ([]domain.PendingHomeworkItem, int64, error)
+	ListTeacherPendingHomeworks(ctx context.Context, teacherID int64, courseID int64, page, pageSize int64) (*domain.TeacherPendingHomeworksResult, error)
 }
 
 // --- Access Interfaces ---
