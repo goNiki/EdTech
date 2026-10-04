@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import PuckLessonViewer, { LessonCompletionPayload } from '@/components/player/PuckLessonViewer';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, CheckCircle, Sparkles, ArrowRight, RotateCcw } from 'lucide-react';
+import { ChevronLeft, CheckCircle, Sparkles, ArrowRight, RotateCcw, Loader2 } from 'lucide-react';
 
 export default function LessonPlayer({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -50,30 +50,42 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
     fetchLessonAndProgress();
   }, [id]);
 
+  const [isCompleting, setIsCompleting] = useState(false);
+
   const handleRetake = () => {
     setIsCompleted(false);
     showToast('Режим тренировки: вы можете заново решить задания урока.');
   };
 
   const handleComplete = async (payload?: LessonCompletionPayload) => {
+    setIsCompleting(true);
     try {
       const res = await api.post(`/lessons/${id}/complete`, {
         score: payload?.score ?? 100,
+        answers: payload?.answers ?? [],
         essays: payload?.essays ?? [],
       });
       const data = res.data?.data || res.data;
+      const verifiedScore = data?.score ?? data?.Score ?? payload?.score ?? 100;
+
       setIsCompleted(true);
       setProgressData((prev: any) => ({
         ...prev,
         status: 'completed',
-        score: payload?.score ?? prev?.score ?? 100,
+        score: verifiedScore,
         completed_at: new Date().toISOString(),
         ...(data || {}),
       }));
-      showToast('Урок успешно завершен! Прогресс и задания сохранены.');
-    } catch (error) {
-      console.error('Failed to complete lesson', error);
+      showToast('Урок успешно завершен и проверен на сервере!');
+      return data;
+    } catch (error: any) {
+      console.error('Failed to complete lesson on server', error);
       setIsCompleted(true);
+      const msg = error.response?.data?.message || 'Результат зафиксирован локально.';
+      showToast(msg);
+      return null;
+    } finally {
+      setIsCompleting(false);
     }
   };
 
@@ -135,11 +147,21 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
               </div>
             ) : (
               <button
+                disabled={isCompleting}
                 onClick={() => handleComplete()}
-                className="px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white"
+                className="px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white"
               >
-                <CheckCircle size={16} />
-                <span>Завершить урок</span>
+                {isCompleting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Проверка...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={16} />
+                    <span>Завершить урок</span>
+                  </>
+                )}
               </button>
             )}
           </div>
