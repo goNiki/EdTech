@@ -511,7 +511,7 @@ export default function PuckLessonViewer({
               return (
                 <div
                   key={blockId}
-                  className="my-4 text-sm md:text-base text-slate-700 dark:text-slate-300 leading-relaxed prose dark:prose-invert max-w-none"
+                  className="lesson-content-area my-4 leading-relaxed prose prose-slate dark:prose-invert max-w-none prose-headings:font-black prose-p:leading-relaxed prose-table:my-0 text-slate-700 dark:text-slate-300"
                   dangerouslySetInnerHTML={{ __html: props.contentHtml }}
                 />
               );
@@ -519,7 +519,7 @@ export default function PuckLessonViewer({
             return (
               <div
                 key={blockId}
-                className="my-4 text-sm md:text-base text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap"
+                className="lesson-content-area my-4 leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-300"
               >
                 {props.content}
               </div>
@@ -535,7 +535,7 @@ export default function PuckLessonViewer({
                   </h2>
                 )}
                 <div
-                  className="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-200 text-sm md:text-base leading-relaxed"
+                  className="lesson-content-area prose prose-slate dark:prose-invert max-w-none prose-headings:font-black prose-p:leading-relaxed prose-table:my-0 text-slate-800 dark:text-slate-200 leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: props.contentHtml || '' }}
                 />
               </div>

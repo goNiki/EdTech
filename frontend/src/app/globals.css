@@ -293,3 +293,70 @@ button[data-puck-overlay-portal],
   text-decoration: underline !important;
   text-underline-offset: 2px !important;
 }
+
+/* Isolated Lesson Content Font Scaling (FE-044) */
+[data-font-scale="compact"] {
+  --lesson-body-size: 0.875rem; /* 14px */
+  --lesson-lead-size: 1rem;     /* 16px */
+  --lesson-h1-size: 1.5rem;
+  --lesson-h2-size: 1.25rem;
+  --lesson-h3-size: 1.125rem;
+}
+
+[data-font-scale="medium"] {
+  --lesson-body-size: 1rem;     /* 16px */
+  --lesson-lead-size: 1.125rem; /* 18px */
+  --lesson-h1-size: 1.875rem;
+  --lesson-h2-size: 1.5rem;
+  --lesson-h3-size: 1.25rem;
+}
+
+[data-font-scale="large"] {
+  --lesson-body-size: 1.125rem; /* 18px */
+  --lesson-lead-size: 1.25rem;  /* 20px */
+  --lesson-h1-size: 2.125rem;
+  --lesson-h2-size: 1.75rem;
+  --lesson-h3-size: 1.375rem;
+}
+
+[data-font-scale="xlarge"] {
+  --lesson-body-size: 1.25rem;  /* 20px */
+  --lesson-lead-size: 1.375rem; /* 22px */
+  --lesson-h1-size: 2.5rem;
+  --lesson-h2-size: 2rem;
+  --lesson-h3-size: 1.5rem;
+}
+
+/* Apply exclusively to lesson content area */
+.lesson-content-area,
+.lesson-content-area p,
+.lesson-content-area li,
+.lesson-content-area td,
+.lesson-content-area th,
+.lesson-content-area blockquote {
+  font-size: var(--lesson-body-size, 1rem);
+}
+
+.lesson-content-area h1 {
+  font-size: var(--lesson-h1-size, 1.875rem);
+}
+
+.lesson-content-area h2 {
+  font-size: var(--lesson-h2-size, 1.5rem);
+}
+
+.lesson-content-area h3 {
+  font-size: var(--lesson-h3-size, 1.25rem);
+}
+
+/* Sepia Reading Theme */
+.reading-theme-sepia {
+  background-color: #FBF7EE !important;
+  color: #3D2F24 !important;
+}
+
+.reading-theme-sepia header,
+.reading-theme-sepia footer {
+  background-color: #F3EBD9 !important;
+  border-color: #E5DBBE !important;
+}

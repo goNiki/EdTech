@@ -10,6 +10,11 @@ import QuizResultScreen from '@/components/player/QuizResultScreen';
 import LessonHeaderNav, { LessonNavContext } from '@/components/player/LessonHeaderNav';
 import HomeworkFeedbackCard, { HomeworkFeedbackData } from '@/components/player/HomeworkFeedbackCard';
 import FocusModeToggle from '@/components/player/FocusModeToggle';
+import ReadingSettingsPopover, {
+  ReadingSettings,
+  DEFAULT_READING_SETTINGS,
+  loadReadingSettings,
+} from '@/components/player/ReadingSettingsPopover';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, CheckCircle, CheckCircle2, Clock, Sparkles, ArrowRight, RotateCcw, Loader2, AlertTriangle, Zap, LayoutList, Layers } from 'lucide-react';
 
@@ -22,6 +27,11 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   const [homeworkFeedback, setHomeworkFeedback] = useState<HomeworkFeedbackData | null>(null);
   const [pendingLessonId, setPendingLessonId] = useState<number | null>(null);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [readingSettings, setReadingSettings] = useState<ReadingSettings>(DEFAULT_READING_SETTINGS);
+
+  useEffect(() => {
+    setReadingSettings(loadReadingSettings());
+  }, []);
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isAttemptStarted, setIsAttemptStarted] = useState(false);
@@ -291,7 +301,13 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
 
   return (
     <ProtectedRoute allowedRoles={['student', 'teacher', 'author', 'admin']}>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col overflow-x-hidden">
+      <div
+        className={`min-h-screen text-slate-900 dark:text-slate-100 flex flex-col overflow-x-hidden ${
+          readingSettings.readingTheme === 'sepia'
+            ? 'reading-theme-sepia'
+            : 'bg-slate-50 dark:bg-slate-950'
+        }`}
+      >
         {/* Zen Focus Mode Top Progress Bar */}
         {isFocusMode && (
           <div className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 z-50 animate-pulse" />
@@ -351,6 +367,12 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
               navData={navData}
               onNavigateToLesson={handleNavigateToLesson}
               onRequestExit={handleRequestExit}
+            />
+
+            {/* Reading Preferences Popover (Aa) */}
+            <ReadingSettingsPopover
+              settings={readingSettings}
+              onChange={setReadingSettings}
             />
 
             {/* Zen / Focus Mode Toggle */}
@@ -430,7 +452,16 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
         </header>
 
         {/* Lesson Body */}
-        <main className={`flex-1 w-full mx-auto px-4 sm:px-6 space-y-6 transition-all duration-300 ${isFocusMode ? 'max-w-3xl py-8 sm:py-12' : 'max-w-4xl py-6 sm:py-8'}`}>
+        <main
+          data-font-scale={readingSettings.fontScale}
+          className={`flex-1 w-full mx-auto px-4 sm:px-6 space-y-6 transition-all duration-300 ${
+            isFocusMode
+              ? 'max-w-3xl py-8 sm:py-12'
+              : readingSettings.contentWidth === 'wide'
+              ? 'max-w-6xl xl:max-w-7xl py-6 sm:py-8'
+              : 'max-w-5xl py-6 sm:py-8'
+          } ${readingSettings.lineHeight === 'relaxed' ? 'leading-relaxed' : 'leading-normal'}`}
+        >
           {/* Homework Teacher Review & Feedback Card */}
           {homeworkFeedback?.has_submission && (!isAttemptStarted || isCompleted) && (
             <HomeworkFeedbackCard data={homeworkFeedback} />

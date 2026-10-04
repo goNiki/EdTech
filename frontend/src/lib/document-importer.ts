@@ -64,18 +64,19 @@ export function cleanWordHtml(html: string): string {
   // Навешиваем inline-стили выравнивания на блоки с классами text-center/right/justify
   cleaned = addInlineAlignmentStyles(cleaned);
 
-  // Стилизуем таблицы под современный Tailwind без принудительного перебивания выравнивания
+  // Стилизуем таблицы под современный Tailwind и оборачиваем в адаптивный скролл-контейнер
   cleaned = cleaned.replace(
-    /<table/gi,
-    '<table class="w-full my-4 border-collapse border border-slate-300 dark:border-slate-700 text-xs shadow-2xs rounded-xl overflow-hidden"'
+    /<table([^>]*)>/gi,
+    '<div class="my-4 overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs"><table class="w-full border-collapse text-sm sm:text-base"$1>'
   );
+  cleaned = cleaned.replace(/<\/table>/gi, '</table></div>');
   cleaned = cleaned.replace(
     /<th/gi,
-    '<th class="border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-2.5 font-bold text-slate-800 dark:text-slate-200"'
+    '<th class="border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-3.5 sm:p-4 font-bold text-slate-800 dark:text-slate-200"'
   );
   cleaned = cleaned.replace(
     /<td/gi,
-    '<td class="border border-slate-300 dark:border-slate-700 p-2.5 text-slate-700 dark:text-slate-300"'
+    '<td class="border border-slate-300 dark:border-slate-700 p-3.5 sm:p-4 text-slate-700 dark:text-slate-300"'
   );
 
   // Стилизуем цитаты и списки
