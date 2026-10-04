@@ -32,6 +32,7 @@ type Server interface {
 	Address() string
 	TimeOut() time.Duration
 	Idletimeout() time.Duration
+	CorsAllowedOrigins() []string
 }
 
 type JWT interface {

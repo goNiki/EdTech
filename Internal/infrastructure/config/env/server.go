@@ -10,10 +10,11 @@ import (
 )
 
 type serverEnvConfig struct {
-	Host        string        `env:"SERVER_HOST,required"`
-	Port        string        `env:"SERVER_PORT,required"`
-	TimeOut     time.Duration `env:"SERVER_TIMEOUT,required"`
-	Idletimeout time.Duration `env:"SERVER_IDLETIMEOUT,required"`
+	Host               string        `env:"SERVER_HOST,required"`
+	Port               string        `env:"SERVER_PORT,required"`
+	TimeOut            time.Duration `env:"SERVER_TIMEOUT,required"`
+	Idletimeout        time.Duration `env:"SERVER_IDLETIMEOUT,required"`
+	CorsAllowedOrigins []string      `env:"CORS_ALLOWED_ORIGINS" envSeparator:"," envDefault:"http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000"`
 }
 
 type serverConfig struct {
@@ -50,4 +51,8 @@ func (cfg *serverConfig) TimeOut() time.Duration {
 
 func (cfg *serverConfig) Idletimeout() time.Duration {
 	return cfg.raw.Idletimeout
+}
+
+func (cfg *serverConfig) CorsAllowedOrigins() []string {
+	return cfg.raw.CorsAllowedOrigins
 }

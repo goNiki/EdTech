@@ -24,6 +24,7 @@ import (
 	categoryHandler "edtech/internal/interfaces/handlers/category"
 	reviewHandler "edtech/internal/interfaces/handlers/review"
 	certHandler "edtech/internal/interfaces/handlers/certificate"
+	notifHandler "edtech/internal/interfaces/handlers/notification"
 	mwauth "edtech/internal/interfaces/middleware/auth"
 	mwlogger "edtech/internal/interfaces/middleware/logger"
 	"edtech/internal/infrastructure/storage"
@@ -33,6 +34,7 @@ import (
 	authRepo "edtech/internal/repository/auth"
 	categoryRepo "edtech/internal/repository/category"
 	certRepo "edtech/internal/repository/certificate"
+	notifRepo "edtech/internal/repository/notification"
 	courseRepo "edtech/internal/repository/course"
 	enrolledRepo "edtech/internal/repository/enrollment"
 	lessonRepo "edtech/internal/repository/lesson"
@@ -49,6 +51,7 @@ import (
 	authService "edtech/internal/service/auth"
 	categoryService "edtech/internal/service/category"
 	certService "edtech/internal/service/certificate"
+	notifService "edtech/internal/service/notification"
 	courseService "edtech/internal/service/course"
 	enrolledService "edtech/internal/service/enrollment"
 	lessonService "edtech/internal/service/lesson"
@@ -60,6 +63,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -98,6 +102,7 @@ type diContainer struct {
 	categoryHdl   *categoryHandler.CategoryHandler
 	reviewHdl     *reviewHandler.ReviewHandler
 	certHdl       *certHandler.CertificateHandler
+	notifHdl      *notifHandler.NotificationHandler
 
 	// services
 	accessSvc    service.AccessService
@@ -113,6 +118,7 @@ type diContainer struct {
 	categorySvc  service.CategoryServices
 	reviewSvc    service.ReviewServices
 	certSvc      service.CertificateServices
+	notifSvc     service.NotificationServices
 
 	// repositories
 	userRepo      repository.UserRepository
@@ -128,6 +134,7 @@ type diContainer struct {
 	categoryRepo  repository.CategoryRepository
 	reviewRepo    repository.ReviewRepository
 	certRepo      repository.CertificateRepository
+	notifRepo     repository.NotificationRepository
 }
 
 func (d *diContainer) initConfig() {
@@ -334,6 +341,13 @@ func (d *diContainer) CertRepo() repository.CertificateRepository {
 	return d.certRepo
 }
 
+func (d *diContainer) NotifRepo() repository.NotificationRepository {
+	if d.notifRepo == nil {
+		d.notifRepo = notifRepo.NewNotificationRepository(d.DB().Pool)
+	}
+	return d.notifRepo
+}
+
 // Services
 
 func (d *diContainer) SectionSvc() service.SectionServices {
@@ -387,7 +401,7 @@ func (d *diContainer) ProgressSvc() service.ProgressServices {
 
 func (d *diContainer) QuizSvc() service.QuizServices {
 	if d.quizSvc == nil {
-		d.quizSvc = quizService.NewQuizService(d.QuizRepo(), d.CourseRepo(), d.LessonRepo(), d.AccessSvc(), d.ProgressSvc(), d.TxManager())
+		d.quizSvc = quizService.NewQuizService(d.QuizRepo(), d.CourseRepo(), d.LessonRepo(), d.AccessSvc(), d.ProgressSvc(), d.TxManager(), d.NotifSvc())
 	}
 	return d.quizSvc
 }
@@ -425,6 +439,13 @@ func (d *diContainer) CertSvc() service.CertificateServices {
 		d.certSvc = certService.NewCertificateService(d.CertRepo(), d.CourseRepo(), d.UserRepo(), d.ProgRepo())
 	}
 	return d.certSvc
+}
+
+func (d *diContainer) NotifSvc() service.NotificationServices {
+	if d.notifSvc == nil {
+		d.notifSvc = notifService.NewNotificationService(d.NotifRepo())
+	}
+	return d.notifSvc
 }
 
 // Handlers
@@ -513,6 +534,13 @@ func (d *diContainer) CertHdl() *certHandler.CertificateHandler {
 	return d.certHdl
 }
 
+func (d *diContainer) NotifHdl() *notifHandler.NotificationHandler {
+	if d.notifHdl == nil {
+		d.notifHdl = notifHandler.NewNotificationHandler(d.NotifSvc(), d.Logger(), d.MwAuth())
+	}
+	return d.notifHdl
+}
+
 // Router
 
 func (d *diContainer) Router() http.Handler {
@@ -520,23 +548,14 @@ func (d *diContainer) Router() http.Handler {
 		r := chi.NewRouter()
 
 		// CORS middleware
-		r.Use(func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-				w.Header().Set("Access-Control-Allow-Origin", "*")
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-				w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token")
-				w.Header().Set("Access-Control-Expose-Headers", "Link")
-				w.Header().Set("Access-Control-Allow-Credentials", "true")
-				w.Header().Set("Access-Control-Max-Age", "300")
-
-				if req.Method == "OPTIONS" {
-					w.WriteHeader(http.StatusOK)
-					return
-				}
-
-				next.ServeHTTP(w, req)
-			})
-		})
+		r.Use(cors.Handler(cors.Options{
+			AllowedOrigins:   d.ServerCfg().CorsAllowedOrigins(),
+			AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+			ExposedHeaders:   []string{"Link"},
+			AllowCredentials: true,
+			MaxAge:           300,
+		}))
 
 		r.Use(middleware.RequestID)
 		r.Use(d.MwLog())
@@ -678,6 +697,15 @@ func (d *diContainer) Router() http.Handler {
 		// Certificates (Public Verification)
 		r.Route("/api/v1/certificates", func(r chi.Router) {
 			r.Get("/verify/{code}", d.CertHdl().VerifyCertificate)
+		})
+
+		// Notifications
+		r.Route("/api/v1/notifications", func(r chi.Router) {
+			r.Use(d.MwAuth().JWTMiddleware)
+
+			r.Get("/", d.NotifHdl().GetNotifications)
+			r.Patch("/{id}/read", d.NotifHdl().MarkAsRead)
+			r.Post("/read-all", d.NotifHdl().MarkAllAsRead)
 		})
 
 		d.router = r
