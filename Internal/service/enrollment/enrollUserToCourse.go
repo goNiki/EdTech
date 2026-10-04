@@ -22,22 +22,13 @@ func (s *service) SelfEnrollCourse(ctx context.Context, req domain.SelfEnrollReq
 		return fmt.Errorf("%s: %w", op, errorsAPP.ErrForbidden)
 	}
 
-	isEnrolled, err := s.enrolledrepo.UserExistCourse(ctx, req.UserID, req.CourseID)
-	if err != nil {
-		return fmt.Errorf("%s: check enrollment: %w", op, err)
-	}
-	if isEnrolled {
-		return fmt.Errorf("%s: %w", op, errorsAPP.ErrUserAlreadyEnrolled)
-	}
-
 	enroll := domain.EnrolledInCourse{
 		UserID:   req.UserID,
 		CourseID: req.CourseID,
 		Role:     string(domain.RoleStudent),
 	}
 
-	err = s.executeEnrollmentTransaction(ctx, enroll)
-	if err != nil {
+	if err := s.executeEnrollmentTransaction(ctx, enroll); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -74,14 +65,6 @@ func (s *service) TeacherEnrollCourse(ctx context.Context, req domain.TeacherEnr
 		return fmt.Errorf("%s: %w: email or user_id is required", op, errorsAPP.ErrValidationFailed)
 	}
 
-	isEnrolled, err := s.enrolledrepo.UserExistCourse(ctx, targetUserID, req.CourseID)
-	if err != nil {
-		return fmt.Errorf("%s: check enrollment: %w", op, err)
-	}
-	if isEnrolled {
-		return fmt.Errorf("%s: %w", op, errorsAPP.ErrUserAlreadyEnrolled)
-	}
-
 	role := req.Role
 	if role == "" {
 		role = string(domain.RoleStudent)
@@ -101,15 +84,10 @@ func (s *service) TeacherEnrollCourse(ctx context.Context, req domain.TeacherEnr
 }
 
 func (s *service) executeEnrollmentTransaction(ctx context.Context, enroll domain.EnrolledInCourse) error {
-	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
+	return s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
 		if err := s.enrolledrepo.EnrollUserToCourse(ctx, enroll); err != nil {
 			return err
 		}
-		if err := s.courserepo.IncrementEnrolledCount(ctx, enroll.CourseID); err != nil {
-			return err
-		}
-		return nil
+		return s.courserepo.IncrementEnrolledCount(ctx, enroll.CourseID)
 	})
-
-	return err
 }
