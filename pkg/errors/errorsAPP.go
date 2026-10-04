@@ -10,6 +10,10 @@ var (
 	ErrSamePassword        = errors.New("new password cannot be the same as old password")
 	ErrPasswordTooShort    = errors.New("new password must be at least 8 characters")
 
+	// General / review errors
+	ErrNotFound            = errors.New("not found")
+	ErrReviewNotFound      = errors.New("review not found")
+
 	// Course errors
 	ErrCourseNotFound           = errors.New("course not found")
 	ErrNotFoundCourse           = ErrCourseNotFound

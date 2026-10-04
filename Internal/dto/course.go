@@ -33,6 +33,8 @@ type Course struct {
 	TotalLessons      int        `json:"total_lessons"`
 	TotalSections     int        `json:"total_sections"`
 	EnrolledCount     int        `json:"enrolled_count"`
+	Rating            float64    `json:"rating"`
+	ReviewsCount      int        `json:"reviews_count"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
 	PublishedAt       *time.Time `json:"published_at,omitempty"`

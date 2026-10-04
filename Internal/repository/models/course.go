@@ -20,6 +20,8 @@ type Course struct {
 	TotalLessons      int
 	TotalSections     int
 	EnrolledCount     int
+	Rating            float64
+	ReviewsCount      int
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 	PublishedAt       *time.Time

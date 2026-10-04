@@ -9,15 +9,32 @@ func CourseToDomain(m *models.Course) *domain.Course {
 	if m == nil {
 		return nil
 	}
-	return &domain.Course{
-		Id: m.ID, Title: m.Title, Slug: m.Slug, ShortDescription: m.ShortDescription,
-		Description: m.Description, CoverURL: m.CoverURL, IntroVideoURL: m.IntroVideoURL,
-		CreatedBy: m.CreatedBy, Visibility: m.Visibility, Status: m.Status,
-		Difficulty: m.Difficulty, Language: m.Language, EstimatedDuration: m.EstimatedDuration,
-		CategoryID: m.CategoryID, TotalLessons: m.TotalLessons, TotalSections: m.TotalSections,
-		EnrolledCount: m.EnrolledCount, CreatedAt: m.CreatedAt, UpdatedAt: m.UpdatedAt,
-		PublishedAt: m.PublishedAt, ArchivedAt: m.ArchivedAt, DeletedAt: m.DeletedAt,
-	}
+	res := &domain.Course{}
+	res.Id = m.ID
+	res.Title = m.Title
+	res.Slug = m.Slug
+	res.ShortDescription = m.ShortDescription
+	res.Description = m.Description
+	res.CoverURL = m.CoverURL
+	res.IntroVideoURL = m.IntroVideoURL
+	res.CreatedBy = m.CreatedBy
+	res.Visibility = m.Visibility
+	res.Status = m.Status
+	res.Difficulty = m.Difficulty
+	res.Language = m.Language
+	res.EstimatedDuration = m.EstimatedDuration
+	res.CategoryID = m.CategoryID
+	res.TotalLessons = m.TotalLessons
+	res.TotalSections = m.TotalSections
+	res.EnrolledCount = m.EnrolledCount
+	res.Rating = m.Rating
+	res.ReviewsCount = m.ReviewsCount
+	res.CreatedAt = m.CreatedAt
+	res.UpdatedAt = m.UpdatedAt
+	res.PublishedAt = m.PublishedAt
+	res.ArchivedAt = m.ArchivedAt
+	res.DeletedAt = m.DeletedAt
+	return res
 }
 
 func CourseToEntity(d *domain.Course) *models.Course {
@@ -30,7 +47,8 @@ func CourseToEntity(d *domain.Course) *models.Course {
 		CreatedBy: d.CreatedBy, Visibility: d.Visibility, Status: d.Status,
 		Difficulty: d.Difficulty, Language: d.Language, EstimatedDuration: d.EstimatedDuration,
 		CategoryID: d.CategoryID, TotalLessons: d.TotalLessons, TotalSections: d.TotalSections,
-		EnrolledCount: d.EnrolledCount, CreatedAt: d.CreatedAt, UpdatedAt: d.UpdatedAt,
+		EnrolledCount: d.EnrolledCount, Rating: d.Rating, ReviewsCount: d.ReviewsCount,
+		CreatedAt: d.CreatedAt, UpdatedAt: d.UpdatedAt,
 		PublishedAt: d.PublishedAt, ArchivedAt: d.ArchivedAt, DeletedAt: d.DeletedAt,
 	}
 }

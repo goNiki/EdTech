@@ -22,6 +22,7 @@ import (
 	sectionHandler "edtech/internal/interfaces/handlers/section"
 	uploadHandler "edtech/internal/interfaces/handlers/upload"
 	categoryHandler "edtech/internal/interfaces/handlers/category"
+	reviewHandler "edtech/internal/interfaces/handlers/review"
 	mwauth "edtech/internal/interfaces/middleware/auth"
 	mwlogger "edtech/internal/interfaces/middleware/logger"
 	"edtech/internal/infrastructure/storage"
@@ -37,6 +38,7 @@ import (
 	progressRepo "edtech/internal/repository/progress"
 	quizRepo "edtech/internal/repository/quiz"
 	refreshRepo "edtech/internal/repository/refresh"
+	reviewRepo "edtech/internal/repository/review"
 	sectionRepo "edtech/internal/repository/section"
 
 	"edtech/internal/service"
@@ -49,6 +51,7 @@ import (
 	lessonService "edtech/internal/service/lesson"
 	progressService "edtech/internal/service/progress"
 	quizService "edtech/internal/service/quiz"
+	reviewService "edtech/internal/service/review"
 	sectionService "edtech/internal/service/section"
 	uploadService "edtech/internal/service/upload"
 
@@ -90,6 +93,7 @@ type diContainer struct {
 	enrollmentHdl *enrollmentHandler.EnrollmentHandler
 	analyticsHdl  *analyticsHandler.AnalyticsHandler
 	categoryHdl   *categoryHandler.CategoryHandler
+	reviewHdl     *reviewHandler.ReviewHandler
 
 	// services
 	accessSvc    service.AccessService
@@ -103,6 +107,7 @@ type diContainer struct {
 	quizSvc      service.QuizServices
 	analyticsSvc service.AnalyticsServices
 	categorySvc  service.CategoryServices
+	reviewSvc    service.ReviewServices
 
 	// repositories
 	userRepo      repository.UserRepository
@@ -116,6 +121,7 @@ type diContainer struct {
 	quizRepo      repository.QuizRepository
 	analyticsRepo repository.AnalyticsRepository
 	categoryRepo  repository.CategoryRepository
+	reviewRepo    repository.ReviewRepository
 }
 
 func (d *diContainer) initConfig() {
@@ -308,6 +314,13 @@ func (d *diContainer) CategoryRepo() repository.CategoryRepository {
 	return d.categoryRepo
 }
 
+func (d *diContainer) ReviewRepo() repository.ReviewRepository {
+	if d.reviewRepo == nil {
+		d.reviewRepo = reviewRepo.NewReviewRepository()
+	}
+	return d.reviewRepo
+}
+
 // Services
 
 func (d *diContainer) SectionSvc() service.SectionServices {
@@ -387,6 +400,13 @@ func (d *diContainer) CategorySvc() service.CategoryServices {
 	return d.categorySvc
 }
 
+func (d *diContainer) ReviewSvc() service.ReviewServices {
+	if d.reviewSvc == nil {
+		d.reviewSvc = reviewService.NewReviewService(d.ReviewRepo(), d.CourseRepo(), d.EnrolledRepo(), d.ProgRepo(), d.TxManager(), d.DB().Pool)
+	}
+	return d.reviewSvc
+}
+
 // Handlers
 
 func (d *diContainer) LessonHdl() *lessonHandler.LessonHandler {
@@ -459,6 +479,13 @@ func (d *diContainer) CategoryHdl() *categoryHandler.CategoryHandler {
 	return d.categoryHdl
 }
 
+func (d *diContainer) ReviewHdl() *reviewHandler.ReviewHandler {
+	if d.reviewHdl == nil {
+		d.reviewHdl = reviewHandler.NewReviewHandler(d.ReviewSvc(), d.Logger(), validator.New(), d.MwAuth())
+	}
+	return d.reviewHdl
+}
+
 // Router
 
 func (d *diContainer) Router() http.Handler {
@@ -513,6 +540,7 @@ func (d *diContainer) Router() http.Handler {
 				r.Get("/{courseid}", d.CourseHdl().GetCourseByID)
 				r.Get("/slug/{slug}", d.CourseHdl().GetCourseBySlug)
 				r.Get("/{courseid}/structure", d.CourseHdl().GetCourseStructure)
+				r.Get("/{courseid}/reviews", d.ReviewHdl().ListReviews)
 			})
 
 			r.Group(func(r chi.Router) {
@@ -526,6 +554,11 @@ func (d *diContainer) Router() http.Handler {
 				r.Post("/{courseid}/archive", d.CourseHdl().ArchiveCourse)
 				r.Patch("/{courseid}/status", d.CourseHdl().UpdateCourseStatus)
 				r.Put("/{courseid}/reorder-sections", d.CourseHdl().ReorderSections)
+
+				// Reviews
+				r.Post("/{courseid}/reviews", d.ReviewHdl().AddOrUpdateReview)
+				r.Delete("/{courseid}/reviews", d.ReviewHdl().DeleteReview)
+				r.Get("/{courseid}/reviews/my", d.ReviewHdl().GetMyReview)
 
 				// Enrollment
 				r.Post("/{courseid}/enroll", d.EnrollmentHdl().SelfEnroll)

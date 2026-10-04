@@ -59,6 +59,7 @@
 | **Аналитика и грейдинг** | [`teacher/curriculum`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/courses/%5Bid%5D/curriculum/page.tsx), [`teacher/grading`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/grading/page.tsx), [`ModalStudentDrilldown`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/ModalStudentDrilldown.tsx), [`PendingHomeworksQueue`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/PendingHomeworksQueue.tsx) | [`handlers/analytics`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/analytics/README.md) | [`service/analytics`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/README.md) | [`repository/analytics`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/analytics/README.md) | [`domain/analytics.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/domain/analytics.go) | Агрегации над `attempts`, `progress` |
 | **Права доступа (RBAC)** | [`ProtectedRoute`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/ProtectedRoute.tsx), [`Sidebar`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/layout/Sidebar.tsx), [`teacher/layout`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/layout.tsx), [`store/useAuth`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/store/useAuth.ts) | [`middleware/auth`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/middleware/README.md) | [`service/access`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/access/README.md) | [`repository/permission`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/permission/README.md) | [`domain/permission.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/domain/permission.go) | `role_table.sql`, `permissions.sql` |
 | **Файлы и хранилище** | [`FileUploadBlock`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/FileUploadBlock.tsx) | [`handlers/upload`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/upload/README.md) | [`service/upload`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/upload/README.md) | `storage.LocalStorage` | [`domain/upload.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/domain/upload.go) | Локальное хранилище / S3 |
+| **Отзывы и рейтинги** | [`courses/[slug]`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/courses/%5Bslug%5D/page.tsx) | [`handlers/review`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/review/README.md) | [`service/review`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/review/README.md) | [`repository/review`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/review/README.md) | [`domain/review.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/domain/review.go) | `20261004120000_create_course_reviews.sql` |
 
 ---
 
@@ -105,12 +106,13 @@
 * [**`service/analytics`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/README.md) — Защита доступа преподавателя, аналитика и очередь непроверенных работ.
 * [**`service/category`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/category/README.md) — Каталог категорий курсов, подсчет опубликованных курсов, CRUD категорий.
 * [**`service/resource`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/resource/README.md) — Учебные материалы уроков.
+* [**`service/review`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/review/README.md) — Рейтинги 1–5 звезд, проверка прогресса >= 30%, транзакционный пересчет статистики.
 
 ### Документация подпапок репозиториев (`internal/repository/*`):
 * [**`repository/auth`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/auth/README.md) — SQL пользователей, перехват уникальности `23505`.
 * [**`repository/refresh`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/refresh/README.md) — SHA-256 хранение токенов сессий, сброс всех сессий.
 * [**`repository/category`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/category/README.md) — Выборка категорий с подсчетом курсов через `LEFT JOIN`, CRUD.
-* [**`repository/course`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/course/README.md) — SQL каталога, атомарные `enrolled_count ± 1`.
+* [**`repository/course`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/course/README.md) — SQL каталога, атомарные `enrolled_count ± 1`, `UpdateCourseRatingStats`.
 * [**`repository/section`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/section/README.md) — `ORDER BY position ASC`, `COALESCE(MAX(pos), 0)`.
 * [**`repository/lesson`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/lesson/README.md) — Пакетное обновление позиций, смена секций.
 * [**`repository/enrollment`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/enrollment/README.md) — Однопроходный CTE-запрос студентов с прогрессом и долгами.
@@ -119,6 +121,7 @@
 * [**`repository/analytics`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/analytics/README.md) — 4-блочный CTE-запрос сводки курса без N+1.
 * [**`repository/permission`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/permission/README.md) — `SELECT EXISTS(...)` по ролям и действиям.
 * [**`repository/resource`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/resource/README.md) — Вложения уроков.
+* [**`repository/review`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/review/README.md) — SQL отзывов, ON CONFLICT upsert, расчет среднего рейтинга и распределения звезд.
 * [**`repository/models`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/models/README.md) — DTO БД таблиц и двусторонние конвертеры в домен.
 
 ### Документация подпапок обработчиков (`internal/interfaces/handlers/*`):
@@ -131,6 +134,7 @@
 * [**`handlers/progress`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/progress/README.md) — Старт, таймлайн и завершение уроков.
 * [**`handlers/quiz`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/quiz/README.md) — Прохождение тестов и ручной грейдинг.
 * [**`handlers/analytics`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/analytics/README.md) — Дашборд успеваемости и очередь работ.
+* [**`handlers/review`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/review/README.md) — REST API отзывов курсов и оценок.
 * [**`handlers/converter`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/converter/README.md) — Мапперы Domain <-> HTTP DTO.
 
 ---

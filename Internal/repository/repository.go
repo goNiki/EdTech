@@ -48,6 +48,7 @@ type CourseRepository interface {
 	ExistsBySlug(ctx context.Context, q db.QueryExecutor, slug string) (bool, error)
 	IncrementEnrolledCount(ctx context.Context, q db.QueryExecutor, courseID int64) error
 	DecrementEnrolledCount(ctx context.Context, q db.QueryExecutor, courseID int64) error
+	UpdateCourseRatingStats(ctx context.Context, q db.QueryExecutor, courseID int64, rating float64, reviewsCount int) error
 }
 
 type EnrolledRepository interface {
@@ -137,4 +138,12 @@ type QuizRepository interface {
 	ListAttemptsForGrading(ctx context.Context, q db.QueryExecutor, courseID int64, quizID *int64, limit, offset int) ([]domain.QuizAttempt, int64, error)
 	SaveEssaySubmission(ctx context.Context, q db.QueryExecutor, userID, courseID, lessonID int64, essay domain.EssaySubmission) error
 	GetLessonSubmissions(ctx context.Context, q db.QueryExecutor, userID, lessonID int64) ([]domain.LessonSubmissionDetail, error)
+}
+
+type ReviewRepository interface {
+	UpsertReview(ctx context.Context, q db.QueryExecutor, review *domain.Review) (*domain.Review, error)
+	DeleteReview(ctx context.Context, q db.QueryExecutor, courseID, userID int64) error
+	GetReviewByUserAndCourse(ctx context.Context, q db.QueryExecutor, courseID, userID int64) (*domain.Review, error)
+	ListReviewsByCourse(ctx context.Context, q db.QueryExecutor, courseID int64, limit, offset int) ([]domain.Review, int64, error)
+	GetCourseRatingSummary(ctx context.Context, q db.QueryExecutor, courseID int64) (avgRating float64, count int, err error)
 }

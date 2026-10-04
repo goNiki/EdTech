@@ -108,3 +108,11 @@ type SectionServices interface {
 type UploadServices interface {
 	UploadFile(ctx context.Context, file io.Reader, filename string, size int64, category string) (*domain.FileUploadResult, error)
 }
+
+type ReviewServices interface {
+	AddOrUpdateReview(ctx context.Context, userID, courseID int64, rating int, comment *string) (*domain.Review, error)
+	DeleteReview(ctx context.Context, userID, courseID int64) error
+	ListCourseReviews(ctx context.Context, courseID int64, page, pageSize int) (*domain.CourseReviewsSummary, error)
+	GetMyReview(ctx context.Context, userID, courseID int64) (*domain.Review, error)
+}
+

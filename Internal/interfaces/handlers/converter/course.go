@@ -27,6 +27,8 @@ func CourseToDTO(d *domain.Course) dto.Course {
 		TotalLessons:      d.TotalLessons,
 		TotalSections:     d.TotalSections,
 		EnrolledCount:     d.EnrolledCount,
+		Rating:            d.Rating,
+		ReviewsCount:      d.ReviewsCount,
 		CreatedAt:         d.CreatedAt,
 		UpdatedAt:         d.UpdatedAt,
 		PublishedAt:       d.PublishedAt,

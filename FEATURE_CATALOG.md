@@ -198,3 +198,17 @@ flowchart TD
   * ✅ Безопасная генерация путей на базе UUID v4 по категориям (`avatar`, `course_cover`, `homework`, `general`) и датам.
   * ✅ Статическая отдача сохраненных файлов по публичным URL `/static/uploads/...`.
 
+---
+
+### 10. Домен: Отзывы и рейтинги курсов (`internal/service/review`)
+* 📄 **Спецификация:** [internal/service/review/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/review/FUNCTIONAL_SPEC.md)
+* **Реализованный функционал:**
+  * ✅ Оценка курса от 1 до 5 звезд с опциональным текстовым комментарием (`POST /api/v1/courses/{courseid}/reviews`).
+  * ✅ Защита от накруток рейтинга: оценивать могут только зачисленные студенты (`enrolledRepo.UserExistCourse`) с прогрессом по курсу не менее 30% (`progressRepo.GetCourseProgress` $\ge 30\%$).
+  * ✅ Уникальность отзыва: один отзыв на одного студента на курс (Upsert-семантика: повторная отправка обновляет существующий отзыв).
+  * ✅ Транзакционный автоматический пересчет агрегатов: средний рейтинг (`NUMERIC(3,2)`) и количество отзывов (`reviews_count`) синхронизируются в таблице `courses`.
+  * ✅ Удаление отзыва студентом с каскадным пересчетом общего рейтинга курса (`DELETE /api/v1/courses/{courseid}/reviews`).
+  * ✅ Получение своего отзыва (`GET /api/v1/courses/{courseid}/reviews/my`).
+  * ✅ Публичный пагинированный каталог отзывов с детализацией распределения оценок 1–5 звезд (`GET /api/v1/courses/{courseid}/reviews`).
+
+
