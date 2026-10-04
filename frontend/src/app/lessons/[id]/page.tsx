@@ -7,6 +7,7 @@ import PuckLessonViewer, { LessonCompletionPayload } from '@/components/player/P
 import QuizStepperPlayer from '@/components/player/QuizStepperPlayer';
 import QuizPreflightScreen from '@/components/player/QuizPreflightScreen';
 import QuizResultScreen from '@/components/player/QuizResultScreen';
+import LessonHeaderNav, { LessonNavContext } from '@/components/player/LessonHeaderNav';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, CheckCircle, Sparkles, ArrowRight, RotateCcw, Loader2, AlertTriangle, Zap, LayoutList, Layers } from 'lucide-react';
 
@@ -15,6 +16,8 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   const router = useRouter();
   const [lessonData, setLessonData] = useState<any>(null);
   const [progressData, setProgressData] = useState<any>(null);
+  const [navData, setNavData] = useState<LessonNavContext | null>(null);
+  const [pendingLessonId, setPendingLessonId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isAttemptStarted, setIsAttemptStarted] = useState(false);
@@ -39,12 +42,13 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   useEffect(() => {
     const fetchLessonAndProgress = async () => {
       try {
-        // Fetch lesson content, progress, attempts summary, and active attempt in parallel
-        const [lessonRes, progressRes, attemptsRes, activeAttRes] = await Promise.all([
+        // Fetch lesson content, progress, attempts summary, active attempt, and navigation in parallel
+        const [lessonRes, progressRes, attemptsRes, activeAttRes, navRes] = await Promise.all([
           api.get(`/lessons/${id}`),
           api.get(`/lessons/${id}/progress`).catch(() => null),
           api.get(`/lessons/${id}/attempts/summary`).catch(() => null),
           api.get(`/lessons/${id}/attempts/active`).catch(() => null),
+          api.get(`/lessons/${id}/navigation`).catch(() => null),
         ]);
 
         const lData = lessonRes.data?.data?.lesson || lessonRes.data?.lesson || lessonRes.data || {};
@@ -53,6 +57,14 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
         const pData = progressRes?.data?.data || progressRes?.data;
         const attData = attemptsRes?.data?.data || attemptsRes?.data;
         const actData = activeAttRes?.data?.data || activeAttRes?.data;
+        const nData = navRes?.data?.data || navRes?.data;
+
+        if (nData) {
+          setNavData(nData);
+          if (nData.next_lesson) {
+            setNextLesson(nData.next_lesson);
+          }
+        }
 
         if (actData?.has_active_attempt && actData?.attempt) {
           setActiveAttempt(actData);
@@ -177,6 +189,15 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
     else router.back();
   };
 
+  const handleNavigateToLesson = (targetLessonId: number) => {
+    if (hasQuizzes && !isCompleted && !showResultScreen) {
+      setPendingLessonId(targetLessonId);
+      setIsExitModalOpen(true);
+    } else {
+      router.push(`/lessons/${targetLessonId}`);
+    }
+  };
+
   const handleRequestExit = () => {
     if (hasQuizzes && !isCompleted && !showResultScreen) {
       setIsExitModalOpen(true);
@@ -262,8 +283,8 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
     <ProtectedRoute allowedRoles={['student', 'teacher', 'author', 'admin']}>
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col overflow-x-hidden">
         {/* Sticky Player Header */}
-        <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+        <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <button
               onClick={handleRequestExit}
               className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer flex-shrink-0"
@@ -272,16 +293,23 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
               <ChevronLeft size={18} />
             </button>
             <div className="min-w-0">
-              <h1 className="font-extrabold text-sm md:text-base text-slate-900 dark:text-white truncate max-w-xs sm:max-w-md md:max-w-lg">
+              <h1 className="font-extrabold text-sm md:text-base text-slate-900 dark:text-white truncate max-w-[130px] sm:max-w-xs md:max-w-sm">
                 {lessonData?.title || lessonData?.Title || 'Урок'}
               </h1>
-              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider truncate">
                 {lessonData?.type || lessonData?.Type || 'Интерактивный урок'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            {/* In-Player Navigation and Course Syllabus */}
+            <LessonHeaderNav
+              navData={navData}
+              onNavigateToLesson={handleNavigateToLesson}
+              onRequestExit={handleRequestExit}
+            />
+
             {isCompleted ? (
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-xl border border-emerald-200/80 dark:border-emerald-800/60 text-xs font-bold shadow-2xs">
@@ -511,7 +539,10 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setIsExitModalOpen(false)}
+                  onClick={() => {
+                    setIsExitModalOpen(false);
+                    setPendingLessonId(null);
+                  }}
                   className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all shadow-2xs cursor-pointer"
                 >
                   Продолжить тест
@@ -520,7 +551,13 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
                   type="button"
                   onClick={() => {
                     setIsExitModalOpen(false);
-                    performExit();
+                    if (pendingLessonId) {
+                      const target = pendingLessonId;
+                      setPendingLessonId(null);
+                      router.push(`/lessons/${target}`);
+                    } else {
+                      performExit();
+                    }
                   }}
                   className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20 cursor-pointer"
                 >
