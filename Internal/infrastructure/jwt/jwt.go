@@ -91,11 +91,12 @@ func (j *JwtManager) GetAccessTokenExpiresIn() int64 {
 
 func (j *JwtManager) ParseToken(tokenStr string) (int64, string, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &ClaimsAccessToken{}, func(t *jwt.Token) (any, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-		}
 		return []byte(j.Secret), nil
-	})
+	},
+		jwt.WithValidMethods([]string{"HS256"}),
+		jwt.WithIssuer("auth"),
+		jwt.WithExpirationRequired(),
+	)
 
 	if err != nil {
 		return 0, "", fmt.Errorf("%w, %v", errorsAPP.ErrInvalidJWT, err)
@@ -108,5 +109,4 @@ func (j *JwtManager) ParseToken(tokenStr string) (int64, string, error) {
 	}
 
 	return claims.ID, claims.Role, nil
-
 }
