@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"edtech/internal/domain"
+	"edtech/internal/dto"
 	uploadHandler "edtech/internal/interfaces/handlers/upload"
 	"edtech/internal/interfaces/middleware/auth"
 	"edtech/internal/service"
@@ -21,6 +22,7 @@ import (
 type mockUploadService struct {
 	service.UploadServices
 	uploadedFile *domain.FileUploadResult
+	batchResults []domain.BatchUploadResultItem
 	err          error
 }
 
@@ -29,6 +31,13 @@ func (m *mockUploadService) UploadFile(ctx context.Context, file io.Reader, file
 		return nil, m.err
 	}
 	return m.uploadedFile, nil
+}
+
+func (m *mockUploadService) UploadImagesBatch(ctx context.Context, files []domain.BatchFileItem, category string) ([]domain.BatchUploadResultItem, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.batchResults, nil
 }
 
 type mockAuthMiddleware struct {
@@ -138,6 +147,100 @@ func TestUploadFile_MaxBytesReader_Protection(t *testing.T) {
 
 		if rec.Code != http.StatusUnauthorized {
 			t.Fatalf("expected status 401 Unauthorized, got %d", rec.Code)
+		}
+	})
+
+	t.Run("UploadBatch Success", func(t *testing.T) {
+		uploadSvc := &mockUploadService{
+			batchResults: []domain.BatchUploadResultItem{
+				{
+					OriginalName: "img1.png",
+					FileURL:      "/static/uploads/lesson_media/2026/10/uuid1.png",
+					SizeBytes:    100,
+					MimeType:     "image/png",
+				},
+				{
+					OriginalName: "img2.jpg",
+					FileURL:      "/static/uploads/lesson_media/2026/10/uuid2.jpg",
+					SizeBytes:    200,
+					MimeType:     "image/jpeg",
+				},
+			},
+		}
+		authMw := &mockAuthMiddleware{userID: 42}
+		h := uploadHandler.NewUploadHandler(uploadSvc, authMw, logger)
+
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+
+		part1, err := writer.CreateFormFile("files[]", "img1.png")
+		if err != nil {
+			t.Fatalf("failed to create form file: %v", err)
+		}
+		_, _ = part1.Write([]byte("fake png content"))
+
+		part2, err := writer.CreateFormFile("files[]", "img2.jpg")
+		if err != nil {
+			t.Fatalf("failed to create form file: %v", err)
+		}
+		_, _ = part2.Write([]byte("fake jpg content"))
+
+		_ = writer.WriteField("category", "lesson_media")
+		_ = writer.Close()
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/upload/batch", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		rec := httptest.NewRecorder()
+		h.UploadBatch(rec, req)
+
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("expected status 201 Created, got %d (body: %s)", rec.Code, rec.Body.String())
+		}
+
+		var resp dto.BatchImageUploadResponse
+		if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+
+		if len(resp.Uploaded) != 2 {
+			t.Fatalf("expected 2 uploaded items, got %d", len(resp.Uploaded))
+		}
+		if resp.Uploaded[0].OriginalName != "img1.png" || resp.Uploaded[0].FileURL != "/static/uploads/lesson_media/2026/10/uuid1.png" {
+			t.Errorf("unexpected item 0: %+v", resp.Uploaded[0])
+		}
+	})
+
+	t.Run("UploadBatch Unauthorized", func(t *testing.T) {
+		unauthMw := &mockAuthMiddleware{userID: 0}
+		unauthH := uploadHandler.NewUploadHandler(uploadSvc, unauthMw, logger)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/upload/batch", nil)
+		rec := httptest.NewRecorder()
+		unauthH.UploadBatch(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected status 401 Unauthorized, got %d", rec.Code)
+		}
+	})
+
+	t.Run("UploadBatch Empty Files Rejected", func(t *testing.T) {
+		authMw := &mockAuthMiddleware{userID: 42}
+		h := uploadHandler.NewUploadHandler(uploadSvc, authMw, logger)
+
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("category", "lesson_media")
+		_ = writer.Close()
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/upload/batch", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		rec := httptest.NewRecorder()
+		h.UploadBatch(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("expected status 400 Bad Request, got %d", rec.Code)
 		}
 	})
 }

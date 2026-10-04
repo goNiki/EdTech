@@ -684,6 +684,7 @@ func (d *diContainer) Router() http.Handler {
 			r.Use(d.MwAuth().JWTMiddleware)
 
 			r.Post("/", d.UploadHdl().UploadFile)
+			r.Post("/batch", d.UploadHdl().UploadBatch)
 		})
 
 		// Categories

@@ -36,7 +36,9 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		Error(w, r, http.StatusBadRequest, ValidationError, "Validation failed")
 	// 400 Bad Request - ошибки загрузки файлов
 	case errors.Is(err, errorsAPP.ErrFileTooLarge):
-		Error(w, r, http.StatusBadRequest, "FILE_TOO_LARGE", "File size exceeds maximum allowed limit (25MB)")
+		Error(w, r, http.StatusBadRequest, "FILE_TOO_LARGE", "File size exceeds maximum allowed limit")
+	case errors.Is(err, errorsAPP.ErrBatchTooManyFiles):
+		Error(w, r, http.StatusBadRequest, "TOO_MANY_FILES", "Batch exceeds maximum allowed file count (50)")
 	case errors.Is(err, errorsAPP.ErrInvalidFileType):
 		Error(w, r, http.StatusBadRequest, "INVALID_FILE_TYPE", "Unsupported or forbidden file type")
 	case errors.Is(err, errorsAPP.ErrEmptyFile):
@@ -76,19 +78,19 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		Error(w, r, http.StatusForbidden, "NOT_ENROLLED", "User not enrolled in course")
 
 	// 404 Not Found
-	case errors.Is(err, errorsAPP.ErrNotFoundCourse), errors.Is(err, errorsAPP.ErrCourseNotFound):
+	case errors.Is(err, errorsAPP.ErrCourseNotFound):
 		Error(w, r, http.StatusNotFound, "COURSE_NOT_FOUND", "Course not found")
 	case errors.Is(err, errorsAPP.ErrCategoryNotFound):
 		Error(w, r, http.StatusNotFound, "CATEGORY_NOT_FOUND", "Category not found")
-	case errors.Is(err, errorsAPP.ErrNotFoundLesson):
+	case errors.Is(err, errorsAPP.ErrLessonNotFound):
 		Error(w, r, http.StatusNotFound, "LESSON_NOT_FOUND", "Lesson not found")
 	case errors.Is(err, errorsAPP.ErrProgressNotFound),
 		errors.Is(err, errorsAPP.ErrCourseProgressNotFound),
 		errors.Is(err, errorsAPP.ErrLessonProgressNotFound):
 		Error(w, r, http.StatusNotFound, "PROGRESS_NOT_FOUND", "Progress not found")
-	case errors.Is(err, errorsAPP.ErrQuizNotFound), errors.Is(err, errorsAPP.ErrNotFoundQuiz):
+	case errors.Is(err, errorsAPP.ErrQuizNotFound):
 		Error(w, r, http.StatusNotFound, "QUIZ_NOT_FOUND", "Quiz not found")
-	case errors.Is(err, errorsAPP.ErrAttemptNotFound), errors.Is(err, errorsAPP.ErrNotFoundAttempt):
+	case errors.Is(err, errorsAPP.ErrAttemptNotFound):
 		Error(w, r, http.StatusNotFound, "ATTEMPT_NOT_FOUND", "Quiz attempt not found")
 	case errors.Is(err, errorsAPP.ErrAnswerNotFound):
 		Error(w, r, http.StatusNotFound, "ANSWER_NOT_FOUND", "Quiz answer not found")

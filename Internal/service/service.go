@@ -193,6 +193,7 @@ type SectionServices interface {
 
 type UploadServices interface {
 	UploadFile(ctx context.Context, file io.Reader, filename string, size int64, category string) (*domain.FileUploadResult, error)
+	UploadImagesBatch(ctx context.Context, files []domain.BatchFileItem, category string) ([]domain.BatchUploadResultItem, error)
 }
 
 // --- Review Interfaces ---

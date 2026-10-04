@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"edtech/internal/domain"
 	"edtech/internal/infrastructure/storage"
 	services "edtech/internal/service"
@@ -19,7 +21,9 @@ import (
 )
 
 const (
-	MaxFileSize int64 = 25 * 1024 * 1024 // 25 MB
+	MaxFileSize       int64 = 25 * 1024 * 1024 // 25 MB
+	MaxBatchFileCount int   = 50               // 50 files max per batch
+	MaxBatchTotalSize int64 = 50 * 1024 * 1024 // 50 MB max total size per batch
 )
 
 var _ services.UploadServices = (*uploadService)(nil)
@@ -53,11 +57,27 @@ var allowedMimeTypes = map[string]bool{
 	"application/x-zip-compressed": true,
 }
 
+var allowedBatchImageMimeTypes = map[string]bool{
+	"image/jpeg": true,
+	"image/png":  true,
+	"image/webp": true,
+	"image/gif":  true,
+}
+
+var allowedBatchImageExtensions = map[string]bool{
+	".jpg":  true,
+	".jpeg": true,
+	".png":  true,
+	".webp": true,
+	".gif":  true,
+}
+
 var validCategories = map[string]bool{
 	"avatar":       true,
 	"course_cover": true,
 	"homework":     true,
 	"general":      true,
+	"lesson_media": true,
 }
 
 type uploadService struct {
@@ -157,3 +177,118 @@ func (s *uploadService) UploadFile(ctx context.Context, file io.Reader, filename
 		MimeType:  mimeClean,
 	}, nil
 }
+
+func (s *uploadService) UploadImagesBatch(ctx context.Context, files []domain.BatchFileItem, category string) ([]domain.BatchUploadResultItem, error) {
+	const op = "service.upload.UploadImagesBatch"
+
+	if len(files) == 0 {
+		return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrEmptyFile)
+	}
+
+	if len(files) > MaxBatchFileCount {
+		return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrBatchTooManyFiles)
+	}
+
+	var totalSize int64
+	for _, f := range files {
+		if f.Size <= 0 {
+			return nil, fmt.Errorf("%s: file %q is empty: %w", op, f.Filename, errorsAPP.ErrEmptyFile)
+		}
+		if f.Size > MaxFileSize {
+			return nil, fmt.Errorf("%s: file %q exceeds 25MB limit: %w", op, f.Filename, errorsAPP.ErrFileTooLarge)
+		}
+		totalSize += f.Size
+	}
+
+	if totalSize > MaxBatchTotalSize {
+		return nil, fmt.Errorf("%s: total batch size %d exceeds 50MB limit: %w", op, totalSize, errorsAPP.ErrFileTooLarge)
+	}
+
+	category = strings.ToLower(strings.TrimSpace(category))
+	if !validCategories[category] {
+		category = "lesson_media"
+	}
+
+	now := time.Now()
+	yearMonth := now.Format("2006/01")
+
+	g, gCtx := errgroup.WithContext(ctx)
+	results := make([]domain.BatchUploadResultItem, len(files))
+	sem := make(chan struct{}, 10)
+
+	for i, item := range files {
+		i := i
+		fItem := item
+		g.Go(func() error {
+			select {
+			case sem <- struct{}{}:
+				defer func() { <-sem }()
+			case <-gCtx.Done():
+				return gCtx.Err()
+			}
+
+			ext := strings.ToLower(filepath.Ext(fItem.Filename))
+			if dangerousExtensions[ext] || !allowedBatchImageExtensions[ext] {
+				slog.Warn("attempt to upload invalid image extension in batch",
+					slog.String("filename", fItem.Filename),
+					slog.String("extension", ext),
+				)
+				return fmt.Errorf("%s: file %q: %w", op, fItem.Filename, errorsAPP.ErrInvalidFileType)
+			}
+
+			buf := make([]byte, 512)
+			n, err := io.ReadFull(fItem.Reader, buf)
+			if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+				return fmt.Errorf("%s: read header for %q: %w", op, fItem.Filename, err)
+			}
+			if n == 0 {
+				return fmt.Errorf("%s: empty content for %q: %w", op, fItem.Filename, errorsAPP.ErrEmptyFile)
+			}
+
+			detectedMime := http.DetectContentType(buf[:n])
+			mimeClean := strings.Split(detectedMime, ";")[0]
+			if !allowedBatchImageMimeTypes[mimeClean] {
+				slog.Warn("attempt to upload unsupported image MIME type in batch",
+					slog.String("filename", fItem.Filename),
+					slog.String("detected_mime", detectedMime),
+				)
+				return fmt.Errorf("%s: file %q has unsupported mime %q: %w", op, fItem.Filename, detectedMime, errorsAPP.ErrInvalidFileType)
+			}
+
+			uuidStr, err := utils.GenerateUUID()
+			if err != nil {
+				return fmt.Errorf("%s: generate uuid: %w", op, err)
+			}
+
+			newFilename := fmt.Sprintf("%s%s", uuidStr, ext)
+			relativePath := filepath.Join(category, yearMonth, newFilename)
+			urlSubPath := fmt.Sprintf("%s/%s/%s", category, yearMonth, newFilename)
+
+			fullReader := io.MultiReader(bytes.NewReader(buf[:n]), fItem.Reader)
+			if err := s.storage.Save(gCtx, relativePath, fullReader); err != nil {
+				return fmt.Errorf("%s: save %q: %w", op, fItem.Filename, err)
+			}
+
+			results[i] = domain.BatchUploadResultItem{
+				OriginalName: fItem.Filename,
+				FileURL:      fmt.Sprintf("/static/uploads/%s", urlSubPath),
+				SizeBytes:    fItem.Size,
+				MimeType:     mimeClean,
+			}
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	slog.Info("batch images successfully uploaded",
+		slog.Int("count", len(results)),
+		slog.String("category", category),
+		slog.Int64("total_bytes", totalSize),
+	)
+
+	return results, nil
+}
+

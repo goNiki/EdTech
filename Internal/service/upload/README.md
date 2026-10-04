@@ -22,6 +22,7 @@
 | Метод | Сигнатура | Описание |
 |---|---|---|
 | `UploadFile` | `(ctx context.Context, file io.Reader, filename string, size int64, category string) (*domain.FileUploadResult, error)` | Валидация файла, проверка magic bytes, сохранение и генерация URL |
+| `UploadImagesBatch` | `(ctx context.Context, files []domain.BatchFileItem, category string) ([]domain.BatchUploadResultItem, error)` | Пакетная валидация картинок Word (до 50 шт, до 50 МБ) и параллельное сохранение через errgroup |
 
 ---
 

@@ -18,7 +18,7 @@
 | **Кабинет студента (Dashboard)** | Список изучаемых программ с прогресс-барами освоения, интерактивное дерево курса с индикацией завершения уроков и средним баллом, профиль и темы оформления. | [frontend/src/app/dashboard/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/dashboard/FUNCTIONAL_SPEC.md) |
 | **Интерактивный урок (Lessons)** | Полноэкранный плеер прохождения урока, регистрация начала сессии (`/start`), сбор ответов на квизы и отправка эссе на сервер (`/complete`). | [frontend/src/app/lessons/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/lessons/FUNCTIONAL_SPEC.md) |
 | **Кабинет преподавателя (Teacher)** | Мастер создания курса со слагом, конструктор учебного плана (секций и уроков) с реордерингом, визуальный конструктор Puck (Content-as-Data), аналитика и проверка ДЗ. | [frontend/src/app/teacher/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/FUNCTIONAL_SPEC.md) |
-| **Файловое хранилище (Uploads)** | Загрузка бинарных файлов (обложки, аватарки, домашние задания, архивы), проверка magic bytes, ограничение 25 МБ, раздача статики. | [internal/service/upload/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/upload/FUNCTIONAL_SPEC.md) |
+| **Файловое хранилище (Uploads)** | Одиночная и пакетная загрузка файлов (Word-картинки, обложки, ДЗ), проверка magic bytes, лимиты 25/50 МБ, раздача статики. | [internal/service/upload/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/upload/FUNCTIONAL_SPEC.md) |
 | **Тестирование и античит (Quiz)** | Конструирование тестов, защита попыток (Advisory Lock), античит-санитизация Puck JSON и серверный подсчет баллов. | [internal/service/quiz/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/FUNCTIONAL_SPEC.md) |
 | **Аутентификация и администрирование (Auth)** | Регистрация, JWT-авторизация, смена паролей, управление ролями/банами и административный реестр пользователей. | [internal/service/auth/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/FUNCTIONAL_SPEC.md) |
 
@@ -196,8 +196,9 @@ flowchart TD
   * ✅ Авторизация загрузки по Bearer JWT токену.
   * ✅ Строгая валидация типов файлов по сигнатуре (magic bytes) и черному списку исполняемых файлов (.exe, .sh, .php, .js и др.).
   * ✅ Ограничение максимального размера файла (до 25 МБ).
-  * ✅ Безопасная генерация путей на базе UUID v4 по категориям (`avatar`, `course_cover`, `homework`, `general`) и датам.
+  * ✅ Безопасная генерация путей на базе UUID v4 по категориям (`avatar`, `course_cover`, `homework`, `general`, `lesson_media`) и датам.
   * ✅ Статическая отдача сохраненных файлов по публичным URL `/static/uploads/...`.
+  * ✅ Пакетная загрузка встроенных изображений из Word-документов (`POST /api/v1/upload/batch`) с лимитом до 50 файлов и 50 МБ, параллельным сохранением через горутины и возвратом постоянных URL для устранения Base64-раздувания уроков.
 
 ---
 

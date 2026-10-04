@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 
+	"edtech/internal/domain"
 	"edtech/internal/dto"
 	"edtech/internal/interfaces/middleware/auth"
 	"edtech/internal/interfaces/response"
@@ -81,3 +83,89 @@ func (h *UploadHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	response.Created(w, r, resp)
 }
+
+func (h *UploadHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
+	const op = "http.handlers.upload.UploadBatch"
+
+	userID := h.authMiddleware.GetUserID(r.Context())
+	if userID == 0 {
+		response.HandleError(w, r, h.log, errorsAPP.ErrUnauthorized, op)
+		return
+	}
+
+	// 55 MB max batch upload request body size to protect against disk exhaustion DoS
+	const maxBatchUploadBodySize = 55 * 1024 * 1024
+	r.Body = http.MaxBytesReader(w, r.Body, maxBatchUploadBodySize)
+
+	// 32 MB in-memory parsing buffer; excess is stored in temp files or rejected by MaxBytesReader
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			response.HandleError(w, r, h.log, errorsAPP.ErrFileTooLarge, op)
+			return
+		}
+		response.HandleError(w, r, h.log, fmt.Errorf("%w: %v", errorsAPP.ErrValidationFailed, err), op)
+		return
+	}
+
+	if r.MultipartForm == nil || r.MultipartForm.File == nil {
+		response.HandleError(w, r, h.log, errorsAPP.ErrEmptyFile, op)
+		return
+	}
+
+	fileHeaders := r.MultipartForm.File["files[]"]
+	if len(fileHeaders) == 0 {
+		fileHeaders = r.MultipartForm.File["files"]
+	}
+	if len(fileHeaders) == 0 {
+		response.HandleError(w, r, h.log, errorsAPP.ErrEmptyFile, op)
+		return
+	}
+
+	category := r.FormValue("category")
+	if category == "" {
+		category = "lesson_media"
+	}
+
+	batchItems := make([]domain.BatchFileItem, 0, len(fileHeaders))
+	openFiles := make([]multipart.File, 0, len(fileHeaders))
+	defer func() {
+		for _, f := range openFiles {
+			_ = f.Close()
+		}
+	}()
+
+	for _, fh := range fileHeaders {
+		f, err := fh.Open()
+		if err != nil {
+			response.HandleError(w, r, h.log, fmt.Errorf("%w: %v", errorsAPP.ErrValidationFailed, err), op)
+			return
+		}
+		openFiles = append(openFiles, f)
+		batchItems = append(batchItems, domain.BatchFileItem{
+			Reader:   f,
+			Filename: fh.Filename,
+			Size:     fh.Size,
+		})
+	}
+
+	results, err := h.uploadService.UploadImagesBatch(r.Context(), batchItems, category)
+	if err != nil {
+		response.HandleError(w, r, h.log, err, op)
+		return
+	}
+
+	uploadedItems := make([]dto.BatchImageItemResponse, len(results))
+	for i, res := range results {
+		uploadedItems[i] = dto.BatchImageItemResponse{
+			OriginalName: res.OriginalName,
+			FileURL:      res.FileURL,
+			SizeBytes:    res.SizeBytes,
+		}
+	}
+
+	response.Created(w, r, dto.BatchImageUploadResponse{
+		Uploaded: uploadedItems,
+	})
+}
+

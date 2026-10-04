@@ -76,11 +76,12 @@ var (
 	ErrCheckingPermissions = errors.New("error checking permissions")
 
 	// Upload errors
-	ErrFileTooLarge     = errors.New("file size exceeds maximum allowed limit")
-	ErrInvalidFileType  = errors.New("unsupported or dangerous file type")
-	ErrEmptyFile        = errors.New("uploaded file cannot be empty")
-	ErrUploadFailed     = errors.New("failed to upload file")
-	ErrPathTraversal    = errors.New("security violation: path traversal detected")
+	ErrFileTooLarge      = errors.New("file size exceeds maximum allowed limit")
+	ErrInvalidFileType   = errors.New("unsupported or dangerous file type")
+	ErrEmptyFile         = errors.New("uploaded file cannot be empty")
+	ErrUploadFailed      = errors.New("failed to upload file")
+	ErrPathTraversal     = errors.New("security violation: path traversal detected")
+	ErrBatchTooManyFiles = errors.New("batch exceeds maximum allowed file count (50)")
 
 	// Validation errors
 	ErrValidationFailed = errors.New("validation failed")
