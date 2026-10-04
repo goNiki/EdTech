@@ -15,6 +15,8 @@ func (r *repository) DeleteCourse(ctx context.Context, q db.QueryExecutor, cours
 		UPDATE courses 
 		SET 
 			deleted_at = NOW(),
+			status = 'archived',
+			slug = 'deleted_' || id::text || '_' || slug,
 			updated_at = NOW()
 		WHERE id = $1 AND deleted_at IS NULL
 	`

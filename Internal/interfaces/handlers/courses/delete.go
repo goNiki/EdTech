@@ -34,6 +34,5 @@ func (h *CourseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.NoContent(w, r)
-
+	response.OK(w, r, map[string]string{"message": "course successfully deleted"})
 }
