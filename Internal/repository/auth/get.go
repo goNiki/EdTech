@@ -2,26 +2,44 @@ package auth
 
 import (
 	"context"
+	"errors"
+	"fmt"
+
 	"edtech/internal/domain"
 	"edtech/internal/infrastructure/txmanager"
 	repomodels "edtech/internal/repository/models"
 	repoconverter "edtech/internal/repository/models/converter"
 	errorsAPP "edtech/pkg/errors"
-	"errors"
-	"fmt"
 
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *repository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
-	const op = "repository.auth.getuserbyemail"
-	q := txmanager.GetQueryExecutor(ctx, r.Pool)
+const baseUserSelect = `
+	SELECT 
+		id, 
+		email, 
+		password_hash, 
+		username, 
+		first_name, 
+		last_name, 
+		avatar_url, 
+		bio, 
+		headline, 
+		role, 
+		email_verified, 
+		is_active, 
+		is_banned, 
+		last_login_at, 
+		created_at, 
+		updated_at, 
+		deleted_at 
+	FROM users
+`
 
-	query := `SELECT id, email, password_hash, username, first_name, last_name, avatar_url, bio, role, email_verified, is_active, is_banned, last_login_at, created_at, updated_at, deleted_at FROM users WHERE email = $1 AND deleted_at IS NULL`
-
+func scanUser(row pgx.Row) (*domain.User, error) {
 	var user repomodels.User
 
-	err := q.QueryRow(ctx, query, email).Scan(
+	err := row.Scan(
 		&user.ID,
 		&user.Email,
 		&user.PasswordHash,
@@ -30,6 +48,7 @@ func (r *repository) GetUserByEmail(ctx context.Context, email string) (*domain.
 		&user.LastName,
 		&user.AvatarURL,
 		&user.Bio,
+		&user.Headline,
 		&user.Role,
 		&user.EmailVerified,
 		&user.IsActive,
@@ -39,7 +58,21 @@ func (r *repository) GetUserByEmail(ctx context.Context, email string) (*domain.
 		&user.UpdatedAt,
 		&user.DeletedAt,
 	)
+	if err != nil {
+		return nil, err
+	}
 
+	return repoconverter.UserToDomain(&user), nil
+}
+
+func (r *repository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	const op = "repository.auth.GetUserByEmail"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
+
+	query := baseUserSelect + ` WHERE email = $1 AND deleted_at IS NULL`
+
+	row := q.QueryRow(ctx, query, email)
+	user, err := scanUser(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrUserNotFound)
@@ -47,60 +80,17 @@ func (r *repository) GetUserByEmail(ctx context.Context, email string) (*domain.
 		return nil, fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
 	}
 
-	return repoconverter.UserToDomain(&user), nil
+	return user, nil
 }
 
 func (r *repository) GetUserByUserName(ctx context.Context, username string) (*domain.User, error) {
-	const op = "repository.auth.getuserbyusername"
+	const op = "repository.auth.GetUserByUserName"
 	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
-	query := `
-		SELECT 
-			id, 
-			email, 
-			password_hash, 
-			username, 
-			first_name, 
-			last_name, 
-			avatar_url, 
-			bio, 
-			role, 
-			email_verified, 
-			is_active, 
-			is_banned, 
-			last_login_at, 
-			created_at, 
-			updated_at, 
-			deleted_at 
-		FROM users 
-		WHERE username = $1 AND deleted_at IS NULL
-	`
+	query := baseUserSelect + ` WHERE username = $1 AND deleted_at IS NULL`
 
-	var user repomodels.User
-
-	err := q.QueryRow(
-		ctx,
-		query,
-		username,
-	).Scan(
-		&user.ID,
-		&user.Email,
-		&user.PasswordHash,
-		&user.Username,
-		&user.FirstName,
-		&user.LastName,
-		&user.AvatarURL,
-		&user.Bio,
-		&user.Role,
-		&user.EmailVerified,
-		&user.IsActive,
-		&user.IsBanned,
-		&user.LastLoginAt,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-		&user.DeletedAt,
-	)
-
+	row := q.QueryRow(ctx, query, username)
+	user, err := scanUser(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrUserNotFound)
@@ -108,61 +98,17 @@ func (r *repository) GetUserByUserName(ctx context.Context, username string) (*d
 		return nil, fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
 	}
 
-	return repoconverter.UserToDomain(&user), nil
-
+	return user, nil
 }
 
 func (r *repository) GetUserByID(ctx context.Context, userID int64) (*domain.User, error) {
-	const op = "repository.auth.getuserbyid"
+	const op = "repository.auth.GetUserByID"
 	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
-	query := `
-		SELECT 
-			id, 
-			email, 
-			password_hash, 
-			username, 
-			first_name, 
-			last_name, 
-			avatar_url, 
-			bio, 
-			role, 
-			email_verified, 
-			is_active, 
-			is_banned, 
-			last_login_at, 
-			created_at, 
-			updated_at, 
-			deleted_at 
-		FROM users 
-		WHERE id = $1 AND deleted_at IS NULL
-	`
+	query := baseUserSelect + ` WHERE id = $1 AND deleted_at IS NULL`
 
-	var user repomodels.User
-
-	err := q.QueryRow(
-		ctx,
-		query,
-		userID,
-	).Scan(
-		&user.ID,
-		&user.Email,
-		&user.PasswordHash,
-		&user.Username,
-		&user.FirstName,
-		&user.LastName,
-		&user.AvatarURL,
-		&user.Bio,
-		&user.Role,
-		&user.EmailVerified,
-		&user.IsActive,
-		&user.IsBanned,
-		&user.LastLoginAt,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-		&user.DeletedAt,
-	)
-
+	row := q.QueryRow(ctx, query, userID)
+	user, err := scanUser(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrUserNotFound)
@@ -170,6 +116,5 @@ func (r *repository) GetUserByID(ctx context.Context, userID int64) (*domain.Use
 		return nil, fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
 	}
 
-	return repoconverter.UserToDomain(&user), nil
-
+	return user, nil
 }

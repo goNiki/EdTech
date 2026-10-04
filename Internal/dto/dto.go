@@ -42,6 +42,7 @@ type User struct {
 	LastName      *string    `json:"last_name,omitempty"`
 	AvatarURL     *string    `json:"avatar_url,omitempty"`
 	Bio           *string    `json:"bio,omitempty"`
+	Headline      *string    `json:"headline,omitempty"`
 	Role          string     `json:"role"`
 	EmailVerified bool       `json:"email_verified"`
 	IsActive      bool       `json:"is_active"`
@@ -70,6 +71,7 @@ type UpdateProfileRequest struct {
 	LastName  *string `json:"last_name,omitempty" validate:"omitempty,min=1,max=100"`
 	Bio       *string `json:"bio,omitempty" validate:"omitempty,max=1000"`
 	AvatarURL *string `json:"avatar_url,omitempty" validate:"omitempty,http_url,max=500"`
+	Headline  *string `json:"headline,omitempty" validate:"omitempty,max=150"`
 }
 
 type UpdateProfileResponse struct {

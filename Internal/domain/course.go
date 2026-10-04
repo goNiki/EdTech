@@ -47,11 +47,22 @@ type Course struct {
 	EnrolledCount     int
 	Rating            float64
 	ReviewsCount      int
+	Author            *CourseAuthorInfo
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 	PublishedAt       *time.Time
 	ArchivedAt        *time.Time
 	DeletedAt         *time.Time
+}
+
+type CourseAuthorInfo struct {
+	ID            int64
+	Name          string
+	AvatarURL     *string
+	Headline      string
+	Bio           string
+	CoursesCount  int
+	TotalStudents int
 }
 
 func (c *Course) CanArchive() error {

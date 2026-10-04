@@ -97,7 +97,7 @@
 ### Документация подпапок сервисов (`internal/service/*`):
 * [**`service/auth`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/auth/README.md) — Сессии, bcrypt хэши, одиночная активная сессия, бан-правила.
 * [**`service/access`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/access/README.md) — Матрица разрешений курсов, правила черновиков и прав создателя.
-* [**`service/course`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/course/README.md) — Каскадная публикация, автозачисление создателя, сборка дерева курса.
+* [**`service/course`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/course/README.md) — Каскадная публикация, автозачисление создателя, сборка дерева курса, профиль автора.
 * [**`service/section`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/section/README.md) — Позиционирование секций и переупорядочивание уроков.
 * [**`service/lesson`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/lesson/README.md) — Вычисление позиций `max(pos)+1`, CRUD уроков, контекст навигации (prev/next) и силлабус.
 * [**`service/enrollment`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/enrollment/README.md) — Транзакционный инкремент счетчика студентов, запрет отчисления автора.
@@ -115,7 +115,7 @@
 * [**`repository/auth`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/auth/README.md) — SQL пользователей, перехват уникальности `23505`.
 * [**`repository/refresh`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/refresh/README.md) — SHA-256 хранение токенов сессий, сброс всех сессий.
 * [**`repository/category`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/category/README.md) — Выборка категорий с подсчетом курсов через `LEFT JOIN`, CRUD.
-* [**`repository/course`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/course/README.md) — SQL каталога, атомарные `enrolled_count ± 1`, `UpdateCourseRatingStats`.
+* [**`repository/course`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/course/README.md) — SQL каталога, публичный профиль автора со статистикой, атомарные `enrolled_count ± 1`, `UpdateCourseRatingStats`.
 * [**`repository/section`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/section/README.md) — `ORDER BY position ASC`, `COALESCE(MAX(pos), 0)`.
 * [**`repository/lesson`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/lesson/README.md) — Пакетное обновление позиций, смена секций.
 * [**`repository/enrollment`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/enrollment/README.md) — Однопроходный CTE-запрос студентов с прогрессом и долгами.

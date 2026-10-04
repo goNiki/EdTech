@@ -9,6 +9,20 @@ func CourseToDTO(d *domain.Course) dto.Course {
 	if d == nil {
 		return dto.Course{}
 	}
+
+	var authorDTO *dto.CourseAuthorDTO
+	if d.Author != nil {
+		authorDTO = &dto.CourseAuthorDTO{
+			ID:            d.Author.ID,
+			Name:          d.Author.Name,
+			AvatarURL:     d.Author.AvatarURL,
+			Headline:      d.Author.Headline,
+			Bio:           d.Author.Bio,
+			CoursesCount:  d.Author.CoursesCount,
+			TotalStudents: d.Author.TotalStudents,
+		}
+	}
+
 	return dto.Course{
 		ID:                d.Id,
 		Title:             d.Title,
@@ -18,6 +32,7 @@ func CourseToDTO(d *domain.Course) dto.Course {
 		CoverURL:          d.CoverURL,
 		IntroVideoURL:     d.IntroVideoURL,
 		CreatedBy:         d.CreatedBy,
+		Author:            authorDTO,
 		Visibility:        d.Visibility,
 		Status:            d.Status,
 		Difficulty:        d.Difficulty,

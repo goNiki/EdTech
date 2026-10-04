@@ -34,10 +34,21 @@ type Course struct {
 	TotalSections     int        `json:"total_sections"`
 	EnrolledCount     int        `json:"enrolled_count"`
 	Rating            float64    `json:"rating"`
-	ReviewsCount      int        `json:"reviews_count"`
-	CreatedAt         time.Time  `json:"created_at"`
-	UpdatedAt         time.Time  `json:"updated_at"`
-	PublishedAt       *time.Time `json:"published_at,omitempty"`
+	ReviewsCount      int              `json:"reviews_count"`
+	Author            *CourseAuthorDTO `json:"author,omitempty"`
+	CreatedAt         time.Time        `json:"created_at"`
+	UpdatedAt         time.Time        `json:"updated_at"`
+	PublishedAt       *time.Time       `json:"published_at,omitempty"`
+}
+
+type CourseAuthorDTO struct {
+	ID            int64   `json:"id"`
+	Name          string  `json:"name"`
+	AvatarURL     *string `json:"avatar_url,omitempty"`
+	Headline      string  `json:"headline"`
+	Bio           string  `json:"bio"`
+	CoursesCount  int     `json:"courses_count"`
+	TotalStudents int     `json:"total_students"`
 }
 
 type CoursePermissions struct {

@@ -24,6 +24,7 @@ func UserToModel(user *repomodels.User) *domain.User {
 		LastName:      user.LastName,
 		AvatarURL:     user.AvatarURL,
 		Bio:           user.Bio,
+		Headline:      user.Headline,
 		Role:          domain.Role(user.Role),
 		EmailVerified: user.EmailVerified,
 		IsActive:      user.IsActive,

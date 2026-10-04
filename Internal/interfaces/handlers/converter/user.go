@@ -17,6 +17,7 @@ func UserToDTO(d *domain.User) dto.User {
 		LastName:      d.LastName,
 		AvatarURL:     d.AvatarURL,
 		Bio:           d.Bio,
+		Headline:      d.Headline,
 		Role:          string(d.Role),
 		EmailVerified: d.EmailVerified,
 		IsActive:      d.IsActive,
@@ -49,5 +50,6 @@ func UpdateProfileRequestToDomain(req dto.UpdateProfileRequest) domain.UpdatePro
 		LastName:  req.LastName,
 		Bio:       req.Bio,
 		AvatarURL: req.AvatarURL,
+		Headline:  req.Headline,
 	}
 }

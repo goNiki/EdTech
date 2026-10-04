@@ -11,6 +11,7 @@ type User struct {
 	LastName      *string
 	AvatarURL     *string
 	Bio           *string
+	Headline      *string
 	Role          string
 	EmailVerified bool
 	IsActive      bool

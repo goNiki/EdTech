@@ -31,6 +31,7 @@ type User struct {
 	LastName      *string
 	AvatarURL     *string
 	Bio           *string
+	Headline      *string
 	Role          Role
 	EmailVerified bool
 	IsActive      bool
@@ -106,6 +107,7 @@ type UpdateProfileInput struct {
 	LastName  *string
 	Bio       *string
 	AvatarURL *string
+	Headline  *string
 }
 
 func (u *User) UpdateProfile(input UpdateProfileInput) {
@@ -120,6 +122,9 @@ func (u *User) UpdateProfile(input UpdateProfileInput) {
 	}
 	if input.AvatarURL != nil {
 		u.AvatarURL = input.AvatarURL
+	}
+	if input.Headline != nil {
+		u.Headline = input.Headline
 	}
 }
 

@@ -40,6 +40,7 @@ func (r *repository) UpdateProfile(ctx context.Context, user *domain.User) error
 		    last_name = $3,
 		    avatar_url = $4,
 		    bio = $5,
+		    headline = $6,
 		    updated_at = NOW()
 		WHERE id = $1 AND deleted_at IS NULL
 	`
@@ -52,6 +53,7 @@ func (r *repository) UpdateProfile(ctx context.Context, user *domain.User) error
 		user.LastName,
 		user.AvatarURL,
 		user.Bio,
+		user.Headline,
 	)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
