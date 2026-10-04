@@ -117,6 +117,19 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
     }
   }, [lessonData]);
 
+  const effectiveQuizSettings = React.useMemo(() => {
+    try {
+      const rawContent = lessonData?.content || lessonData?.Content;
+      if (rawContent) {
+        const parsed = typeof rawContent === 'string' ? JSON.parse(rawContent) : rawContent;
+        if (parsed?.quiz_settings) return parsed.quiz_settings;
+      }
+      return lessonData?.quiz_settings || lessonData?.QuizSettings;
+    } catch {
+      return lessonData?.quiz_settings || lessonData?.QuizSettings;
+    }
+  }, [lessonData]);
+
   const courseId = lessonData?.course_id || lessonData?.CourseID;
 
   // Fetch course structure to determine next lesson
@@ -332,7 +345,7 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
               score={lastResult.score}
               earnedPoints={lastResult.earnedPoints}
               totalMaxPoints={lastResult.totalPoints}
-              passingScore={lessonData?.passing_score || lessonData?.PassingScore || 70}
+              passingScore={effectiveQuizSettings?.passing_score_percent || lessonData?.passing_score || lessonData?.PassingScore || 70}
               bestScore={progressData?.score || lastResult.score}
               remainingAttempts={2}
               nextLesson={nextLesson}
@@ -344,9 +357,9 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
             <QuizPreflightScreen
               lessonTitle={lessonData?.title || lessonData?.Title || 'Контрольное тестирование'}
               bestScore={progressData?.score ?? 100}
-              passingScore={lessonData?.passing_score || lessonData?.PassingScore || 70}
+              passingScore={effectiveQuizSettings?.passing_score_percent || lessonData?.passing_score || lessonData?.PassingScore || 70}
               attemptsMade={progressData?.attempts_count || 1}
-              maxAttempts={lessonData?.max_attempts || 3}
+              maxAttempts={effectiveQuizSettings?.max_attempts ?? (lessonData?.max_attempts || 3)}
               attemptsHistory={progressData?.attempts || [
                 {
                   attempt_number: 1,
@@ -436,6 +449,7 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
                   initialProgress={progressData}
                   onNavigateBack={handleRequestExit}
                   lessonTitle={lessonData?.title || lessonData?.Title}
+                  quizSettings={effectiveQuizSettings}
                 />
               ) : (
                 <PuckLessonViewer

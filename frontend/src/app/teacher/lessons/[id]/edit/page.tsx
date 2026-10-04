@@ -23,7 +23,9 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
   const currentPuckDataRef = useRef<any>(null);
   const [lessonMeta, setLessonMeta] = useState<any>(null);
   const [quizSettings, setQuizSettings] = useState<QuizSettings>(defaultQuizSettings);
+  const quizSettingsRef = useRef<QuizSettings>(defaultQuizSettings);
   const [isQuizSettingsOpen, setIsQuizSettingsOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [forbiddenAlert, setForbiddenAlert] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -94,10 +96,11 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
           try {
             const parsed = JSON.parse(lesson.content);
             setInitialData(parsed);
-            if (parsed.quiz_settings) {
-              setQuizSettings({ ...defaultQuizSettings, ...parsed.quiz_settings });
-            } else if (lesson.quiz_settings) {
-              setQuizSettings({ ...defaultQuizSettings, ...lesson.quiz_settings });
+            const activeQs = parsed.quiz_settings || lesson.quiz_settings;
+            if (activeQs) {
+              const merged = { ...defaultQuizSettings, ...activeQs };
+              setQuizSettings(merged);
+              quizSettingsRef.current = merged;
             }
           } catch (e) {
             setInitialData({});
@@ -105,7 +108,9 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
         } else {
           setInitialData({});
           if (lesson.quiz_settings) {
-            setQuizSettings({ ...defaultQuizSettings, ...lesson.quiz_settings });
+            const merged = { ...defaultQuizSettings, ...lesson.quiz_settings };
+            setQuizSettings(merged);
+            quizSettingsRef.current = merged;
           }
         }
       } catch (err) {
@@ -154,15 +159,17 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
       }
     }
 
+    setIsSaving(true);
     try {
+      const currentSettings = quizSettingsRef.current || quizSettings;
       const dataToSave = {
         ...data,
-        quiz_settings: quizSettings,
+        quiz_settings: currentSettings,
       };
       const contentString = JSON.stringify(dataToSave);
       await api.patch(`/lessons/${id}`, {
         content: contentString,
-        quiz_settings: quizSettings,
+        quiz_settings: currentSettings,
       });
       showToast('Контент и параметры тестирования успешно сохранены!');
     } catch (err: any) {
@@ -173,6 +180,8 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
       } else {
         alert(err.response?.data?.message || err.response?.data?.error || 'Ошибка при сохранении урока');
       }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -275,9 +284,26 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
             )}
           </button>
 
-          <span className="text-xs text-slate-400 font-medium hidden sm:inline">
-            Режим: Content-as-Data Visual Builder
-          </span>
+          {/* Quick Save Button */}
+          <button
+            type="button"
+            disabled={isReadOnly || isSaving}
+            onClick={() => handleSave(currentPuckDataRef.current || initialData || { content: [] })}
+            className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-md shadow-indigo-600/25 cursor-pointer active:scale-95"
+            title="Сохранить контент и настройки теста"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                <span>Сохранение...</span>
+              </>
+            ) : (
+              <>
+                <Save size={14} />
+                <span>Сохранить</span>
+              </>
+            )}
+          </button>
         </div>
       </header>
 
@@ -343,6 +369,24 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
         isOpen={isBulkQuizModalOpen}
         onClose={() => setIsBulkQuizModalOpen(false)}
         onImport={handleBulkQuizzesImport}
+      />
+
+      {/* Quiz Settings Modal */}
+      <ModalQuizSettings
+        isOpen={isQuizSettingsOpen}
+        onClose={() => setIsQuizSettingsOpen(false)}
+        settings={quizSettings}
+        onSave={(newSettings) => {
+          quizSettingsRef.current = newSettings;
+          setQuizSettings(newSettings);
+          const baseData = currentPuckDataRef.current || initialData || { content: [] };
+          const updated = {
+            ...baseData,
+            quiz_settings: newSettings,
+          };
+          currentPuckDataRef.current = updated;
+          showToast('Параметры тестирования обновлены. Нажмите «Сохранить» для применения.');
+        }}
       />
     </div>
   );

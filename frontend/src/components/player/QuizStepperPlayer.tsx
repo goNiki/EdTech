@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   CheckCircle,
   CheckCircle2,
@@ -18,11 +18,14 @@ import {
   Clock,
   ShieldCheck,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Zap,
+  EyeOff
 } from 'lucide-react';
 import { parseSmartDropdownTemplate } from '@/lib/puck-config';
 import { api } from '@/lib/api';
 import { LessonCompletionPayload, LessonAnswerItem } from './PuckLessonViewer';
+import { QuizSettings, defaultQuizSettings } from '@/components/teacher/ModalQuizSettings';
 
 export interface QuizStepperPlayerProps {
   contentJson: string | object;
@@ -30,6 +33,7 @@ export interface QuizStepperPlayerProps {
   onNavigateBack?: () => void;
   initialProgress?: any;
   lessonTitle?: string;
+  quizSettings?: QuizSettings;
 }
 
 export default function QuizStepperPlayer({
@@ -38,6 +42,7 @@ export default function QuizStepperPlayer({
   onNavigateBack,
   initialProgress,
   lessonTitle,
+  quizSettings,
 }: QuizStepperPlayerProps) {
   let parsedContent: any = { content: [] };
   try {
@@ -368,6 +373,71 @@ export default function QuizStepperPlayer({
     }
   };
 
+  // Quiz Settings & Timers
+  const effectiveQuizSettings: QuizSettings = useMemo(() => {
+    return quizSettings || parsedContent.quiz_settings || defaultQuizSettings;
+  }, [quizSettings, parsedContent]);
+
+  const [remainingOverallSeconds, setRemainingOverallSeconds] = useState<number>(() => {
+    return (effectiveQuizSettings.time_limit_minutes || 0) * 60;
+  });
+
+  const [questionRemainingSeconds, setQuestionRemainingSeconds] = useState<number>(() => {
+    return effectiveQuizSettings.question_time_limit_seconds || 0;
+  });
+
+  // Overall quiz timer countdown
+  useEffect(() => {
+    if (!effectiveQuizSettings.time_limit_minutes || effectiveQuizSettings.time_limit_minutes <= 0) return;
+    
+    const interval = setInterval(() => {
+      setRemainingOverallSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          handleFinish();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [effectiveQuizSettings.time_limit_minutes]);
+
+  // Per-question blitz timer countdown
+  useEffect(() => {
+    const blitzSecs = effectiveQuizSettings.question_time_limit_seconds;
+    if (!blitzSecs || blitzSecs <= 0) return;
+    if (steps[currentStepIdx]?.type !== 'question') return;
+
+    setQuestionRemainingSeconds(blitzSecs);
+
+    const interval = setInterval(() => {
+      setQuestionRemainingSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          if (currentStepIdx < steps.length - 1) {
+            setCurrentStepIdx((idx) => idx + 1);
+          } else {
+            handleFinish();
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [currentStepIdx, effectiveQuizSettings.question_time_limit_seconds, steps.length]);
+
+  const formatMMSS = (totalSeconds: number) => {
+    const m = Math.floor(Math.max(0, totalSeconds) / 60);
+    const s = Math.max(0, totalSeconds) % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const isBlindMode = effectiveQuizSettings.feedback_mode === 'exam_blind';
+
   const currentStep = steps[currentStepIdx];
   const isLastStep = currentStepIdx === steps.length - 1;
   const isFirstStep = currentStepIdx === 0;
@@ -398,9 +468,28 @@ export default function QuizStepperPlayer({
                 ? 'Вводная теория к уроку'
                 : `Вопрос ${currentStep.questionIndex} из ${questionBlocks.length}`}
             </span>
+            {isBlindMode && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 flex items-center gap-1">
+                <EyeOff size={11} />
+                <span>Blind Mode</span>
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center gap-2 text-slate-500 text-[11px] font-semibold">
+          <div className="flex items-center gap-3 text-slate-500 text-[11px] font-semibold">
+            {effectiveQuizSettings.time_limit_minutes > 0 && (
+              <div
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black tracking-wider transition-all ${
+                  remainingOverallSeconds < 120
+                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 animate-pulse border border-rose-300 dark:border-rose-800'
+                    : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60'
+                }`}
+                title="Оставшееся время на весь тест"
+              >
+                <Clock size={13} />
+                <span>{formatMMSS(remainingOverallSeconds)}</span>
+              </div>
+            )}
             <span>
               Отвечено: <strong className="text-emerald-600 dark:text-emerald-400">{answeredQuestionsCount}</strong> из {questionBlocks.length}
             </span>
@@ -515,6 +604,32 @@ export default function QuizStepperPlayer({
 
             return (
               <div className="space-y-6">
+                {/* Blitz Timer Progress Bar */}
+                {effectiveQuizSettings.question_time_limit_seconds > 0 && (
+                  <div className="space-y-1 p-3 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/60 animate-in fade-in">
+                    <div className="flex items-center justify-between text-[11px] font-bold">
+                      <span className="text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                        <Zap size={13} className="fill-amber-500 text-amber-500" />
+                        <span>Блиц-таймер на вопрос</span>
+                      </span>
+                      <span className="font-mono text-amber-800 dark:text-amber-200 font-extrabold">
+                        {questionRemainingSeconds} сек.
+                      </span>
+                    </div>
+                    <div className="w-full bg-amber-200/60 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-amber-500 to-rose-500 transition-all duration-1000 ease-linear rounded-full"
+                        style={{
+                          width: `${Math.max(
+                            0,
+                            (questionRemainingSeconds / (effectiveQuizSettings.question_time_limit_seconds || 1)) * 100
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* Header: Question badge, points */}
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
@@ -538,6 +653,12 @@ export default function QuizStepperPlayer({
                         ? 'Развернутый ответ'
                         : 'Загрузка файла'}
                     </span>
+                    {isBlindMode && (
+                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 flex items-center gap-1">
+                        <EyeOff size={11} />
+                        <span>Blind Mode</span>
+                      </span>
+                    )}
                   </div>
 
                   <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
