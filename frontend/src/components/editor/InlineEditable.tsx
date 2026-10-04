@@ -515,22 +515,36 @@ export function RichTextCanvasEditor({
   const [linkUrl, setLinkUrl] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(false);
 
+  const getEditorDoc = useCallback(() => {
+    return editorRef.current?.ownerDocument || (typeof document !== 'undefined' ? document : null);
+  }, []);
+
+  const getEditorWin = useCallback(() => {
+    const doc = getEditorDoc();
+    return doc?.defaultView || (typeof window !== 'undefined' ? window : null);
+  }, [getEditorDoc]);
+
   // Save current selection range inside the editor
   const saveSelection = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const sel = window.getSelection();
+    const win = getEditorWin();
+    if (!win) return;
+    const sel = win.getSelection();
     if (sel && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0);
-      if (editorRef.current && editorRef.current.contains(range.commonAncestorContainer)) {
+      if (
+        editorRef.current &&
+        (editorRef.current === range.commonAncestorContainer || editorRef.current.contains(range.commonAncestorContainer))
+      ) {
         savedSelectionRef.current = range.cloneRange();
       }
     }
-  }, []);
+  }, [getEditorWin]);
 
   // Restore saved selection before applying commands
   const restoreSelection = useCallback(() => {
-    if (typeof window === 'undefined' || !editorRef.current) return;
-    const sel = window.getSelection();
+    const win = getEditorWin();
+    if (!win || !editorRef.current) return;
+    const sel = win.getSelection();
     if (!sel || !savedSelectionRef.current) return;
     if (sel.rangeCount > 0) {
       const curRange = sel.getRangeAt(0);
@@ -547,18 +561,25 @@ export function RichTextCanvasEditor({
       sel.removeAllRanges();
       sel.addRange(savedSelectionRef.current);
     } catch (e) {}
-  }, []);
+  }, [getEditorWin]);
 
-  // Track selection changes across the document
+  // Track selection changes across both editor ownerDocument and top document
   useEffect(() => {
+    const doc = getEditorDoc();
     const handleSelectionChange = () => {
       saveSelection();
     };
-    document.addEventListener('selectionchange', handleSelectionChange);
+    doc?.addEventListener('selectionchange', handleSelectionChange);
+    if (typeof document !== 'undefined' && document !== doc) {
+      document.addEventListener('selectionchange', handleSelectionChange);
+    }
     return () => {
-      document.removeEventListener('selectionchange', handleSelectionChange);
+      doc?.removeEventListener('selectionchange', handleSelectionChange);
+      if (typeof document !== 'undefined' && document !== doc) {
+        document.removeEventListener('selectionchange', handleSelectionChange);
+      }
     };
-  }, [saveSelection]);
+  }, [getEditorDoc, saveSelection]);
 
   // Initialize once and set clean default paragraph separator
   useEffect(() => {
@@ -567,24 +588,25 @@ export function RichTextCanvasEditor({
       lastHtmlRef.current = htmlContent || '';
       isInitializedRef.current = true;
     }
+    const doc = getEditorDoc();
     try {
-      document.execCommand('defaultParagraphSeparator', false, 'p');
-      document.execCommand('styleWithCSS', false, 'true');
+      doc?.execCommand('defaultParagraphSeparator', false, 'p');
+      doc?.execCommand('styleWithCSS', false, 'true');
     } catch (e) {}
-  }, []);
+  }, [getEditorDoc, htmlContent]);
 
   // Sync external changes ONLY when prop actually changed from outside and user is not currently typing inside
   useEffect(() => {
     if (editorRef.current && isInitializedRef.current) {
+      const doc = getEditorDoc();
       const isFocused =
-        typeof document !== 'undefined' &&
-        (document.activeElement === editorRef.current || editorRef.current.contains(document.activeElement));
+        Boolean(doc?.activeElement && (doc.activeElement === editorRef.current || editorRef.current.contains(doc.activeElement)));
       if (!isFocused && htmlContent !== undefined && htmlContent !== lastHtmlRef.current) {
         lastHtmlRef.current = htmlContent;
         editorRef.current.innerHTML = htmlContent || '';
       }
     }
-  }, [htmlContent]);
+  }, [getEditorDoc, htmlContent]);
 
   const triggerChange = useCallback(() => {
     if (!editorRef.current) return;
@@ -594,12 +616,14 @@ export function RichTextCanvasEditor({
   }, [onChange]);
 
   const exec = (command: string, value: string | undefined = undefined) => {
-    if (!editorRef.current) return;
+    const doc = getEditorDoc();
+    if (!doc || !editorRef.current) return;
+    editorRef.current.focus();
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'false');
+      doc.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
-    document.execCommand(command, false, value);
+    doc.execCommand(command, false, value);
     saveSelection();
     triggerChange();
   };
@@ -615,7 +639,8 @@ export function RichTextCanvasEditor({
 
       if (e.key === 'Tab') {
         e.preventDefault();
-        document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
+        const doc = getEditorDoc();
+        doc?.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
         triggerChange();
         return;
       }
@@ -668,29 +693,34 @@ export function RichTextCanvasEditor({
       el.removeEventListener('keyup', stopPropagation, false);
       el.removeEventListener('keypress', stopPropagation, false);
     };
-  }, [triggerChange]);
+  }, [getEditorDoc, triggerChange]);
 
   const formatHeading = (tag: 'p' | 'h1' | 'h2' | 'h3') => {
-    if (!editorRef.current) return;
+    const doc = getEditorDoc();
+    if (!doc || !editorRef.current) return;
+    editorRef.current.focus();
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'false');
+      doc.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
-    let ok = document.execCommand('formatBlock', false, `<${tag}>`);
+    let ok = doc.execCommand('formatBlock', false, `<${tag}>`);
     if (!ok) {
-      document.execCommand('formatBlock', false, tag);
+      doc.execCommand('formatBlock', false, tag);
     }
     saveSelection();
     triggerChange();
   };
 
   const applyInlineStyle = (styleObj: Record<string, string>) => {
-    if (!editorRef.current) return;
+    const doc = getEditorDoc();
+    const win = getEditorWin();
+    if (!doc || !win || !editorRef.current) return;
+    editorRef.current.focus();
     restoreSelection();
-    const sel = window.getSelection();
+    const sel = win.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0);
-    if (!editorRef.current.contains(range.commonAncestorContainer)) return;
+    if (!editorRef.current.contains(range.commonAncestorContainer) && editorRef.current !== range.commonAncestorContainer) return;
 
     if (range.collapsed) {
       let el: HTMLElement | null =
@@ -710,12 +740,12 @@ export function RichTextCanvasEditor({
     }
 
     const contents = range.extractContents();
-    const span = document.createElement('span');
+    const span = doc.createElement('span');
     Object.assign(span.style, styleObj);
     span.appendChild(contents);
     range.insertNode(span);
 
-    const newRange = document.createRange();
+    const newRange = doc.createRange();
     newRange.selectNodeContents(span);
     sel.removeAllRanges();
     sel.addRange(newRange);
@@ -736,13 +766,16 @@ export function RichTextCanvasEditor({
   };
 
   const formatAlign = (alignCmd: 'justifyLeft' | 'justifyCenter' | 'justifyRight' | 'justifyFull') => {
-    if (!editorRef.current) return;
+    const doc = getEditorDoc();
+    const win = getEditorWin();
+    if (!doc || !win || !editorRef.current) return;
+    editorRef.current.focus();
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'false');
+      doc.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
-    document.execCommand(alignCmd, false);
-    const sel = window.getSelection();
+    doc.execCommand(alignCmd, false);
+    const sel = win.getSelection();
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
       const map: Record<string, string> = {
         justifyLeft: 'left',
@@ -763,19 +796,22 @@ export function RichTextCanvasEditor({
   };
 
   const formatCode = () => {
-    if (!editorRef.current) return;
+    const doc = getEditorDoc();
+    const win = getEditorWin();
+    if (!doc || !win || !editorRef.current) return;
+    editorRef.current.focus();
     restoreSelection();
-    const sel = window.getSelection();
+    const sel = win.getSelection();
     if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0);
       if (editorRef.current.contains(range.commonAncestorContainer)) {
         const contents = range.extractContents();
-        const code = document.createElement('code');
+        const code = doc.createElement('code');
         code.className = 'px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-mono text-xs';
         code.appendChild(contents);
         range.insertNode(code);
 
-        const newRange = document.createRange();
+        const newRange = doc.createRange();
         newRange.selectNodeContents(code);
         sel.removeAllRanges();
         sel.addRange(newRange);
@@ -789,14 +825,17 @@ export function RichTextCanvasEditor({
   };
 
   const clearFormatting = () => {
-    if (!editorRef.current) return;
+    const doc = getEditorDoc();
+    const win = getEditorWin();
+    if (!doc || !win || !editorRef.current) return;
+    editorRef.current.focus();
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'false');
+      doc.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
-    document.execCommand('removeFormat', false);
-    document.execCommand('unlink', false);
-    const sel = window.getSelection();
+    doc.execCommand('removeFormat', false);
+    doc.execCommand('unlink', false);
+    const sel = win.getSelection();
     if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0);
       if (editorRef.current.contains(range.commonAncestorContainer)) {
@@ -818,9 +857,11 @@ export function RichTextCanvasEditor({
   };
 
   const insertCustomHtml = (htmlSnippet: string) => {
-    if (!editorRef.current) return;
+    const doc = getEditorDoc();
+    if (!doc || !editorRef.current) return;
+    editorRef.current.focus();
     restoreSelection();
-    document.execCommand('insertHTML', false, htmlSnippet);
+    doc.execCommand('insertHTML', false, htmlSnippet);
     saveSelection();
     triggerChange();
   };
@@ -1474,22 +1515,36 @@ export function RichTextWordEditor({
     }
   };
 
+  const getEditorDoc = useCallback(() => {
+    return editorRef.current?.ownerDocument || (typeof document !== 'undefined' ? document : null);
+  }, []);
+
+  const getEditorWin = useCallback(() => {
+    const doc = getEditorDoc();
+    return doc?.defaultView || (typeof window !== 'undefined' ? window : null);
+  }, [getEditorDoc]);
+
   // Save current selection range inside the editor
   const saveSelection = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const sel = window.getSelection();
+    const win = getEditorWin();
+    if (!win) return;
+    const sel = win.getSelection();
     if (sel && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0);
-      if (editorRef.current && editorRef.current.contains(range.commonAncestorContainer)) {
+      if (
+        editorRef.current &&
+        (editorRef.current === range.commonAncestorContainer || editorRef.current.contains(range.commonAncestorContainer))
+      ) {
         savedSelectionRef.current = range.cloneRange();
       }
     }
-  }, []);
+  }, [getEditorWin]);
 
   // Restore saved selection before applying commands
   const restoreSelection = useCallback(() => {
-    if (typeof window === 'undefined' || !editorRef.current) return;
-    const sel = window.getSelection();
+    const win = getEditorWin();
+    if (!win || !editorRef.current) return;
+    const sel = win.getSelection();
     if (!sel || !savedSelectionRef.current) return;
     if (sel.rangeCount > 0) {
       const curRange = sel.getRangeAt(0);
@@ -1506,18 +1561,25 @@ export function RichTextWordEditor({
       sel.removeAllRanges();
       sel.addRange(savedSelectionRef.current);
     } catch (e) {}
-  }, []);
+  }, [getEditorWin]);
 
-  // Track selection changes across the document
+  // Track selection changes across both editor ownerDocument and top document
   useEffect(() => {
+    const doc = getEditorDoc();
     const handleSelectionChange = () => {
       saveSelection();
     };
-    document.addEventListener('selectionchange', handleSelectionChange);
+    doc?.addEventListener('selectionchange', handleSelectionChange);
+    if (typeof document !== 'undefined' && document !== doc) {
+      document.addEventListener('selectionchange', handleSelectionChange);
+    }
     return () => {
-      document.removeEventListener('selectionchange', handleSelectionChange);
+      doc?.removeEventListener('selectionchange', handleSelectionChange);
+      if (typeof document !== 'undefined' && document !== doc) {
+        document.removeEventListener('selectionchange', handleSelectionChange);
+      }
     };
-  }, [saveSelection]);
+  }, [getEditorDoc, saveSelection]);
 
   // Set initial content on mount once
   useEffect(() => {
@@ -1526,24 +1588,25 @@ export function RichTextWordEditor({
       lastHtmlRef.current = htmlContent || '';
       isInitializedRef.current = true;
     }
+    const doc = getEditorDoc();
     try {
-      document.execCommand('defaultParagraphSeparator', false, 'p');
-      document.execCommand('styleWithCSS', false, 'true');
+      doc?.execCommand('defaultParagraphSeparator', false, 'p');
+      doc?.execCommand('styleWithCSS', false, 'true');
     } catch (e) {}
-  }, []);
+  }, [getEditorDoc, htmlContent]);
 
   // Sync external changes ONLY when prop actually changed from outside and user is not typing inside
   useEffect(() => {
     if (editorRef.current && isInitializedRef.current) {
+      const doc = getEditorDoc();
       const isFocused =
-        typeof document !== 'undefined' &&
-        (document.activeElement === editorRef.current || editorRef.current.contains(document.activeElement));
+        Boolean(doc?.activeElement && (doc.activeElement === editorRef.current || editorRef.current.contains(doc.activeElement)));
       if (!isFocused && htmlContent !== undefined && htmlContent !== lastHtmlRef.current) {
         lastHtmlRef.current = htmlContent;
         editorRef.current.innerHTML = htmlContent || '';
       }
     }
-  }, [htmlContent]);
+  }, [getEditorDoc, htmlContent]);
 
   const triggerChange = useCallback(() => {
     if (!editorRef.current) return;
@@ -1553,12 +1616,14 @@ export function RichTextWordEditor({
   }, [onChange]);
 
   const exec = (command: string, value: string | undefined = undefined) => {
-    if (!editorRef.current) return;
+    const doc = getEditorDoc();
+    if (!doc || !editorRef.current) return;
+    editorRef.current.focus();
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'false');
+      doc.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
-    document.execCommand(command, false, value);
+    doc.execCommand(command, false, value);
     saveSelection();
     triggerChange();
   };
@@ -1574,7 +1639,8 @@ export function RichTextWordEditor({
 
       if (e.key === 'Tab') {
         e.preventDefault();
-        document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
+        const doc = getEditorDoc();
+        doc?.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
         triggerChange();
         return;
       }
@@ -1627,29 +1693,34 @@ export function RichTextWordEditor({
       el.removeEventListener('keyup', stopPropagation, false);
       el.removeEventListener('keypress', stopPropagation, false);
     };
-  }, [triggerChange]);
+  }, [getEditorDoc, triggerChange]);
 
   const formatHeading = (tag: 'p' | 'h1' | 'h2' | 'h3') => {
-    if (!editorRef.current) return;
+    const doc = getEditorDoc();
+    if (!doc || !editorRef.current) return;
+    editorRef.current.focus();
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'false');
+      doc.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
-    let ok = document.execCommand('formatBlock', false, `<${tag}>`);
+    let ok = doc.execCommand('formatBlock', false, `<${tag}>`);
     if (!ok) {
-      document.execCommand('formatBlock', false, tag);
+      doc.execCommand('formatBlock', false, tag);
     }
     saveSelection();
     triggerChange();
   };
 
   const applyInlineStyle = (styleObj: Record<string, string>) => {
-    if (!editorRef.current) return;
+    const doc = getEditorDoc();
+    const win = getEditorWin();
+    if (!doc || !win || !editorRef.current) return;
+    editorRef.current.focus();
     restoreSelection();
-    const sel = window.getSelection();
+    const sel = win.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0);
-    if (!editorRef.current.contains(range.commonAncestorContainer)) return;
+    if (!editorRef.current.contains(range.commonAncestorContainer) && editorRef.current !== range.commonAncestorContainer) return;
 
     if (range.collapsed) {
       let el: HTMLElement | null =
@@ -1669,12 +1740,12 @@ export function RichTextWordEditor({
     }
 
     const contents = range.extractContents();
-    const span = document.createElement('span');
+    const span = doc.createElement('span');
     Object.assign(span.style, styleObj);
     span.appendChild(contents);
     range.insertNode(span);
 
-    const newRange = document.createRange();
+    const newRange = doc.createRange();
     newRange.selectNodeContents(span);
     sel.removeAllRanges();
     sel.addRange(newRange);
@@ -1695,13 +1766,16 @@ export function RichTextWordEditor({
   };
 
   const formatAlign = (alignCmd: 'justifyLeft' | 'justifyCenter' | 'justifyRight' | 'justifyFull') => {
-    if (!editorRef.current) return;
+    const doc = getEditorDoc();
+    const win = getEditorWin();
+    if (!doc || !win || !editorRef.current) return;
+    editorRef.current.focus();
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'false');
+      doc.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
-    document.execCommand(alignCmd, false);
-    const sel = window.getSelection();
+    doc.execCommand(alignCmd, false);
+    const sel = win.getSelection();
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
       const map: Record<string, string> = {
         justifyLeft: 'left',
@@ -1722,19 +1796,22 @@ export function RichTextWordEditor({
   };
 
   const formatCode = () => {
-    if (!editorRef.current) return;
+    const doc = getEditorDoc();
+    const win = getEditorWin();
+    if (!doc || !win || !editorRef.current) return;
+    editorRef.current.focus();
     restoreSelection();
-    const sel = window.getSelection();
+    const sel = win.getSelection();
     if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0);
       if (editorRef.current.contains(range.commonAncestorContainer)) {
         const contents = range.extractContents();
-        const code = document.createElement('code');
+        const code = doc.createElement('code');
         code.className = 'px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-mono text-xs';
         code.appendChild(contents);
         range.insertNode(code);
 
-        const newRange = document.createRange();
+        const newRange = doc.createRange();
         newRange.selectNodeContents(code);
         sel.removeAllRanges();
         sel.addRange(newRange);
@@ -1748,14 +1825,17 @@ export function RichTextWordEditor({
   };
 
   const clearFormatting = () => {
-    if (!editorRef.current) return;
+    const doc = getEditorDoc();
+    const win = getEditorWin();
+    if (!doc || !win || !editorRef.current) return;
+    editorRef.current.focus();
     restoreSelection();
     try {
-      document.execCommand('styleWithCSS', false, 'false');
+      doc.execCommand('styleWithCSS', false, 'false');
     } catch (e) {}
-    document.execCommand('removeFormat', false);
-    document.execCommand('unlink', false);
-    const sel = window.getSelection();
+    doc.execCommand('removeFormat', false);
+    doc.execCommand('unlink', false);
+    const sel = win.getSelection();
     if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0);
       if (editorRef.current.contains(range.commonAncestorContainer)) {
@@ -1777,9 +1857,11 @@ export function RichTextWordEditor({
   };
 
   const insertCustomHtml = (htmlSnippet: string) => {
-    if (!editorRef.current) return;
+    const doc = getEditorDoc();
+    if (!doc || !editorRef.current) return;
+    editorRef.current.focus();
     restoreSelection();
-    document.execCommand('insertHTML', false, htmlSnippet);
+    doc.execCommand('insertHTML', false, htmlSnippet);
     saveSelection();
     triggerChange();
   };

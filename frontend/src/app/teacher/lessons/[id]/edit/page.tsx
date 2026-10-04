@@ -8,7 +8,7 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from '@/store/useAuth';
-import { ArrowLeft, Save, Sparkles, CheckCircle2, Lock, ShieldAlert, FileUp, Loader2, Zap } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles, CheckCircle2, Lock, ShieldAlert, FileUp, Loader2, Zap, Type, FileText } from 'lucide-react';
 import { useRef } from 'react';
 import { convertDocumentToHtml } from '@/lib/document-importer';
 import BulkQuizImportModal from '@/components/editor/BulkQuizImportModal';
@@ -71,6 +71,47 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
     } finally {
       setIsImportingHeader(false);
     }
+  };
+
+  const handleAddTextBlock = () => {
+    const newBlock = {
+      type: 'TextBlock',
+      props: {
+        id: `TextBlock-${Date.now()}`,
+        contentHtml: '<p>Текстовый блок урока. Выделите слово или предложение для изменения цвета, жирности или размера шрифта.</p>',
+        content: 'Текстовый блок урока. Выделите слово или предложение для изменения цвета, жирности или размера шрифта.',
+        align: 'left',
+      },
+    };
+    const baseData = currentPuckDataRef.current || initialData || { content: [] };
+    const updatedData = {
+      ...baseData,
+      content: [...(baseData.content || []), newBlock],
+    };
+    currentPuckDataRef.current = updatedData;
+    setInitialData(updatedData);
+    setEditorKey((prev) => prev + 1);
+    showToast('Текстовый блок добавлен в урок');
+  };
+
+  const handleAddWordBlock = () => {
+    const newBlock = {
+      type: 'RichTextBlock',
+      props: {
+        id: `RichTextBlock-${Date.now()}`,
+        title: 'Раздел лекции',
+        contentHtml: '<p>Интерактивная статья лекции. Вы можете форматировать любой фрагмент текста, вставлять таблицы, картинки и списки.</p>',
+      },
+    };
+    const baseData = currentPuckDataRef.current || initialData || { content: [] };
+    const updatedData = {
+      ...baseData,
+      content: [...(baseData.content || []), newBlock],
+    };
+    currentPuckDataRef.current = updatedData;
+    setInitialData(updatedData);
+    setEditorKey((prev) => prev + 1);
+    showToast('Раздел лекции Word добавлен в урок');
   };
 
   useEffect(() => {
@@ -204,12 +245,36 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
             type="button"
             disabled={isReadOnly}
             onClick={() => setIsBulkQuizModalOpen(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer active:scale-95"
             title="Быстрый импорт тестов из текста (Aiken, GIFT, звездочки, чекбоксы)"
           >
             <Zap size={14} className="fill-white" />
-            <span>⚡ Быстрый импорт тестов</span>
+            <span>⚡ Тесты</span>
           </button>
+
+          {/* Quick Add Block Buttons */}
+          <div className="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-xl border border-slate-700/60">
+            <button
+              type="button"
+              disabled={isReadOnly}
+              onClick={handleAddTextBlock}
+              className="px-2.5 py-1 rounded-lg bg-slate-700/80 hover:bg-slate-600 disabled:opacity-50 text-slate-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+              title="Добавить текстовый блок Canvas"
+            >
+              <Type size={13} className="text-indigo-400" />
+              <span>+ Текст</span>
+            </button>
+            <button
+              type="button"
+              disabled={isReadOnly}
+              onClick={handleAddWordBlock}
+              className="px-2.5 py-1 rounded-lg bg-slate-700/80 hover:bg-slate-600 disabled:opacity-50 text-slate-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+              title="Добавить раздел лекции Word"
+            >
+              <FileText size={13} className="text-purple-400" />
+              <span>+ Статья</span>
+            </button>
+          </div>
 
           <span className="text-xs text-slate-400 font-medium hidden sm:inline">
             Режим: Content-as-Data Visual Builder

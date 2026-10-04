@@ -14,7 +14,13 @@ declare module 'mammoth' {
     styleMap?: string | string[];
     includeDefaultStyleMap?: boolean;
     convertImage?: any;
+    transformDocument?: any;
   }
+
+  export const transforms: {
+    paragraph: (fn: (paragraph: any) => any) => any;
+    run: (fn: (run: any) => any) => any;
+  };
 
   export const images: {
     inline: (fn: (element: any) => Promise<{ src: string }>) => any;
