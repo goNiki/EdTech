@@ -535,6 +535,16 @@ export const EDITOR_SCOPED_STYLES = `
   .edtech-inline-editable u, [contenteditable] u {
     text-decoration: underline !important;
   }
+  .edtech-inline-editable .edtech-callout-box, [contenteditable] .edtech-callout-box {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+    margin: 1.25rem 0 !important;
+    padding: 1rem 1.25rem !important;
+    border-radius: 1rem !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+  }
 `;
 
 export async function uploadOrConvertImage(file: File): Promise<string> {
@@ -546,7 +556,12 @@ export async function uploadOrConvertImage(file: File): Promise<string> {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     const fileUrl = res.data?.data?.file_url || res.data?.file_url;
-    if (fileUrl) return fileUrl;
+    if (fileUrl) {
+      if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) return fileUrl;
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8082/api/v1';
+      const origin = apiBase.replace(/\/api\/v1\/?$/, '');
+      return `${origin}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+    }
   } catch (err) {
     console.warn('Backend image upload failed, falling back to data URL:', err);
   }
@@ -598,13 +613,12 @@ export function getCalloutSnippet(type: CalloutType): string {
   };
   const c = configs[type];
   return `
-    <div class="my-4 p-4 rounded-2xl ${c.bg} ${c.border} flex items-start gap-3 shadow-xs">
-      <span class="text-xl select-none leading-none pt-0.5">${c.icon}</span>
+    <div data-callout="true" class="edtech-callout-box my-4 p-4 rounded-2xl ${c.bg} ${c.border} flex items-start gap-3 shadow-xs">
+      <span class="text-xl select-none leading-none pt-0.5" contenteditable="false">${c.icon}</span>
       <div class="text-sm leading-relaxed ${c.textColor} flex-1">
         <strong>${c.title}:</strong> ${c.desc}
       </div>
     </div>
-    <p><br/></p>
   `;
 }
 
@@ -794,6 +808,124 @@ export function RichTextCanvasEditor({
     triggerChange();
   };
 
+  const insertBlockElement = (htmlSnippet: string) => {
+    const doc = getEditorDoc();
+    const win = getEditorWin();
+    const editor = editorRef.current;
+    if (!doc || !win || !editor) return;
+
+    restoreSelection();
+    const sel = win.getSelection();
+
+    const tempDiv = doc.createElement('div');
+    tempDiv.innerHTML = htmlSnippet.trim();
+    const fragment = doc.createDocumentFragment();
+    const insertedNodes: Node[] = [];
+    while (tempDiv.firstChild) {
+      const child = tempDiv.firstChild;
+      insertedNodes.push(child);
+      fragment.appendChild(child);
+    }
+    if (insertedNodes.length === 0) return;
+
+    const trailingP = doc.createElement('p');
+    trailingP.innerHTML = '<br>';
+
+    let targetNode: Node | null = null;
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      if (editor.contains(range.startContainer) || editor === range.startContainer) {
+        targetNode = range.startContainer;
+      }
+    }
+    if (!targetNode && savedSelectionRef.current) {
+      const sr = savedSelectionRef.current;
+      if (editor.contains(sr.startContainer) || editor === sr.startContainer) {
+        targetNode = sr.startContainer;
+      }
+    }
+
+    let calloutParent: HTMLElement | null = null;
+    if (targetNode) {
+      let curr: Node | null = targetNode;
+      while (curr && curr !== editor) {
+        if (curr instanceof HTMLElement) {
+          if (
+            curr.getAttribute('data-callout') === 'true' ||
+            curr.classList.contains('edtech-callout-box') ||
+            curr.tagName === 'FIGURE'
+          ) {
+            calloutParent = curr;
+            break;
+          }
+        }
+        curr = curr.parentNode;
+      }
+    }
+
+    if (calloutParent) {
+      // Prevent nesting inside existing callout: insert strictly AFTER it
+      calloutParent.after(fragment);
+      const lastInserted = insertedNodes[insertedNodes.length - 1];
+      if (lastInserted instanceof HTMLElement) {
+        lastInserted.after(trailingP);
+      } else {
+        calloutParent.after(trailingP);
+      }
+    } else if (targetNode && targetNode !== editor) {
+      let topBlock: HTMLElement | null = null;
+      let curr: Node | null = targetNode;
+      while (curr && curr.parentNode !== editor && curr !== editor) {
+        curr = curr.parentNode;
+      }
+      if (curr && curr instanceof HTMLElement && curr.parentNode === editor) {
+        topBlock = curr;
+      }
+
+      if (topBlock) {
+        const isEmptyP =
+          topBlock.tagName === 'P' &&
+          (!topBlock.textContent || topBlock.textContent.trim() === '');
+
+        if (isEmptyP) {
+          topBlock.replaceWith(fragment);
+          const lastInserted = insertedNodes[insertedNodes.length - 1];
+          if (lastInserted instanceof HTMLElement) {
+            lastInserted.after(trailingP);
+          }
+        } else {
+          topBlock.after(fragment);
+          const lastInserted = insertedNodes[insertedNodes.length - 1];
+          if (lastInserted instanceof HTMLElement) {
+            lastInserted.after(trailingP);
+          }
+        }
+      } else {
+        editor.appendChild(fragment);
+        editor.appendChild(trailingP);
+      }
+    } else {
+      editor.appendChild(fragment);
+      editor.appendChild(trailingP);
+    }
+
+    try {
+      editor.focus();
+      const newRange = doc.createRange();
+      newRange.selectNodeContents(trailingP);
+      newRange.collapse(true);
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+      }
+      savedSelectionRef.current = newRange.cloneRange();
+    } catch (e) {
+      console.warn('Failed to focus trailing paragraph:', e);
+    }
+
+    triggerChange();
+  };
+
   // Document Import (.docx / .md)
   const handleFileImport = async (file: File) => {
     const ext = file.name.toLowerCase();
@@ -929,7 +1061,7 @@ export function RichTextCanvasEditor({
               </figure>
               <p><br/></p>
             `;
-            insertCustomHtml(snippet);
+            insertBlockElement(snippet);
           } catch (err) {
             console.error('Failed to paste image:', err);
           }
@@ -1143,7 +1275,7 @@ export function RichTextCanvasEditor({
       </figure>
       <p><br/></p>
     `;
-    insertCustomHtml(snippet);
+    insertBlockElement(snippet);
     setImageUrl('');
     setImageCaption('');
     setImageFile(null);
@@ -1152,7 +1284,7 @@ export function RichTextCanvasEditor({
   };
 
   const handleInsertCallout = (type: CalloutType) => {
-    insertCustomHtml(getCalloutSnippet(type));
+    insertBlockElement(getCalloutSnippet(type));
     setShowCalloutMenu(false);
   };
 
@@ -1551,7 +1683,11 @@ export function RichTextCanvasEditor({
               type="button"
               title="Вставить цветную врезку (Callout)"
               {...preventBtnFocus}
-              onClick={(e) => { e.stopPropagation(); setShowCalloutMenu(!showCalloutMenu); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                saveSelection();
+                setShowCalloutMenu(!showCalloutMenu);
+              }}
               className="edtech-inline-btn p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-950 text-indigo-600"
             >
               <Info size={14} />
@@ -1559,8 +1695,8 @@ export function RichTextCanvasEditor({
             {showCalloutMenu && (
               <div
                 className="absolute top-full left-0 mt-1 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col gap-1 z-50 min-w-[200px]"
-                onPointerDownCapture={(e) => e.stopPropagation()}
-                onMouseDownCapture={(e) => e.stopPropagation()}
+                onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
               >
                 <button
                   type="button"
@@ -2233,7 +2369,7 @@ export function RichTextWordEditor({
               </figure>
               <p><br/></p>
             `;
-            insertCustomHtml(snippet);
+            insertBlockElement(snippet);
           } catch (err) {
             console.error('Failed to paste image:', err);
           }
@@ -2430,6 +2566,124 @@ export function RichTextWordEditor({
     triggerChange();
   };
 
+  const insertBlockElement = (htmlSnippet: string) => {
+    const doc = getEditorDoc();
+    const win = getEditorWin();
+    const editor = editorRef.current;
+    if (!doc || !win || !editor) return;
+
+    restoreSelection();
+    const sel = win.getSelection();
+
+    const tempDiv = doc.createElement('div');
+    tempDiv.innerHTML = htmlSnippet.trim();
+    const fragment = doc.createDocumentFragment();
+    const insertedNodes: Node[] = [];
+    while (tempDiv.firstChild) {
+      const child = tempDiv.firstChild;
+      insertedNodes.push(child);
+      fragment.appendChild(child);
+    }
+    if (insertedNodes.length === 0) return;
+
+    const trailingP = doc.createElement('p');
+    trailingP.innerHTML = '<br>';
+
+    let targetNode: Node | null = null;
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      if (editor.contains(range.startContainer) || editor === range.startContainer) {
+        targetNode = range.startContainer;
+      }
+    }
+    if (!targetNode && savedSelectionRef.current) {
+      const sr = savedSelectionRef.current;
+      if (editor.contains(sr.startContainer) || editor === sr.startContainer) {
+        targetNode = sr.startContainer;
+      }
+    }
+
+    let calloutParent: HTMLElement | null = null;
+    if (targetNode) {
+      let curr: Node | null = targetNode;
+      while (curr && curr !== editor) {
+        if (curr instanceof HTMLElement) {
+          if (
+            curr.getAttribute('data-callout') === 'true' ||
+            curr.classList.contains('edtech-callout-box') ||
+            curr.tagName === 'FIGURE'
+          ) {
+            calloutParent = curr;
+            break;
+          }
+        }
+        curr = curr.parentNode;
+      }
+    }
+
+    if (calloutParent) {
+      // Prevent nesting: insert strictly after existing callout/figure
+      calloutParent.after(fragment);
+      const lastInserted = insertedNodes[insertedNodes.length - 1];
+      if (lastInserted instanceof HTMLElement) {
+        lastInserted.after(trailingP);
+      } else {
+        calloutParent.after(trailingP);
+      }
+    } else if (targetNode && targetNode !== editor) {
+      let topBlock: HTMLElement | null = null;
+      let curr: Node | null = targetNode;
+      while (curr && curr.parentNode !== editor && curr !== editor) {
+        curr = curr.parentNode;
+      }
+      if (curr && curr instanceof HTMLElement && curr.parentNode === editor) {
+        topBlock = curr;
+      }
+
+      if (topBlock) {
+        const isEmptyP =
+          topBlock.tagName === 'P' &&
+          (!topBlock.textContent || topBlock.textContent.trim() === '');
+
+        if (isEmptyP) {
+          topBlock.replaceWith(fragment);
+          const lastInserted = insertedNodes[insertedNodes.length - 1];
+          if (lastInserted instanceof HTMLElement) {
+            lastInserted.after(trailingP);
+          }
+        } else {
+          topBlock.after(fragment);
+          const lastInserted = insertedNodes[insertedNodes.length - 1];
+          if (lastInserted instanceof HTMLElement) {
+            lastInserted.after(trailingP);
+          }
+        }
+      } else {
+        editor.appendChild(fragment);
+        editor.appendChild(trailingP);
+      }
+    } else {
+      editor.appendChild(fragment);
+      editor.appendChild(trailingP);
+    }
+
+    try {
+      editor.focus();
+      const newRange = doc.createRange();
+      newRange.selectNodeContents(trailingP);
+      newRange.collapse(true);
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+      }
+      savedSelectionRef.current = newRange.cloneRange();
+    } catch (e) {
+      console.warn('Failed to focus trailing paragraph:', e);
+    }
+
+    triggerChange();
+  };
+
   const handleInsertImage = async () => {
     let finalUrl = imageUrl.trim();
 
@@ -2457,7 +2711,7 @@ export function RichTextWordEditor({
       </figure>
       <p><br/></p>
     `;
-    insertCustomHtml(snippet);
+    insertBlockElement(snippet);
     setImageUrl('');
     setImageCaption('');
     setImageFile(null);
@@ -2466,7 +2720,7 @@ export function RichTextWordEditor({
   };
 
   const handleInsertCallout = (type: CalloutType) => {
-    insertCustomHtml(getCalloutSnippet(type));
+    insertBlockElement(getCalloutSnippet(type));
     setShowCalloutMenu(false);
   };
 
@@ -2925,7 +3179,11 @@ export function RichTextWordEditor({
               data-puck-overlay-portal="true"
               title="Вставить цветную врезку (Callout)"
               {...preventBtnFocus}
-              onClick={(e) => { e.stopPropagation(); setShowCalloutMenu(!showCalloutMenu); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                saveSelection();
+                setShowCalloutMenu(!showCalloutMenu);
+              }}
               className="edtech-inline-btn px-2.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900 text-xs font-bold flex items-center gap-1.5 transition-colors border border-amber-200 dark:border-amber-800"
             >
               <Info size={14} />
@@ -2934,8 +3192,8 @@ export function RichTextWordEditor({
             {showCalloutMenu && (
               <div
                 className="absolute top-full left-0 mt-1 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl flex flex-col gap-1 z-50 min-w-[200px]"
-                onPointerDownCapture={(e) => e.stopPropagation()}
-                onMouseDownCapture={(e) => e.stopPropagation()}
+                onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
               >
                 <button
                   type="button"
