@@ -23,7 +23,24 @@ export interface PresentationViewerProps {
 }
 
 /**
- * Нормализация URL презентаций (Google Slides, Canva, SpeakerDeck)
+ * Валидация поддерживаемых провайдеров презентаций
+ */
+export function isSupportedPresentationUrl(url?: string): boolean {
+  if (!url) return false;
+  const trimmed = url.trim().toLowerCase();
+  return (
+    trimmed.includes('docs.google.com/presentation') ||
+    trimmed.includes('canva.com/design') ||
+    trimmed.includes('speakerdeck.com') ||
+    trimmed.includes('onedrive.live.com') ||
+    trimmed.includes('officeapps.live.com') ||
+    trimmed.includes('sharepoint.com') ||
+    trimmed.includes('slideshare.net')
+  );
+}
+
+/**
+ * Нормализация URL презентаций (Google Slides, Canva, SpeakerDeck, Office 365)
  */
 export function normalizePresentationUrl(url?: string): string {
   if (!url) return '';
@@ -37,12 +54,24 @@ export function normalizePresentationUrl(url?: string): string {
     if (trimmed.includes('/edit')) {
       return trimmed.split('/edit')[0] + '/embed?start=false&loop=false&delayms=3000';
     }
+    if (!trimmed.includes('/embed')) {
+      return trimmed.replace(/\/$/, '') + '/embed';
+    }
   }
 
-  // Canva: добавляем view?embed если не указано
+  // Canva: удаляем суффикс /view перед добавлением /view?embed
   if (trimmed.includes('canva.com/design') && !trimmed.includes('view?embed')) {
-    const base = trimmed.split('?')[0];
+    let base = trimmed.split('?')[0];
+    base = base.replace(/\/view\/?$/, '');
     return `${base}/view?embed`;
+  }
+
+  // OneDrive / Office 365
+  if (trimmed.includes('onedrive.live.com') && !trimmed.includes('action=embedview')) {
+    if (trimmed.includes('resid=')) {
+      const glue = trimmed.includes('?') ? '&' : '?';
+      return `${trimmed}${glue}action=embedview`;
+    }
   }
 
   return trimmed;
@@ -204,7 +233,23 @@ export default function PresentationViewer({
               </p>
             </div>
           )
-        ) : normalizedEmbed ? (
+        ) : !embedUrl ? (
+          <div className="p-8 text-center text-slate-400 space-y-2">
+            <Presentation size={32} className="mx-auto text-amber-500 opacity-60" />
+            <p className="text-xs font-bold text-slate-300">Ссылка на презентацию не указана</p>
+            <p className="text-[11px] text-slate-500">
+              Укажите ссылку на Google Slides, Canva, SpeakerDeck или Office 365.
+            </p>
+          </div>
+        ) : !isSupportedPresentationUrl(embedUrl) ? (
+          <div className="p-8 text-center text-rose-400 space-y-2 max-w-md mx-auto">
+            <AlertCircle size={32} className="mx-auto text-rose-500 opacity-80" />
+            <p className="text-xs font-bold text-rose-300">Некорректная ссылка на презентацию</p>
+            <p className="text-[11px] text-slate-400">
+              Поддерживаются Google Slides, Canva, SpeakerDeck, Office 365.
+            </p>
+          </div>
+        ) : (
           <iframe
             src={normalizedEmbed}
             title={title || 'Встроенная презентация'}
@@ -212,14 +257,6 @@ export default function PresentationViewer({
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
-        ) : (
-          <div className="p-8 text-center text-slate-400 space-y-2">
-            <Presentation size={32} className="mx-auto text-amber-500 opacity-60" />
-            <p className="text-xs font-bold text-slate-300">Ссылка на презентацию не указана</p>
-            <p className="text-[11px] text-slate-500">
-              Укажите ссылку на Google Slides, Canva или SpeakerDeck.
-            </p>
-          </div>
         )}
       </div>
     </div>
