@@ -104,7 +104,7 @@ func (s *service) finalizeGrading(ctx context.Context, quiz *domain.Quiz, attemp
 
 	maxPoints, err := s.quizRepo.GetQuizTotalPoints(ctx, attempt.QuizID)
 	if err != nil {
-		maxPoints = 1
+		return fmt.Errorf("get quiz total points: %w", err)
 	}
 
 	attempt.CalculateScore(correctPoints, maxPoints, quiz.PassingScor)

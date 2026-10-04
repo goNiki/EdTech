@@ -85,9 +85,10 @@ func (r *repositoryImpl) GetAnswerPointsAndCorrectness(ctx context.Context, answ
 	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
 	query := `
-		SELECT qa.is_correct, qq.points 
+		SELECT qa.is_correct, COALESCE(qz.points, 1) 
 		FROM quiz_answers qa 
 		JOIN quiz_questions qq ON qa.question_id = qq.id 
+		JOIN quizzes qz ON qq.quiz_id = qz.id 
 		WHERE qa.id = $1`
 
 	var isCorrect bool
@@ -124,7 +125,7 @@ func (r *repositoryImpl) SumAttemptPoints(ctx context.Context, attemptID int64) 
 	const op = "repository.quiz.SumAttemptPoints"
 	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 
-	query := `SELECT COALESCE(COUNT(*), 0) FROM quiz_attempt_answers WHERE attempt_id = $1 AND is_correct = TRUE`
+	query := `SELECT COALESCE(SUM(points), 0) FROM quiz_attempt_answers WHERE attempt_id = $1 AND is_correct = TRUE`
 
 	var totalPoints int
 	err := q.QueryRow(ctx, query, attemptID).Scan(&totalPoints)

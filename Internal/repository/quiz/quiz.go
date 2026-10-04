@@ -154,12 +154,13 @@ func (r *repositoryImpl) GetQuizByLessonID(ctx context.Context, lessonID int64) 
 func (r *repositoryImpl) GetQuizTotalPoints(ctx context.Context, quizID int64) (int, error) {
 	q := txmanager.GetQueryExecutor(ctx, r.Pool)
 	var maxPoints int
-	err := q.QueryRow(ctx, "SELECT COALESCE(SUM(points), 1) FROM quiz_questions WHERE quiz_id = $1", quizID).Scan(&maxPoints)
+	err := q.QueryRow(ctx, "SELECT COALESCE(points, 25) FROM quizzes WHERE id = $1", quizID).Scan(&maxPoints)
 	if err != nil {
-		return 1, err
+		return 25, err
 	}
-	if maxPoints == 0 {
-		return 1, nil
+	if maxPoints <= 0 {
+		return 25, nil
 	}
 	return maxPoints, nil
 }
+

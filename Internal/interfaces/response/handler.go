@@ -58,6 +58,8 @@ func HandleError(w http.ResponseWriter, r *http.Request, log *slog.Logger, err e
 		Error(w, r, http.StatusBadRequest, "TIME_LIMIT_EXCEEDED", "Quiz time limit exceeded")
 	case errors.Is(err, errorsAPP.ErrCourseNotCompleted):
 		Error(w, r, http.StatusBadRequest, "COURSE_NOT_COMPLETED", "Course not completed: 100% progress required for certificate")
+	case errors.Is(err, errorsAPP.ErrCannotModifySelf):
+		Error(w, r, http.StatusBadRequest, "CANNOT_MODIFY_SELF", "Admin cannot modify or ban themselves")
 
 	// 401 Unauthorized - ошибки аутентификации
 	case errors.Is(err, errorsAPP.ErrInvalidCredentials):
