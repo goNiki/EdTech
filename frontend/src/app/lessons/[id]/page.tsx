@@ -4,8 +4,9 @@ import React, { useEffect, useState, use } from 'react';
 import { api } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import PuckLessonViewer, { LessonCompletionPayload } from '@/components/player/PuckLessonViewer';
+import QuizStepperPlayer from '@/components/player/QuizStepperPlayer';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, CheckCircle, Sparkles, ArrowRight, RotateCcw, Loader2, AlertTriangle, Zap } from 'lucide-react';
+import { ChevronLeft, CheckCircle, Sparkles, ArrowRight, RotateCcw, Loader2, AlertTriangle, Zap, LayoutList, Layers } from 'lucide-react';
 
 export default function LessonPlayer({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -16,6 +17,7 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   const [isCompleted, setIsCompleted] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const [playerMode, setPlayerMode] = useState<'stepper' | 'scroll'>('stepper');
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -172,9 +174,36 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
                 </button>
               </div>
             ) : hasQuizzes ? (
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 rounded-xl border border-indigo-200/80 dark:border-indigo-800/60 text-xs font-bold shadow-2xs">
-                <Zap size={14} className="text-indigo-500 animate-pulse" />
-                <span>Контрольное тестирование</span>
+              <div className="flex items-center gap-2">
+                {/* Stepper vs Scroll Toggle */}
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setPlayerMode('stepper')}
+                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                      playerMode === 'stepper'
+                        ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                    title="Пошаговый режим: 1 вопрос на экран"
+                  >
+                    <Layers size={13} />
+                    <span>По шагам</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPlayerMode('scroll')}
+                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                      playerMode === 'scroll'
+                        ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                    title="Вся лента: все задания сразу"
+                  >
+                    <LayoutList size={13} />
+                    <span>Вся лента</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <button
@@ -265,12 +294,22 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
             </div>
           )}
 
-          <PuckLessonViewer
-            contentJson={lessonData?.content || lessonData?.Content || '{}'}
-            onComplete={handleComplete}
-            initialProgress={progressData}
-            onNavigateBack={handleRequestExit}
-          />
+          {hasQuizzes && playerMode === 'stepper' ? (
+            <QuizStepperPlayer
+              contentJson={lessonData?.content || lessonData?.Content || '{}'}
+              onComplete={handleComplete}
+              initialProgress={progressData}
+              onNavigateBack={handleRequestExit}
+              lessonTitle={lessonData?.title || lessonData?.Title}
+            />
+          ) : (
+            <PuckLessonViewer
+              contentJson={lessonData?.content || lessonData?.Content || '{}'}
+              onComplete={handleComplete}
+              initialProgress={progressData}
+              onNavigateBack={handleRequestExit}
+            />
+          )}
         </main>
 
         {/* Footer Navigation */}
