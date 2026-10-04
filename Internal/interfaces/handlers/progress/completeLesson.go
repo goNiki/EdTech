@@ -45,10 +45,49 @@ func (h *ProgressHandler) CompleteLesson(w http.ResponseWriter, r *http.Request)
 		})
 	}
 
-	if err := h.progressService.CompleteLesson(r.Context(), userID, lessonID, req.Score, essays); err != nil {
+	answers := make([]domain.LessonAnswerSubmission, 0, len(req.Answers))
+	for _, a := range req.Answers {
+		ansVal := a.Answer
+		if ansVal == nil {
+			switch {
+			case a.SelectedOption != nil:
+				ansVal = map[string]any{"selected_option": *a.SelectedOption}
+			case len(a.SelectedOpts) > 0:
+				ansVal = map[string]any{"selected_options": a.SelectedOpts}
+			case a.Pairs != nil:
+				ansVal = map[string]any{"pairs": a.Pairs}
+			case a.Blanks != nil:
+				ansVal = map[string]any{"blanks": a.Blanks}
+			case a.Order != nil:
+				ansVal = map[string]any{"order": a.Order}
+			}
+		}
+		answers = append(answers, domain.LessonAnswerSubmission{
+			BlockID: a.BlockID,
+			Answer:  ansVal,
+		})
+	}
+
+	result, err := h.progressService.CompleteLesson(r.Context(), userID, lessonID, req.Score, answers, essays)
+	if err != nil {
 		response.HandleError(w, r, log, err, op)
 		return
 	}
 
-	response.OK(w, r, map[string]string{"message": "lesson completed"})
+	resultsDTO := make(map[string]dto.BlockValidationDTO, len(result.Results))
+	for bid, res := range result.Results {
+		resultsDTO[bid] = dto.BlockValidationDTO{
+			IsCorrect:     res.IsCorrect,
+			Feedback:      res.Feedback,
+			CorrectAnswer: res.CorrectAnswer,
+		}
+	}
+
+	response.OK(w, r, dto.CompleteLessonResponse{
+		Message:        "lesson completed",
+		Score:          result.Score,
+		EarnedPoints:   result.EarnedPoints,
+		TotalMaxPoints: result.TotalMaxPoints,
+		Results:        resultsDTO,
+	})
 }

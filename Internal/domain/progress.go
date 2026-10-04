@@ -59,3 +59,22 @@ type LessonSubmissionDetail struct {
 	TeacherFeedback *string `json:"teacher_feedback"`
 	IsGraded        bool    `json:"is_graded"`
 }
+
+type LessonCompletionResult struct {
+	Score          int                              `json:"score"`
+	EarnedPoints   int                              `json:"earned_points"`
+	TotalMaxPoints int                              `json:"total_max_points"`
+	Results        map[string]BlockValidationResult `json:"results,omitempty"`
+}
+
+type BlockValidationResult struct {
+	IsCorrect     bool   `json:"is_correct"`
+	Feedback      string `json:"feedback,omitempty"`
+	CorrectAnswer any    `json:"correct_answer,omitempty"`
+}
+
+type LessonAnswerSubmission struct {
+	BlockID string `json:"block_id"`
+	Answer  any    `json:"answer"`
+}
+

@@ -20,7 +20,9 @@ func (h *LessonHandler) GetLesson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lesson, err := h.lessonService.GetLesson(r.Context(), lessonID)
+	userID := h.authMiddleware.GetUserID(r.Context())
+
+	lesson, err := h.lessonService.GetLesson(r.Context(), userID, lessonID)
 	if err != nil {
 		response.HandleError(w, r, h.log, err, op)
 		return

@@ -19,6 +19,7 @@
 | **Интерактивный урок (Lessons)** | Полноэкранный плеер прохождения урока, регистрация начала сессии (`/start`), сбор ответов на квизы и отправка эссе на сервер (`/complete`). | [frontend/src/app/lessons/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/lessons/FUNCTIONAL_SPEC.md) |
 | **Кабинет преподавателя (Teacher)** | Мастер создания курса со слагом, конструктор учебного плана (секций и уроков) с реордерингом, визуальный конструктор Puck (Content-as-Data), аналитика и проверка ДЗ. | [frontend/src/app/teacher/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/teacher/FUNCTIONAL_SPEC.md) |
 | **Файловое хранилище (Uploads)** | Загрузка бинарных файлов (обложки, аватарки, домашние задания, архивы), проверка magic bytes, ограничение 25 МБ, раздача статики. | [internal/service/upload/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/upload/FUNCTIONAL_SPEC.md) |
+| **Тестирование и античит (Quiz)** | Конструирование тестов, защита попыток (Advisory Lock), античит-санитизация Puck JSON и серверный подсчет баллов. | [internal/service/quiz/FUNCTIONAL_SPEC.md](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/FUNCTIONAL_SPEC.md) |
 
 ---
 

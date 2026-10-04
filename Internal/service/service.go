@@ -44,7 +44,7 @@ type EnrolledServices interface {
 
 type LessonServices interface {
 	CreateLesson(ctx context.Context, userID int64, lesson *domain.Lesson) (int64, error)
-	GetLesson(ctx context.Context, lessonID int64) (*domain.Lesson, error)
+	GetLesson(ctx context.Context, userID int64, lessonID int64) (*domain.Lesson, error)
 	DeleteLesson(ctx context.Context, userID int64, lessonID int64) error
 	UpdateLesson(ctx context.Context, userID int64, lesson *domain.Lesson) error
 	UpdateLessonStatus(ctx context.Context, userID int64, lessonID int64, status string) error
@@ -83,7 +83,7 @@ type AccessService interface {
 type ProgressServices interface {
 	StartLesson(ctx context.Context, userID int64, lessonID int64) error
 	UpdateLessonProgress(ctx context.Context, userID int64, lessonID int64, input domain.UpdateProgressInput) error
-	CompleteLesson(ctx context.Context, userID int64, lessonID int64, score *int, essays []domain.EssaySubmission) error
+	CompleteLesson(ctx context.Context, userID int64, lessonID int64, score *int, answers []domain.LessonAnswerSubmission, essays []domain.EssaySubmission) (*domain.LessonCompletionResult, error)
 	GetLessonProgress(ctx context.Context, userID int64, lessonID int64) (*domain.LessonProgress, error)
 	GetCourseProgress(ctx context.Context, userID int64, courseID int64) (*domain.CourseProgress, error)
 	GetAllLessonProgress(ctx context.Context, userID int64, courseID int64) ([]domain.LessonProgress, error)

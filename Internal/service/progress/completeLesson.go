@@ -8,23 +8,33 @@ import (
 
 	"edtech/internal/domain"
 	"edtech/internal/infrastructure/db"
+	"edtech/internal/service/quiz"
 	errorsAPP "edtech/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *service) CompleteLesson(ctx context.Context, userID int64, lessonID int64, score *int, essays []domain.EssaySubmission) error {
+func (s *service) CompleteLesson(ctx context.Context, userID int64, lessonID int64, score *int, answers []domain.LessonAnswerSubmission, essays []domain.EssaySubmission) (*domain.LessonCompletionResult, error) {
 	const op = "service.progress.CompleteLesson"
 
 	lesson, err := s.lessonRepo.GetLessonByID(ctx, s.db, lessonID)
 	if err != nil {
-		return fmt.Errorf("%s: get lesson: %w", op, err)
+		return nil, fmt.Errorf("%s: get lesson: %w", op, err)
+	}
+
+	// Server-side validation of quizzes (anti-cheat verification)
+	validationResult, vErr := quiz.ValidateQuizSubmission(lesson.Content, answers)
+	if vErr != nil {
+		return nil, fmt.Errorf("%s: validate quiz answers: %w", op, vErr)
 	}
 
 	finalScore := 100
-	if score != nil {
+	if validationResult.TotalMaxPoints > 0 {
+		finalScore = validationResult.Score
+	} else if score != nil {
 		finalScore = *score
 	}
+	validationResult.Score = finalScore
 
 	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context, tx db.QueryExecutor) error {
 		// 1. Update or create lesson progress
@@ -102,8 +112,9 @@ func (s *service) CompleteLesson(ctx context.Context, userID int64, lessonID int
 	})
 
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
+	return validationResult, nil
 }
+

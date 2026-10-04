@@ -43,9 +43,34 @@ type UpdateLessonProgressRequest struct {
 }
 
 type CompleteLessonRequest struct {
-	Score     *int       `json:"score,omitempty"`
-	TimeSpent int        `json:"time_spent,omitempty"`
-	Essays    []EssayDTO `json:"essays,omitempty"`
+	Score     *int              `json:"score,omitempty"`
+	TimeSpent int               `json:"time_spent,omitempty"`
+	Answers   []LessonAnswerDTO `json:"answers,omitempty"`
+	Essays    []EssayDTO        `json:"essays,omitempty"`
+}
+
+type LessonAnswerDTO struct {
+	BlockID        string `json:"block_id"`
+	Answer         any    `json:"answer,omitempty"`
+	SelectedOption *int   `json:"selected_option,omitempty"`
+	SelectedOpts   []int  `json:"selected_options,omitempty"`
+	Pairs          any    `json:"pairs,omitempty"`
+	Blanks         any    `json:"blanks,omitempty"`
+	Order          any    `json:"order,omitempty"`
+}
+
+type CompleteLessonResponse struct {
+	Message        string                           `json:"message"`
+	Score          int                              `json:"score"`
+	EarnedPoints   int                              `json:"earned_points"`
+	TotalMaxPoints int                              `json:"total_max_points"`
+	Results        map[string]BlockValidationDTO    `json:"results,omitempty"`
+}
+
+type BlockValidationDTO struct {
+	IsCorrect     bool   `json:"is_correct"`
+	Feedback      string `json:"feedback,omitempty"`
+	CorrectAnswer any    `json:"correct_answer,omitempty"`
 }
 
 type EssayDTO struct {
@@ -53,3 +78,4 @@ type EssayDTO struct {
 	AnswerText   string `json:"answer_text"`
 	MaxPoints    int    `json:"max_points"`
 }
+
