@@ -195,10 +195,10 @@
      ├─ QuizMatch / Sequence            : Сопоставление пар и переупорядочивание
      ├─ QuizDropdown / InputBlank       : Парсер parseSmartDropdownTemplate и проверка пропусков
      └─ QuizEssay                       : Ввод развернутого текстового ответа (эссе)
-  ➔ Кнопка «Завершить урок»             : PuckLessonViewer рассчитывает earnedPoints / totalMaxPoints
-  ➔ [src/app/lessons/[id]/page.tsx]     : POST /lessons/{id}/complete { score: 92, essays: [...] }
-  ➔ [handlers/progress/completeLesson]  : Фиксирует completed в БД
-  ➔ [service/progress/completeLesson]   : Атомарно пересчитывает общий % курса и средний балл
+  ➔ Кнопка «Завершить урок»             : PuckLessonViewer или Stepper передает answers, essays, attempt_id, is_abandoned
+  ➔ [src/app/lessons/[id]/page.tsx]     : POST /lessons/{id}/complete
+  ➔ [handlers/progress/completeLesson]  : Валидирует параметры, передает CompleteLessonInput в сервис
+  ➔ [service/progress/completeLesson]   : Anti-Cheat Guard (клиентский балл для тестов игнорируется), серверный пересчет, Best Score Preservation и пересчет курса
   ➔ [Если есть эссе]                    : Сохраняет в quiz_answers (is_correct=NULL, NeedsGrading=true)
   ➔ Преподаватель (/teacher/grading)    : Видит работу в очереди, ставит балл через ModalGradeHW
 ```
