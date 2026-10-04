@@ -15,7 +15,8 @@ import {
   ChevronRight,
   CheckSquare,
   Compass,
-  ArrowLeft
+  ArrowLeft,
+  Shield
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -53,7 +54,17 @@ export default function Sidebar() {
     { label: 'Настройки', href: '/dashboard/settings?tab=preferences', icon: Settings },
   ];
 
-  const navItems = isTeacherView ? teacherNavItems : studentNavItems;
+  const baseNavItems = isTeacherView ? [...teacherNavItems] : [...studentNavItems];
+
+  if (user?.role === 'admin') {
+    baseNavItems.push({
+      label: 'Панель администратора',
+      href: '/admin/users',
+      icon: Shield,
+    });
+  }
+
+  const navItems = baseNavItems;
 
   return (
     <>
