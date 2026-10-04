@@ -2,12 +2,12 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm config set registry https://registry.npmmirror.com && npm install
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-RUN node ./node_modules/next/dist/bin/next build
+RUN npm run build
 
 # 3. Минимальный рантайм (non-root)
 FROM node:20-alpine AS runner
