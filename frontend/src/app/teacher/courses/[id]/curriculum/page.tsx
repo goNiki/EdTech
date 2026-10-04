@@ -503,6 +503,8 @@ export default function TeacherCourseManagementPage({ params }: { params: Promis
             {activeSubTab === 'list' ? (
               <StudentsTable
                 students={students}
+                courseId={id}
+                showToast={showToast}
                 onOpenDrilldown={(stId) => setDrilldownStudentId(stId)}
                 onAddStudent={() => setIsAddStudentOpen(true)}
                 onRemoveStudent={handleRemoveStudent}

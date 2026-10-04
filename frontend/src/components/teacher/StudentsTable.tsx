@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { UserCheck, FileText, Sparkles, UserX, AlertTriangle, Loader2 } from 'lucide-react';
+import { UserCheck, FileText, Sparkles, UserX, AlertTriangle, Loader2, Download, FileSpreadsheet } from 'lucide-react';
+import { api } from '@/lib/api';
 
 export interface StudentItem {
   id: number;
@@ -16,19 +17,67 @@ export interface StudentItem {
 
 interface StudentsTableProps {
   students: StudentItem[];
+  courseId?: string | number;
   onOpenDrilldown: (studentId: number) => void;
   onAddStudent: () => void;
   onRemoveStudent?: (student: StudentItem) => Promise<void> | void;
+  showToast?: (msg: string, type?: 'success' | 'error') => void;
 }
 
 export default function StudentsTable({
   students,
+  courseId,
   onOpenDrilldown,
   onAddStudent,
   onRemoveStudent,
+  showToast,
 }: StudentsTableProps) {
   const [studentToRemove, setStudentToRemove] = useState<StudentItem | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportGradebook = async () => {
+    if (!courseId) return;
+    setIsExporting(true);
+    try {
+      const res = await api.get(`/courses/${courseId}/analytics/export?format=csv`, {
+        responseType: 'blob',
+      });
+
+      let filename = `gradebook_course_${courseId}_${new Date().toISOString().split('T')[0]}.csv`;
+      const disposition = res.headers ? res.headers['content-disposition'] : null;
+      if (disposition && disposition.includes('filename=')) {
+        const match = disposition.match(/filename=["']?([^"';]+)["']?/);
+        if (match && match[1]) {
+          filename = match[1];
+        }
+      }
+
+      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      if (showToast) {
+        showToast('Ведомость курса успешно выгружена');
+      }
+    } catch (err: any) {
+      console.error('Failed to export gradebook', err);
+      if (showToast) {
+        showToast(
+          err.response?.data?.message || err.response?.data?.error || 'Ошибка при выгрузке ведомости курса',
+          'error'
+        );
+      }
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleConfirmRemove = async () => {
     if (!studentToRemove || !onRemoveStudent) return;
@@ -50,19 +99,42 @@ export default function StudentsTable({
         <p className="text-xs text-slate-500 max-w-sm mx-auto">
           Вы можете зачислить учеников вручную по Email или ID, либо опубликовать курс в открытом каталоге.
         </p>
-        <button
-          onClick={onAddStudent}
-          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all"
-        >
-          Зачислить студента
-        </button>
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          {courseId && (
+            <button
+              type="button"
+              disabled={isExporting}
+              onClick={handleExportGradebook}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+              title="Выгрузить ведомость успеваемости в формате CSV"
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 size={14} className="animate-spin text-indigo-600" />
+                  <span>Формирование отчета...</span>
+                </>
+              ) : (
+                <>
+                  <Download size={14} />
+                  <span>Выгрузить ведомость (CSV)</span>
+                </>
+              )}
+            </button>
+          )}
+          <button
+            onClick={onAddStudent}
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+          >
+            Зачислить студента
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xs">
-      <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+      <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
           <h4 className="text-sm font-bold text-slate-900 dark:text-white">
             Зачисленные студенты ({students.length})
@@ -71,12 +143,36 @@ export default function StudentsTable({
             Сводная таблица успеваемости и доступа к урокам
           </p>
         </div>
-        <button
-          onClick={onAddStudent}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
-        >
-          + Добавить студента
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {courseId && (
+            <button
+              type="button"
+              disabled={isExporting}
+              onClick={handleExportGradebook}
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+              title="Выгрузить ведомость успеваемости в формате CSV / Excel"
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 size={14} className="animate-spin text-indigo-600" />
+                  <span>Формирование отчета...</span>
+                </>
+              ) : (
+                <>
+                  <Download size={14} />
+                  <span>Выгрузить ведомость (CSV)</span>
+                </>
+              )}
+            </button>
+          )}
+
+          <button
+            onClick={onAddStudent}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>+ Добавить студента</span>
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
