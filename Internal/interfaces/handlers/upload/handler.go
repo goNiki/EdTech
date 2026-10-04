@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"mime/multipart"
 	"net/http"
+	"strings"
 
 	"edtech/internal/domain"
 	"edtech/internal/dto"
@@ -33,6 +34,20 @@ func NewUploadHandler(
 	}
 }
 
+// StaticFileServer returns an http.Handler that wraps http.FileServer to serve static files
+// with specialized headers for inline viewing and Range streaming (e.g. for PDF presentations).
+func StaticFileServer(root http.FileSystem) http.Handler {
+	fileServer := http.FileServer(root)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(strings.ToLower(r.URL.Path), ".pdf") {
+			w.Header().Set("Content-Type", "application/pdf")
+			w.Header().Set("Content-Disposition", `inline; filename="presentation.pdf"`)
+			w.Header().Set("Accept-Ranges", "bytes")
+		}
+		fileServer.ServeHTTP(w, r)
+	})
+}
+
 func (h *UploadHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	const op = "http.handlers.upload.UploadFile"
 
@@ -42,12 +57,12 @@ func (h *UploadHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 30 MB max upload request body size to protect against disk exhaustion DoS
-	const maxUploadBodySize = 30 * 1024 * 1024
+	// 55 MB max upload request body size to accommodate presentations up to 50 MB
+	const maxUploadBodySize = 55 * 1024 * 1024
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBodySize)
 
-	// 10 MB in-memory parsing buffer; excess is rejected by MaxBytesReader
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
+	// 16 MB in-memory parsing buffer; excess is stored in temp files or rejected by MaxBytesReader
+	if err := r.ParseMultipartForm(16 << 20); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
 			response.HandleError(w, r, h.log, errorsAPP.ErrFileTooLarge, op)

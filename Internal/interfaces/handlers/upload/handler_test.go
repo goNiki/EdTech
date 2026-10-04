@@ -10,6 +10,8 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"edtech/internal/domain"
@@ -82,13 +84,13 @@ func TestUploadFile_MaxBytesReader_Protection(t *testing.T) {
 
 	h := uploadHandler.NewUploadHandler(uploadSvc, authMw, logger)
 
-	t.Run("Oversized Upload Exceeding 30MB is Rejected", func(t *testing.T) {
+	t.Run("Oversized Upload Exceeding 55MB is Rejected", func(t *testing.T) {
 		boundary := "----CustomBoundary12345"
 		header := fmt.Sprintf("--%s\r\nContent-Disposition: form-data; name=\"file\"; filename=\"large.dat\"\r\nContent-Type: application/octet-stream\r\n\r\n", boundary)
 		footer := fmt.Sprintf("\r\n--%s--\r\n", boundary)
 
-		// 31 MB stream payload
-		oversizedPayload := &zeroReader{remaining: 31 * 1024 * 1024}
+		// 56 MB stream payload (exceeds 55 MB max body size)
+		oversizedPayload := &zeroReader{remaining: 56 * 1024 * 1024}
 		bodyReader := io.MultiReader(
 			bytes.NewReader([]byte(header)),
 			oversizedPayload,
@@ -244,3 +246,85 @@ func TestUploadFile_MaxBytesReader_Protection(t *testing.T) {
 		}
 	})
 }
+
+func TestStaticFileServer_PDFHeadersAndRangeRequests(t *testing.T) {
+	tempDir := t.TempDir()
+
+	pdfContent := []byte("%PDF-1.4 header bytes and body content for presentation testing")
+	pdfPath := filepath.Join(tempDir, "presentation.pdf")
+	if err := os.WriteFile(pdfPath, pdfContent, 0o600); err != nil {
+		t.Fatalf("failed to write test pdf: %v", err)
+	}
+
+	txtContent := []byte("plain text content")
+	txtPath := filepath.Join(tempDir, "sample.txt")
+	if err := os.WriteFile(txtPath, txtContent, 0o600); err != nil {
+		t.Fatalf("failed to write test txt: %v", err)
+	}
+
+	server := uploadHandler.StaticFileServer(http.Dir(tempDir))
+
+	t.Run("PDF File has correct Content-Type, Content-Disposition and Accept-Ranges", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/presentation.pdf", nil)
+		rec := httptest.NewRecorder()
+
+		server.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200 OK, got %d", rec.Code)
+		}
+
+		if got := rec.Header().Get("Content-Type"); got != "application/pdf" {
+			t.Errorf("expected Content-Type application/pdf, got %q", got)
+		}
+
+		if got := rec.Header().Get("Content-Disposition"); got != `inline; filename="presentation.pdf"` {
+			t.Errorf("expected Content-Disposition inline; filename=\"presentation.pdf\", got %q", got)
+		}
+
+		if got := rec.Header().Get("Accept-Ranges"); got != "bytes" {
+			t.Errorf("expected Accept-Ranges bytes, got %q", got)
+		}
+
+		if !bytes.Equal(rec.Body.Bytes(), pdfContent) {
+			t.Errorf("expected body to match pdfContent")
+		}
+	})
+
+	t.Run("PDF File supports Range requests with 206 Partial Content", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/presentation.pdf", nil)
+		req.Header.Set("Range", "bytes=0-7")
+		rec := httptest.NewRecorder()
+
+		server.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusPartialContent {
+			t.Fatalf("expected status 206 Partial Content, got %d", rec.Code)
+		}
+
+		if rec.Header().Get("Content-Range") == "" {
+			t.Errorf("expected Content-Range header present")
+		}
+
+		expectedPart := pdfContent[:8]
+		if !bytes.Equal(rec.Body.Bytes(), expectedPart) {
+			t.Errorf("expected body %q, got %q", string(expectedPart), rec.Body.String())
+		}
+	})
+
+	t.Run("Non-PDF File does not have presentation Content-Disposition", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/sample.txt", nil)
+		rec := httptest.NewRecorder()
+
+		server.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200 OK, got %d", rec.Code)
+		}
+
+		if got := rec.Header().Get("Content-Disposition"); got != "" {
+			t.Errorf("expected no Content-Disposition for txt file, got %q", got)
+		}
+	})
+}
+

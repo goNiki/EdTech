@@ -5,15 +5,15 @@
 ---
 
 ## 🎯 Назначение и ответственность
-Модуль отвечает за валидацию загружаемых файлов (размер до 25 МБ, MIME-типы, блокировка исполняемых файлов), генерацию уникальных безопасных имен (UUID v4) и сохранение в постоянное хранилище (локальный диск / S3) с возвратом публичного постоянного URL.
+Модуль отвечает за валидацию загружаемых файлов (размер до 25 МБ для общих файлов, до 50 МБ для категории `presentation`, MIME-типы, блокировка исполняемых файлов), генерацию уникальных безопасных имен (UUID v4) и сохранение в постоянное хранилище (локальный диск / S3) с возвратом публичного постоянного URL.
 
 ---
 
 ## 📁 Структура файлов модуля
 | Файл | Описание роли файла |
 |---|---|
-| [`service.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/upload/service.go) | Реализация `UploadServices`: проверка magic bytes, ограничений размера, расширений и сохранение |
-| [`upload_test.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/upload/upload_test.go) | Unit-тесты сервиса загрузки: успешная загрузка, блокировка .exe, проверка лимитов и пустых файлов |
+| [`service.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/upload/service.go) | Реализация `UploadServices`: проверка magic bytes, ограничений размера (до 25 МБ и до 50 МБ для презентаций), расширений и сохранение |
+| [`upload_test.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/upload/upload_test.go) | Unit-тесты сервиса загрузки: загрузка презентаций до 50 МБ, блокировка .exe, проверка лимитов и пустых файлов |
 | [`FUNCTIONAL_SPEC.md`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/upload/FUNCTIONAL_SPEC.md) | Функциональная спецификация и паспорта функций для бизнес-аналитиков |
 
 ---
@@ -21,7 +21,7 @@
 ## ⚙️ Функции, методы и API
 | Метод | Сигнатура | Описание |
 |---|---|---|
-| `UploadFile` | `(ctx context.Context, file io.Reader, filename string, size int64, category string) (*domain.FileUploadResult, error)` | Валидация файла, проверка magic bytes, сохранение и генерация URL |
+| `UploadFile` | `(ctx context.Context, file io.Reader, filename string, size int64, category string) (*domain.FileUploadResult, error)` | Валидация файла, проверка magic bytes, сохранение и генерация URL. Поддерживает категорию `presentation` до 50 МБ |
 | `UploadImagesBatch` | `(ctx context.Context, files []domain.BatchFileItem, category string) ([]domain.BatchUploadResultItem, error)` | Пакетная валидация картинок Word (до 50 шт, до 50 МБ) и параллельное сохранение через errgroup |
 
 ---

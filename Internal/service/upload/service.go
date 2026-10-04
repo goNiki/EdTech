@@ -21,9 +21,10 @@ import (
 )
 
 const (
-	MaxFileSize       int64 = 25 * 1024 * 1024 // 25 MB
-	MaxBatchFileCount int   = 50               // 50 files max per batch
-	MaxBatchTotalSize int64 = 50 * 1024 * 1024 // 50 MB max total size per batch
+	MaxFileSize             int64 = 25 * 1024 * 1024 // 25 MB
+	MaxPresentationFileSize int64 = 50 * 1024 * 1024 // 50 MB
+	MaxBatchFileCount       int   = 50               // 50 files max per batch
+	MaxBatchTotalSize       int64 = 50 * 1024 * 1024 // 50 MB max total size per batch
 )
 
 var _ services.UploadServices = (*uploadService)(nil)
@@ -78,6 +79,7 @@ var validCategories = map[string]bool{
 	"homework":     true,
 	"general":      true,
 	"lesson_media": true,
+	"presentation": true,
 }
 
 type uploadService struct {
@@ -97,13 +99,31 @@ func (s *uploadService) UploadFile(ctx context.Context, file io.Reader, filename
 		return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrEmptyFile)
 	}
 
-	if size > MaxFileSize {
+	category = strings.ToLower(strings.TrimSpace(category))
+	if !validCategories[category] {
+		category = "general"
+	}
+
+	maxAllowedSize := MaxFileSize
+	if category == "presentation" {
+		maxAllowedSize = MaxPresentationFileSize
+	}
+
+	if size > maxAllowedSize {
 		return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrFileTooLarge)
 	}
 
 	ext := strings.ToLower(filepath.Ext(filename))
 	if dangerousExtensions[ext] {
 		slog.Warn("attempt to upload dangerous file extension",
+			slog.String("filename", filename),
+			slog.String("extension", ext),
+		)
+		return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrInvalidFileType)
+	}
+
+	if category == "presentation" && ext != ".pdf" {
+		slog.Warn("attempt to upload non-pdf extension for presentation category",
 			slog.String("filename", filename),
 			slog.String("extension", ext),
 		)
@@ -137,9 +157,12 @@ func (s *uploadService) UploadFile(ctx context.Context, file io.Reader, filename
 		return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrInvalidFileType)
 	}
 
-	category = strings.ToLower(strings.TrimSpace(category))
-	if !validCategories[category] {
-		category = "general"
+	if category == "presentation" && mimeClean != "application/pdf" {
+		slog.Warn("attempt to upload non-pdf MIME type for presentation category",
+			slog.String("filename", filename),
+			slog.String("detected_mime", detectedMime),
+		)
+		return nil, fmt.Errorf("%s: %w", op, errorsAPP.ErrInvalidFileType)
 	}
 
 	uuidStr, err := utils.GenerateUUID()

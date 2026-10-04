@@ -286,3 +286,104 @@ func TestUploadImagesBatch_EmptyBatch(t *testing.T) {
 		t.Fatalf("expected ErrEmptyFile, got %v", err)
 	}
 }
+
+type repeatingReader struct {
+	remaining int64
+}
+
+func (r *repeatingReader) Read(p []byte) (int, error) {
+	if r.remaining <= 0 {
+		return 0, io.EOF
+	}
+	n := len(p)
+	if int64(n) > r.remaining {
+		n = int(r.remaining)
+	}
+	for i := 0; i < n; i++ {
+		p[i] = 'A'
+	}
+	r.remaining -= int64(n)
+	return n, nil
+}
+
+func TestUploadFile_Presentation_40MB_Success(t *testing.T) {
+	mockStore := newMockStorage()
+	svc := upload.NewUploadService(mockStore)
+
+	header := []byte("%PDF-1.4\n")
+	totalSize := int64(40 * 1024 * 1024) // 40 MB
+	reader := io.MultiReader(bytes.NewReader(header), &repeatingReader{remaining: totalSize - int64(len(header))})
+
+	res, err := svc.UploadFile(context.Background(), reader, "lecture_01_architecture.pdf", totalSize, "presentation")
+	if err != nil {
+		t.Fatalf("expected no error for 40MB presentation, got %v", err)
+	}
+
+	if res == nil {
+		t.Fatal("expected result, got nil")
+	}
+
+	if !strings.HasPrefix(res.FileURL, "/static/uploads/presentation/") {
+		t.Errorf("expected URL prefix /static/uploads/presentation/, got %s", res.FileURL)
+	}
+
+	if res.MimeType != "application/pdf" {
+		t.Errorf("expected mime application/pdf, got %s", res.MimeType)
+	}
+
+	if res.SizeBytes != totalSize {
+		t.Errorf("expected size %d, got %d", totalSize, res.SizeBytes)
+	}
+}
+
+func TestUploadFile_Presentation_Exceeds50MB(t *testing.T) {
+	mockStore := newMockStorage()
+	svc := upload.NewUploadService(mockStore)
+
+	header := []byte("%PDF-1.4\n")
+	oversized := upload.MaxPresentationFileSize + 1 // > 50 MB
+	reader := io.MultiReader(bytes.NewReader(header), &repeatingReader{remaining: oversized - int64(len(header))})
+
+	_, err := svc.UploadFile(context.Background(), reader, "heavy.pdf", oversized, "presentation")
+	if err == nil {
+		t.Fatal("expected error for presentation exceeding 50MB, got nil")
+	}
+	if !errors.Is(err, errorsAPP.ErrFileTooLarge) {
+		t.Fatalf("expected ErrFileTooLarge, got %v", err)
+	}
+}
+
+func TestUploadFile_Presentation_NonPDF_Rejected(t *testing.T) {
+	mockStore := newMockStorage()
+	svc := upload.NewUploadService(mockStore)
+
+	// Image disguised as presentation
+	pngHeader := []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4")
+	reader := bytes.NewReader(pngHeader)
+
+	_, err := svc.UploadFile(context.Background(), reader, "slide.png", int64(len(pngHeader)), "presentation")
+	if err == nil {
+		t.Fatal("expected error for PNG in presentation category, got nil")
+	}
+	if !errors.Is(err, errorsAPP.ErrInvalidFileType) {
+		t.Fatalf("expected ErrInvalidFileType, got %v", err)
+	}
+}
+
+func TestUploadFile_Presentation_NonPDF_Extension_Rejected(t *testing.T) {
+	mockStore := newMockStorage()
+	svc := upload.NewUploadService(mockStore)
+
+	// PDF mime but wrong extension
+	pdfContent := []byte("%PDF-1.4\n")
+	reader := bytes.NewReader(pdfContent)
+
+	_, err := svc.UploadFile(context.Background(), reader, "slides.txt", int64(len(pdfContent)), "presentation")
+	if err == nil {
+		t.Fatal("expected error for non-pdf extension in presentation category, got nil")
+	}
+	if !errors.Is(err, errorsAPP.ErrInvalidFileType) {
+		t.Fatalf("expected ErrInvalidFileType, got %v", err)
+	}
+}
+

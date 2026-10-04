@@ -109,6 +109,7 @@
 * [**`service/review`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/review/README.md) — Рейтинги 1–5 звезд, проверка прогресса >= 30%, транзакционный пересчет статистики.
 * [**`service/certificate`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/certificate/README.md) — Проверка 100% прогресса, генерация кода EDL-YYYY-XXXXXXXX, публичная верификация.
 * [**`service/notification`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/notification/README.md) — In-app уведомления, получение ленты, пометка прочитанными.
+* [**`service/upload`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/upload/README.md) — Прием и валидация файлов (до 25 МБ, презентации до 50 МБ), пакетная загрузка Word-изображений.
 
 ### Документация подпапок репозиториев (`internal/repository/*`):
 * [**`repository/auth`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/repository/auth/README.md) — SQL пользователей, перехват уникальности `23505`.
@@ -141,6 +142,7 @@
 * [**`handlers/review`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/review/README.md) — REST API отзывов курсов и оценок.
 * [**`handlers/certificate`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/certificate/README.md) — Получение сертификата студентом и публичная верификация.
 * [**`handlers/notification`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/notification/README.md) — REST API ленты уведомлений и отметок о прочтении.
+* [**`handlers/upload`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/upload/README.md) — Multipart-загрузка файлов и StaticFileServer с поддержкой Range-запросов и inline PDF.
 * [**`handlers/converter`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/interfaces/handlers/converter/README.md) — Мапперы Domain <-> HTTP DTO.
 
 ---

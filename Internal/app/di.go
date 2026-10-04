@@ -676,8 +676,8 @@ func (d *diContainer) Router() http.Handler {
 
 		// Static Files (Uploads)
 		filesDir := http.Dir("./uploads")
-		r.Handle("/static/uploads/*", http.StripPrefix("/static/uploads", http.FileServer(filesDir)))
-		r.Handle("/static/*", http.StripPrefix("/static", http.FileServer(filesDir)))
+		r.Handle("/static/uploads/*", http.StripPrefix("/static/uploads", uploadHandler.StaticFileServer(filesDir)))
+		r.Handle("/static/*", http.StripPrefix("/static", uploadHandler.StaticFileServer(filesDir)))
 
 		// Upload
 		r.Route("/api/v1/upload", func(r chi.Router) {
