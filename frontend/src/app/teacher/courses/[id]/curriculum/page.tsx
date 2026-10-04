@@ -14,6 +14,7 @@ import ModalEditModule from '@/components/teacher/ModalEditModule';
 import ModalEditLesson from '@/components/teacher/ModalEditLesson';
 import ModalCreateModule from '@/components/teacher/ModalCreateModule';
 import ModalCreateLesson from '@/components/teacher/ModalCreateLesson';
+import CurriculumDndTree from '@/components/teacher/CurriculumDndTree';
 import { useAuth } from '@/store/useAuth';
 import {
   Layers,
@@ -443,174 +444,17 @@ export default function TeacherCourseManagementPage({ params }: { params: Promis
                 )}
               </div>
             ) : (
-              <div className="space-y-6">
-                {sections.map((secWrap: any, sIdx: number) => {
-                  const sec = secWrap.Section || secWrap.section;
-                  const lessons = secWrap.Lessons || secWrap.lessons || [];
-                  const secId = sec?.ID || sec?.id;
-                  const isModPub = (sec?.Status || sec?.status) === 'published';
-
-                  return (
-                    <div
-                      key={secId || sIdx}
-                      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-5"
-                    >
-                      {/* Module Header */}
-                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-                        <div className="flex items-center gap-3">
-                          {/* Module Reorder buttons */}
-                          <div className="flex flex-col gap-0.5 text-slate-400 bg-slate-50 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                            <button
-                              disabled={sIdx === 0 || !canEdit}
-                              onClick={() => handleMoveSection(sIdx, sIdx - 1)}
-                              className="hover:text-indigo-600 disabled:opacity-20 text-[10px]"
-                              title="Переместить модуль выше"
-                            >
-                              ▲
-                            </button>
-                            <button
-                              disabled={sIdx === sections.length - 1 || !canEdit}
-                              onClick={() => handleMoveSection(sIdx, sIdx + 1)}
-                              className="hover:text-indigo-600 disabled:opacity-20 text-[10px]"
-                              title="Переместить модуль ниже"
-                            >
-                              ▼
-                            </button>
-                          </div>
-
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="bg-indigo-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow-2xs">
-                                Модуль {sIdx + 1}
-                              </span>
-                              <h4 className="text-base font-extrabold text-slate-900 dark:text-white">
-                                {sec?.Title || sec?.title}
-                              </h4>
-                              <span
-                                className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                                  isModPub
-                                    ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
-                                    : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
-                                }`}
-                              >
-                                {isModPub ? 'Опубликован' : 'Черновик'}
-                              </span>
-                            </div>
-                            <p className="text-xs text-slate-500 mt-1">
-                              {sec?.Description || sec?.description || 'Нет описания модуля'}
-                            </p>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => setSelectedModule(secWrap)}
-                          className="px-3.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 w-fit"
-                        >
-                          <Edit3 size={14} />
-                          <span>Настройки модуля</span>
-                        </button>
-                      </div>
-
-                      {/* Lessons List in Module */}
-                      <div className="space-y-2.5 pl-2">
-                        {lessons.map((l: any, lesIdx: number) => {
-                          const lId = l.ID || l.id;
-                          const isLesPub = (l.Status || l.status) === 'published';
-
-                          return (
-                            <div
-                              key={lId || lesIdx}
-                              className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl hover:border-indigo-300 dark:hover:border-indigo-600 transition-all gap-3 shadow-xs"
-                            >
-                              <div className="flex items-center gap-3 flex-1 min-w-0">
-                                {/* Lesson Reorder buttons */}
-                                <div className="flex flex-col gap-0.5 text-slate-400 bg-white dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-700 flex-shrink-0">
-                                  <button
-                                    disabled={lesIdx === 0 || !canEdit}
-                                    onClick={() => handleMoveLessonInList(secId, lesIdx, lesIdx - 1, lessons)}
-                                    className="hover:text-indigo-600 disabled:opacity-20 text-[10px]"
-                                    title="Переместить урок выше"
-                                  >
-                                    ▲
-                                  </button>
-                                  <button
-                                    disabled={lesIdx === lessons.length - 1 || !canEdit}
-                                    onClick={() => handleMoveLessonInList(secId, lesIdx, lesIdx + 1, lessons)}
-                                    className="hover:text-indigo-600 disabled:opacity-20 text-[10px]"
-                                    title="Переместить урок ниже"
-                                  >
-                                    ▼
-                                  </button>
-                                </div>
-
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <h5 className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                                      {lesIdx + 1}. {l.Title || l.title}
-                                    </h5>
-                                    <span
-                                      className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                                        isLesPub
-                                          ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
-                                          : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
-                                      }`}
-                                    >
-                                      {isLesPub ? 'Опубликован' : 'Черновик'}
-                                    </span>
-                                    <span className="text-[9px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-bold uppercase">
-                                      {l.Type || l.type || 'lecture'}
-                                    </span>
-                                    {(l.IsFree || l.is_free) && (
-                                      <span className="text-[9px] bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded font-bold">
-                                        Demo
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
-                                    {l.Description || l.description || 'Нет описания'}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                <button
-                                  onClick={() => setSelectedLesson(l)}
-                                  className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold rounded-xl hover:bg-slate-100 transition-colors shadow-2xs flex items-center gap-1"
-                                >
-                                  <Edit3 size={13} />
-                                  <span>Изменить урок</span>
-                                </button>
-
-                                <button
-                                  onClick={() => router.push(`/teacher/lessons/${lId}/edit`)}
-                                  className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[11px] font-bold rounded-xl hover:bg-indigo-100 transition-colors shadow-2xs ring-1 ring-indigo-200 dark:ring-indigo-800 flex items-center gap-1"
-                                >
-                                  <Sparkles size={13} />
-                                  <span>Редактор PUCK</span>
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                        {canEdit && (
-                          <button
-                            onClick={() => setCreateLessonTarget({
-                              sectionId: secId,
-                              sectionTitle: sec?.Title || sec?.title,
-                              nextIndex: lessons.length + 1,
-                            })}
-                            className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-500 hover:text-indigo-600 hover:border-indigo-400 rounded-2xl text-xs font-bold transition-all bg-white/40 dark:bg-slate-900/40 flex items-center justify-center gap-1.5 mt-2"
-                          >
-                            <PlusCircle size={14} />
-                            <span>+ Добавить урок в модуль</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <CurriculumDndTree
+                courseId={id}
+                sections={sections}
+                canEdit={canEdit}
+                onSectionsChange={setSections}
+                onEditModule={setSelectedModule}
+                onEditLesson={setSelectedLesson}
+                onCreateLesson={setCreateLessonTarget}
+                showToast={showToast}
+                fetchCourseData={fetchCourseData}
+              />
             )}
           </div>
         )}
