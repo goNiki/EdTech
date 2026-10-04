@@ -7,7 +7,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-RUN npx next build
+RUN node ./node_modules/next/dist/bin/next build
 
 # 3. Минимальный рантайм (non-root)
 FROM node:20-alpine AS runner
