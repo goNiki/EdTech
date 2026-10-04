@@ -8,8 +8,9 @@ import QuizStepperPlayer from '@/components/player/QuizStepperPlayer';
 import QuizPreflightScreen from '@/components/player/QuizPreflightScreen';
 import QuizResultScreen from '@/components/player/QuizResultScreen';
 import LessonHeaderNav, { LessonNavContext } from '@/components/player/LessonHeaderNav';
+import HomeworkFeedbackCard, { HomeworkFeedbackData } from '@/components/player/HomeworkFeedbackCard';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, CheckCircle, Sparkles, ArrowRight, RotateCcw, Loader2, AlertTriangle, Zap, LayoutList, Layers } from 'lucide-react';
+import { ChevronLeft, CheckCircle, CheckCircle2, Clock, Sparkles, ArrowRight, RotateCcw, Loader2, AlertTriangle, Zap, LayoutList, Layers } from 'lucide-react';
 
 export default function LessonPlayer({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -17,6 +18,7 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   const [lessonData, setLessonData] = useState<any>(null);
   const [progressData, setProgressData] = useState<any>(null);
   const [navData, setNavData] = useState<LessonNavContext | null>(null);
+  const [homeworkFeedback, setHomeworkFeedback] = useState<HomeworkFeedbackData | null>(null);
   const [pendingLessonId, setPendingLessonId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -42,13 +44,14 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   useEffect(() => {
     const fetchLessonAndProgress = async () => {
       try {
-        // Fetch lesson content, progress, attempts summary, active attempt, and navigation in parallel
-        const [lessonRes, progressRes, attemptsRes, activeAttRes, navRes] = await Promise.all([
+        // Fetch lesson content, progress, attempts summary, active attempt, navigation, and homework feedback in parallel
+        const [lessonRes, progressRes, attemptsRes, activeAttRes, navRes, hwRes] = await Promise.all([
           api.get(`/lessons/${id}`),
           api.get(`/lessons/${id}/progress`).catch(() => null),
           api.get(`/lessons/${id}/attempts/summary`).catch(() => null),
           api.get(`/lessons/${id}/attempts/active`).catch(() => null),
           api.get(`/lessons/${id}/navigation`).catch(() => null),
+          api.get(`/lessons/${id}/homework-feedback`).catch(() => null),
         ]);
 
         const lData = lessonRes.data?.data?.lesson || lessonRes.data?.lesson || lessonRes.data || {};
@@ -58,6 +61,11 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
         const attData = attemptsRes?.data?.data || attemptsRes?.data;
         const actData = activeAttRes?.data?.data || activeAttRes?.data;
         const nData = navRes?.data?.data || navRes?.data;
+        const hwData = hwRes?.data?.data || hwRes?.data;
+
+        if (hwData?.has_submission) {
+          setHomeworkFeedback(hwData);
+        }
 
         if (nData) {
           setNavData(nData);
@@ -303,6 +311,34 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            {/* Homework submission status badge */}
+            {homeworkFeedback?.has_submission && (
+              <span
+                className={`hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-2xs ${
+                  homeworkFeedback.status === 'pending'
+                    ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60'
+                    : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/60'
+                }`}
+                title={
+                  homeworkFeedback.status === 'pending'
+                    ? 'Письменная работа находится на проверке у преподавателя'
+                    : 'Преподаватель проверил вашу работу'
+                }
+              >
+                {homeworkFeedback.status === 'pending' ? (
+                  <>
+                    <Clock size={13} className="text-indigo-600 dark:text-indigo-400" />
+                    <span>ДЗ на проверке</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
+                    <span>ДЗ проверено</span>
+                  </>
+                )}
+              </span>
+            )}
+
             {/* In-Player Navigation and Course Syllabus */}
             <LessonHeaderNav
               navData={navData}
@@ -382,6 +418,11 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
 
         {/* Lesson Body */}
         <main className="flex-1 max-w-4xl w-full mx-auto py-6 sm:py-8 px-4 sm:px-6 space-y-6">
+          {/* Homework Teacher Review & Feedback Card */}
+          {homeworkFeedback?.has_submission && (!isAttemptStarted || isCompleted) && (
+            <HomeworkFeedbackCard data={homeworkFeedback} />
+          )}
+
           {hasQuizzes && showResultScreen && lastResult ? (
             <QuizResultScreen
               score={lastResult.score}
