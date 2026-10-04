@@ -21,6 +21,7 @@
 8. **Серверная валидация времени и Grace Period:** Если у урока включен таймер `time_limit_minutes > 0`, сервер рассчитывает прошедшее время от `attempt.StartedAt` с допустимым сетевым Grace Period 15 секунд. Если лимит превышен, попытка завершается со статусом `timed_out`, `is_passed = false` и нулевым баллом.
 9. **Режим обратной связи `exam_blind`:** Если `feedback_mode == "exam_blind"`, сервер исключает правильные ответы (`correct_answer`), флаги верности и пояснения (`explain`) из тела ответа `CompleteLesson`, возвращая только суммарный балл (`score`, `total_points`, `is_passed`).
 10. **Кастомный проходной порог (`passing_score_percent`):** Урок помечается как `completed` только при преодолении установленного на уровне урока процента `passing_score_percent` (по умолчанию 70%).
+11. **Quiz Draft Autosave & Session Recovery:** Фоновое автосохранение черновика ответов и текущего шага в `quiz_attempts.draft_answers` и `current_step`. При восстановлении сессии возвращается `remaining_seconds` от `NOW() - started_at`. Истекшая попытка автоматически закрывается (`timed_out`) и не возвращается как активная.
 
 ---
 
@@ -31,8 +32,8 @@
 | [`startLesson.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/startLesson.go) | Инициализация прогресса курса и фиксация статуса `in_progress` для урока |
 | [`updateLessonProgress.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/updateLessonProgress.go) | Накопление времени просмотра (`additionalTime`) и сохранение последней позиции |
 | [`completeLesson.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/completeLesson.go) | Серверный пересчет баллов, защита от читерства, Best Score Preservation и пересчет курса |
-| [`attempts.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/attempts.go) | Управление попытками тестирования: старт попытки с проверкой лимита и Pre-flight сводка |
-| [`attempts_test.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/attempts_test.go) | Unit-тесты Pre-flight сводки, проверки лимита попыток и сохранения Best Score |
+| [`attempts.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/attempts.go) | Управление попытками тестирования: старт, Pre-flight сводка, автосохранение черновика и восстановление активной сессии |
+| [`attempts_test.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/attempts_test.go) | Unit-тесты Pre-flight сводки, проверки лимита попыток, автосохранения драфта и активной сессии |
 | [`complete_lesson_test.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/complete_lesson_test.go) | Unit-тесты anti-cheat guard, лекций, заброшенных тестов и Best Score Preservation |
 | [`getProgress.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/getProgress.go) | Чтение сводного прогресса курса или конкретного урока |
 | [`get_progress_test.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/get_progress_test.go) | Unit-тесты чтения прогресса и гидратации сданных заданий |
@@ -47,6 +48,8 @@
 | `CompleteLesson` | [`completeLesson.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/completeLesson.go) | Серверный расчет оценки, завершение урока, Best Score Preservation и пересчет % курса | `CompleteLesson(ctx context.Context, userID, lessonID int64, input domain.CompleteLessonInput) (*domain.LessonCompletionResult, error)` |
 | `StartLessonAttempt` | [`attempts.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/attempts.go) | Старт новой попытки тестирования с валидацией лимита | `StartLessonAttempt(ctx context.Context, userID, lessonID int64) (*domain.StartAttemptResult, error)` |
 | `GetLessonAttemptsSummary` | [`attempts.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/attempts.go) | Pre-flight сводка: количество попыток, лимит, лучший балл и история | `GetLessonAttemptsSummary(ctx context.Context, userID, lessonID int64) (*domain.LessonAttemptsSummary, error)` |
+| `SaveAttemptDraft` | [`attempts.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/attempts.go) | Фоновое сохранение черновика ответов и текущего шага попытки | `SaveAttemptDraft(ctx context.Context, userID, lessonID, attemptID int64, currentStep int, answers map[string]any) (time.Time, error)` |
+| `GetActiveLessonAttempt` | [`attempts.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/attempts.go) | Проверка активной попытки с расчетом остатка времени и драфтом | `GetActiveLessonAttempt(ctx context.Context, userID, lessonID int64) (*domain.ActiveAttemptResult, error)` |
 | `GetCourseProgress` | [`getProgress.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/getProgress.go) | Получение процента и времени по курсу | `GetCourseProgress(ctx context.Context, userID, courseID int64) (*domain.CourseProgress, error)` |
 
 ---

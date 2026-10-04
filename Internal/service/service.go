@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"io"
+	"time"
 
 	"edtech/internal/domain"
 )
@@ -92,6 +93,7 @@ type ProgressTrackingOperations interface {
 	UpdateLessonProgress(ctx context.Context, userID int64, lessonID int64, input domain.UpdateProgressInput) error
 	CompleteLesson(ctx context.Context, userID int64, lessonID int64, input domain.CompleteLessonInput) (*domain.LessonCompletionResult, error)
 	StartLessonAttempt(ctx context.Context, userID int64, lessonID int64) (*domain.StartAttemptResult, error)
+	SaveAttemptDraft(ctx context.Context, userID, lessonID, attemptID int64, currentStep int, answers map[string]any) (time.Time, error)
 }
 
 // ProgressReaderOperations handles querying lesson and course progress statistics
@@ -100,6 +102,7 @@ type ProgressReaderOperations interface {
 	GetCourseProgress(ctx context.Context, userID int64, courseID int64) (*domain.CourseProgress, error)
 	GetAllLessonProgress(ctx context.Context, userID int64, courseID int64) ([]domain.LessonProgress, error)
 	GetLessonAttemptsSummary(ctx context.Context, userID int64, lessonID int64) (*domain.LessonAttemptsSummary, error)
+	GetActiveLessonAttempt(ctx context.Context, userID, lessonID int64) (*domain.ActiveAttemptResult, error)
 }
 
 // ProgressServices aggregates all progress tracking operations

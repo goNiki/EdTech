@@ -39,6 +39,8 @@ type QuizAttempt struct {
 	Score        int
 	Passed       bool
 	NeedsGrading bool
+	DraftAnswers []byte
+	CurrentStep  int
 	StartedAt    time.Time
 	CompletedAt  *time.Time
 }

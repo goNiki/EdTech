@@ -109,4 +109,27 @@ type StartAttemptResponse struct {
 	StartedAt time.Time `json:"started_at"`
 }
 
+type SaveAttemptDraftRequest struct {
+	CurrentStep int            `json:"current_step"`
+	Answers     map[string]any `json:"answers"`
+}
+
+type SaveAttemptDraftResponse struct {
+	SavedAt time.Time `json:"saved_at"`
+}
+
+type ActiveAttemptResponse struct {
+	HasActiveAttempt bool              `json:"has_active_attempt"`
+	Attempt          *ActiveAttemptDTO `json:"attempt,omitempty"`
+}
+
+type ActiveAttemptDTO struct {
+	ID               int64          `json:"id"`
+	StartedAt        time.Time      `json:"started_at"`
+	TimeLimitMinutes int            `json:"time_limit_minutes"`
+	RemainingSeconds int            `json:"remaining_seconds"`
+	CurrentStep      int            `json:"current_step"`
+	DraftAnswers     map[string]any `json:"draft_answers"`
+}
+
 

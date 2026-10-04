@@ -1,6 +1,8 @@
 package converter
 
 import (
+	"encoding/json"
+
 	"edtech/internal/domain"
 	"edtech/internal/repository/models"
 )
@@ -107,6 +109,17 @@ func QuizAttemptToDomain(m *models.QuizAttempt) *domain.QuizAttempt {
 	if m == nil {
 		return nil
 	}
+	var draft map[string]any
+	if len(m.DraftAnswers) > 0 {
+		_ = json.Unmarshal(m.DraftAnswers, &draft)
+	}
+	if draft == nil {
+		draft = make(map[string]any)
+	}
+	step := m.CurrentStep
+	if step <= 0 {
+		step = 1
+	}
 	return &domain.QuizAttempt{
 		ID:           m.ID,
 		QuizID:       m.QuizID,
@@ -114,6 +127,8 @@ func QuizAttemptToDomain(m *models.QuizAttempt) *domain.QuizAttempt {
 		Score:        m.Score,
 		Passed:       m.Passed,
 		NeedsGrading: m.NeedsGrading,
+		DraftAnswers: draft,
+		CurrentStep:  step,
 		StartedAt:    m.StartedAt,
 		CompletedAt:  m.CompletedAt,
 	}
@@ -123,6 +138,10 @@ func QuizAttemptToEntity(d *domain.QuizAttempt) *models.QuizAttempt {
 	if d == nil {
 		return nil
 	}
+	var draftBytes []byte
+	if d.DraftAnswers != nil {
+		draftBytes, _ = json.Marshal(d.DraftAnswers)
+	}
 	return &models.QuizAttempt{
 		ID:           d.ID,
 		QuizID:       d.QuizID,
@@ -130,6 +149,8 @@ func QuizAttemptToEntity(d *domain.QuizAttempt) *models.QuizAttempt {
 		Score:        d.Score,
 		Passed:       d.Passed,
 		NeedsGrading: d.NeedsGrading,
+		DraftAnswers: draftBytes,
+		CurrentStep:  d.CurrentStep,
 		StartedAt:    d.StartedAt,
 		CompletedAt:  d.CompletedAt,
 	}

@@ -2,6 +2,7 @@ package progress_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -153,6 +154,24 @@ func (m *fullMockQuizRepo) CreateAttempt(_ context.Context, att *domain.QuizAtte
 	att.ID = 1001
 	m.attempt = att
 	return att, nil
+}
+
+func (m *fullMockQuizRepo) SaveAttemptDraft(_ context.Context, attemptID, _ int64, currentStep int, draftAnswers []byte) error {
+	if m.attempt != nil && m.attempt.ID == attemptID {
+		m.attempt.CurrentStep = currentStep
+		var d map[string]any
+		_ = json.Unmarshal(draftAnswers, &d)
+		m.attempt.DraftAnswers = d
+		return nil
+	}
+	return nil
+}
+
+func (m *fullMockQuizRepo) GetActiveAttempt(_ context.Context, _, _ int64) (*domain.QuizAttempt, error) {
+	if m.attempt != nil && m.attempt.CompletedAt == nil {
+		return m.attempt, nil
+	}
+	return nil, nil
 }
 
 // Test 1: Обычная лекция без тестов завершается со 100% прогрессом

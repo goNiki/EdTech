@@ -77,6 +77,8 @@ func (r *repositoryImpl) GetAttemptByID(ctx context.Context, id int64) (*domain.
 			user_id, 
 			score, 
 			passed, 
+			COALESCE(draft_answers, '{}'::jsonb), 
+			COALESCE(current_step, 1), 
 			started_at, 
 			completed_at 
 		FROM quiz_attempts 
@@ -89,6 +91,8 @@ func (r *repositoryImpl) GetAttemptByID(ctx context.Context, id int64) (*domain.
 		&attempt.UserID,
 		&attempt.Score,
 		&attempt.Passed,
+		&attempt.DraftAnswers,
+		&attempt.CurrentStep,
 		&attempt.StartedAt,
 		&attempt.CompletedAt,
 	)
@@ -333,4 +337,74 @@ func (r *repositoryImpl) GetBestScoreByLessonID(ctx context.Context, userID, les
 		return 0, fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
 	}
 	return bestScore, nil
+}
+
+
+func (r *repositoryImpl) SaveAttemptDraft(ctx context.Context, attemptID, userID int64, currentStep int, draftAnswers []byte) error {
+	const op = "repository.quiz.SaveAttemptDraft"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
+
+	if currentStep <= 0 {
+		currentStep = 1
+	}
+	if len(draftAnswers) == 0 {
+		draftAnswers = []byte("{}")
+	}
+
+	query := `
+		UPDATE quiz_attempts 
+		SET current_step = $3, draft_answers = $4 
+		WHERE id = $1 AND user_id = $2 AND completed_at IS NULL`
+
+	tag, err := q.Exec(ctx, query, attemptID, userID, currentStep, draftAnswers)
+	if err != nil {
+		return fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("%s: %w", op, errorsAPP.ErrAttemptNotFound)
+	}
+	return nil
+}
+
+func (r *repositoryImpl) GetActiveAttempt(ctx context.Context, userID, lessonID int64) (*domain.QuizAttempt, error) {
+	const op = "repository.quiz.GetActiveAttempt"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
+
+	query := `
+		SELECT 
+			qa.id, 
+			qa.quiz_id, 
+			qa.user_id, 
+			qa.score, 
+			qa.passed, 
+			COALESCE(qa.draft_answers, '{}'::jsonb), 
+			COALESCE(qa.current_step, 1), 
+			qa.started_at, 
+			qa.completed_at 
+		FROM quiz_attempts qa
+		JOIN quizzes q ON q.id = qa.quiz_id
+		WHERE qa.user_id = $1 AND q.lesson_id = $2 AND q.deleted_at IS NULL AND qa.completed_at IS NULL
+		ORDER BY qa.started_at DESC
+		LIMIT 1`
+
+	var attempt repomodels.QuizAttempt
+	err := q.QueryRow(ctx, query, userID, lessonID).Scan(
+		&attempt.ID,
+		&attempt.QuizID,
+		&attempt.UserID,
+		&attempt.Score,
+		&attempt.Passed,
+		&attempt.DraftAnswers,
+		&attempt.CurrentStep,
+		&attempt.StartedAt,
+		&attempt.CompletedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
+	}
+
+	return repoconverter.QuizAttemptToDomain(&attempt), nil
 }

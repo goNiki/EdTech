@@ -69,8 +69,24 @@ type QuizAttempt struct {
 	Score        int
 	Passed       bool
 	NeedsGrading bool
+	DraftAnswers map[string]any
+	CurrentStep  int
 	StartedAt    time.Time
 	CompletedAt  *time.Time
+}
+
+type ActiveAttemptInfo struct {
+	ID               int64          `json:"id"`
+	StartedAt        time.Time      `json:"started_at"`
+	TimeLimitMinutes int            `json:"time_limit_minutes"`
+	RemainingSeconds int            `json:"remaining_seconds"`
+	CurrentStep      int            `json:"current_step"`
+	DraftAnswers     map[string]any `json:"draft_answers"`
+}
+
+type ActiveAttemptResult struct {
+	HasActiveAttempt bool               `json:"has_active_attempt"`
+	Attempt          *ActiveAttemptInfo `json:"attempt,omitempty"`
 }
 
 func (a *QuizAttempt) CalculateScore(correctPoints, totalQuestions, passingScore int) {

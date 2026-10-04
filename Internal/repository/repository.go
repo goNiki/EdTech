@@ -142,6 +142,8 @@ type QuizRepository interface {
 	GetLessonSubmissions(ctx context.Context, userID, lessonID int64) ([]domain.LessonSubmissionDetail, error)
 	ListUserAttemptsByLessonID(ctx context.Context, userID, lessonID int64) ([]domain.QuizAttempt, error)
 	GetBestScoreByLessonID(ctx context.Context, userID, lessonID int64) (int, error)
+	SaveAttemptDraft(ctx context.Context, attemptID, userID int64, currentStep int, draftAnswers []byte) error
+	GetActiveAttempt(ctx context.Context, userID, lessonID int64) (*domain.QuizAttempt, error)
 }
 
 type ReviewRepository interface {

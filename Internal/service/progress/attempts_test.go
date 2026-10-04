@@ -439,3 +439,213 @@ func TestGetLessonAttemptsSummary_RulesFromQuizSettings(t *testing.T) {
 		t.Errorf("expected canStartNewAttempt true")
 	}
 }
+
+// 9. Автосохранение драфта ответов и текущего шага
+func TestSaveAttemptDraft_Success(t *testing.T) {
+	ctx := context.Background()
+	lRepo := &fullMockLessonRepo{
+		lesson: &domain.Lesson{
+			ID: 40,
+			QuizSettings: &domain.QuizSettings{
+				TimeLimitMinutes: 20,
+			},
+		},
+	}
+	qRepo := &attemptsMockQuizRepo{
+		fullMockQuizRepo: fullMockQuizRepo{
+			attempt: &domain.QuizAttempt{
+				ID:        100,
+				UserID:    42,
+				StartedAt: time.Now(),
+			},
+		},
+	}
+	pRepo := &fullMockProgressRepo{}
+
+	svc := progressService.NewProgressService(pRepo, lRepo, qRepo, &mockTxManager{})
+
+	answers := map[string]any{
+		"QuizSingleBlock-1": float64(2),
+		"QuizMultiBlock-2":  []any{float64(0), float64(3)},
+	}
+
+	savedAt, err := svc.SaveAttemptDraft(ctx, 42, 40, 100, 3, answers)
+	if err != nil {
+		t.Fatalf("unexpected error saving draft: %v", err)
+	}
+	if savedAt.IsZero() {
+		t.Errorf("expected non-zero savedAt timestamp")
+	}
+	if qRepo.attempt.CurrentStep != 3 {
+		t.Errorf("expected current step 3, got %d", qRepo.attempt.CurrentStep)
+	}
+	if len(qRepo.attempt.DraftAnswers) != 2 {
+		t.Errorf("expected 2 answers in draft, got %d", len(qRepo.attempt.DraftAnswers))
+	}
+}
+
+// 10. Отклонение сохранения драфта для чужого пользователя или завершенной попытки
+func TestSaveAttemptDraft_SecurityGuards(t *testing.T) {
+	ctx := context.Background()
+	completedTime := time.Now()
+	lRepo := &fullMockLessonRepo{
+		lesson: &domain.Lesson{ID: 40},
+	}
+	qRepo := &attemptsMockQuizRepo{
+		fullMockQuizRepo: fullMockQuizRepo{
+			attempt: &domain.QuizAttempt{
+				ID:        100,
+				UserID:    42,
+				StartedAt: time.Now(),
+			},
+		},
+	}
+	pRepo := &fullMockProgressRepo{}
+
+	svc := progressService.NewProgressService(pRepo, lRepo, qRepo, &mockTxManager{})
+
+	// 1. Чужой пользователь
+	_, err := svc.SaveAttemptDraft(ctx, 999, 40, 100, 2, map[string]any{"q1": 1})
+	if err == nil {
+		t.Fatalf("expected ErrForbidden for foreign user, got nil")
+	}
+
+	// 2. Уже завершенная попытка
+	qRepo.attempt.CompletedAt = &completedTime
+	_, err = svc.SaveAttemptDraft(ctx, 42, 40, 100, 2, map[string]any{"q1": 1})
+	if err == nil {
+		t.Fatalf("expected ErrForbidden for completed attempt, got nil")
+	}
+}
+
+// 11. Отклонение сохранения драфта при истечении времени теста
+func TestSaveAttemptDraft_ExpiredTimeout(t *testing.T) {
+	ctx := context.Background()
+	startedAt := time.Now().Add(-25 * time.Minute) // Лимит 20 минут, прошло 25
+
+	lRepo := &fullMockLessonRepo{
+		lesson: &domain.Lesson{
+			ID: 40,
+			QuizSettings: &domain.QuizSettings{
+				TimeLimitMinutes: 20,
+			},
+		},
+	}
+	qRepo := &attemptsMockQuizRepo{
+		fullMockQuizRepo: fullMockQuizRepo{
+			attempt: &domain.QuizAttempt{
+				ID:        100,
+				UserID:    42,
+				StartedAt: startedAt,
+			},
+		},
+	}
+	pRepo := &fullMockProgressRepo{}
+
+	svc := progressService.NewProgressService(pRepo, lRepo, qRepo, &mockTxManager{})
+
+	_, err := svc.SaveAttemptDraft(ctx, 42, 40, 100, 2, map[string]any{"q1": 1})
+	if err == nil {
+		t.Fatalf("expected error for expired attempt, got nil")
+	}
+	if qRepo.attempt.CompletedAt == nil {
+		t.Errorf("expected attempt to be closed with completed_at")
+	}
+	if qRepo.attempt.Passed {
+		t.Errorf("expected passed = false for timed out attempt")
+	}
+}
+
+// 12. Проверка активной попытки и расчет remaining_seconds
+func TestGetActiveLessonAttempt_ActiveWithRemainingSeconds(t *testing.T) {
+	ctx := context.Background()
+	startedAt := time.Now().Add(-5 * time.Minute) // 5 минут назад, лимит 20 минут -> осталось ~15 минут (900 сек)
+
+	lRepo := &fullMockLessonRepo{
+		lesson: &domain.Lesson{
+			ID: 50,
+			QuizSettings: &domain.QuizSettings{
+				TimeLimitMinutes: 20,
+			},
+		},
+	}
+	qRepo := &attemptsMockQuizRepo{
+		fullMockQuizRepo: fullMockQuizRepo{
+			attempt: &domain.QuizAttempt{
+				ID:          200,
+				UserID:      42,
+				StartedAt:   startedAt,
+				CurrentStep: 2,
+				DraftAnswers: map[string]any{
+					"q1": float64(1),
+				},
+			},
+		},
+	}
+	pRepo := &fullMockProgressRepo{}
+
+	svc := progressService.NewProgressService(pRepo, lRepo, qRepo, &mockTxManager{})
+
+	res, err := svc.GetActiveLessonAttempt(ctx, 42, 50)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !res.HasActiveAttempt {
+		t.Fatalf("expected has_active_attempt = true")
+	}
+	if res.Attempt.ID != 200 {
+		t.Errorf("expected attempt ID 200, got %d", res.Attempt.ID)
+	}
+	if res.Attempt.CurrentStep != 2 {
+		t.Errorf("expected current step 2, got %d", res.Attempt.CurrentStep)
+	}
+	if res.Attempt.RemainingSeconds < 880 || res.Attempt.RemainingSeconds > 910 {
+		t.Errorf("expected remaining_seconds around 900, got %d", res.Attempt.RemainingSeconds)
+	}
+	if len(res.Attempt.DraftAnswers) != 1 {
+		t.Errorf("expected 1 draft answer, got %d", len(res.Attempt.DraftAnswers))
+	}
+}
+
+// 13. Активная попытка с истекшим временем автозакрывается и возвращает false
+func TestGetActiveLessonAttempt_ExpiredAutoClosed(t *testing.T) {
+	ctx := context.Background()
+	startedAt := time.Now().Add(-25 * time.Minute) // 25 минут назад при лимите 20 минут
+
+	lRepo := &fullMockLessonRepo{
+		lesson: &domain.Lesson{
+			ID: 50,
+			QuizSettings: &domain.QuizSettings{
+				TimeLimitMinutes: 20,
+			},
+		},
+	}
+	qRepo := &attemptsMockQuizRepo{
+		fullMockQuizRepo: fullMockQuizRepo{
+			attempt: &domain.QuizAttempt{
+				ID:        200,
+				UserID:    42,
+				StartedAt: startedAt,
+			},
+		},
+	}
+	pRepo := &fullMockProgressRepo{}
+
+	svc := progressService.NewProgressService(pRepo, lRepo, qRepo, &mockTxManager{})
+
+	res, err := svc.GetActiveLessonAttempt(ctx, 42, 50)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if res.HasActiveAttempt {
+		t.Fatalf("expected has_active_attempt = false for expired attempt")
+	}
+	if qRepo.attempt.CompletedAt == nil {
+		t.Errorf("expected attempt to be closed")
+	}
+	if qRepo.attempt.Passed {
+		t.Errorf("expected passed = false")
+	}
+}

@@ -13,6 +13,9 @@
 | **Телеметрия обучения** | Накопительный учет проведенного времени (`time_spent`) и сохранение позиции плеера (`last_position`) | `UpdateLessonProgress()` |
 | **Завершение урока и сдача эссе** | Отметка урока как пройденного, фиксация балла, сохранение открытых ответов/эссе и пересчет агрегата курса | `CompleteLesson()` |
 | **Мониторинг прогресса студента** | Получение среза прохождения конкретного урока, общего прогресса курса или всех уроков потока | `GetLessonProgress()`, `GetCourseProgress()`, `GetAllLessonProgress()` |
+| **Pre-flight экран и история попыток** | Сводка по попыткам, оставшимся лимитам и наивысшему результату | `GetLessonAttemptsSummary()`, `StartLessonAttempt()` |
+| **Автосохранение черновика тестирования** | Серверное фоновое сохранение драфта ответов и номера текущего шага в активной попытке | `SaveAttemptDraft()` |
+| **Восстановление активной сессии тестирования** | Проверка наличия незавершенной попытки, расчет оставшегося времени (`remaining_seconds`) и автозакрытие просроченных попыток | `GetActiveLessonAttempt()` |
 
 ---
 
@@ -185,6 +188,72 @@
 3. **Шаг 3 (Контроль лимита):** Подсчитывает число существующих попыток студента (`CountUserAttempts`). Если `max_attempts > 0` и `count >= max_attempts`, возвращает ошибку `ErrForbidden` (HTTP 403 Forbidden: «Лимит попыток исчерпан»).
 4. **Шаг 4:** Создает новую строку в `quiz_attempts` со статусом `started_at = NOW()`, `score = 0`, `passed = false`.
 5. **Шаг 5:** Возвращает `StartAttemptResult` с идентификатором попытки `AttemptID` и временем старта.
+
+---
+
+### ⚡ Функция: `SaveAttemptDraft(ctx, userID, lessonID, attemptID, currentStep, answers)`
+
+* **Файл и строки:** [`attempts.go#L159-L210`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/attempts.go#L159-L210)
+* **Бизнес-назначение:** Фоновое серверное сохранение черновика ответов и текущего шага студента для предотвращения потери прогресса при сбоях сети или перезагрузке страницы.
+* **Связанная фича:** *Автосохранение черновика тестирования*
+
+#### 📥 Входные параметры
+| Параметр | Тип | Обязателен | Бизнес-смысл и ограничения |
+|---|---|:---:|---|
+| `userID` | `int64` | Да | Идентификатор студента (проверяется владение попыткой) |
+| `lessonID` | `int64` | Да | Идентификатор урока с тестом |
+| `attemptID` | `int64` | Да | Идентификатор активной попытки тестирования |
+| `currentStep` | `int` | Да | Номер текущего шага/вопроса (минимум 1) |
+| `answers` | `map[string]any` | Да | Словарь ответов студента по ID блоков Puck |
+
+#### 🔄 Пошаговый алгоритм работы
+1. **Шаг 1 (Валидация контекста и прав):**
+   - Запрашивает урок по `lessonID`.
+   - Запрашивает попытку по `attemptID`.
+   - Проверяет принадлежность попытки пользователю: `attempt.UserID == userID` (иначе `403 Forbidden`).
+   - Проверяет статус попытки: если `attempt.CompletedAt != nil`, возвращает ошибку `403 Forbidden` («Попытка уже завершена»).
+2. **Шаг 2 (Валидация дедлайна с Grace Period):**
+   - Если в уроке задан `TimeLimitMinutes > 0`, рассчитывает `timeLimit = TimeLimitMinutes * 60s + 15s`.
+   - Если `time.Since(attempt.StartedAt) > timeLimit`: попытка автоматически закрывается (`CompletedAt = NOW()`, `Passed = false`, `Score = 0`) и возвращается `403 Forbidden` («Время попытки истекло»).
+3. **Шаг 3 (Нормализация и сериализация):**
+   - Если `currentStep <= 0`, устанавливается `currentStep = 1`.
+   - Сериализует `answers` в JSONB-байтмассив.
+4. **Шаг 4 (Сохранение в БД):**
+   - Вызывает `quizRepo.SaveAttemptDraft(ctx, attemptID, userID, currentStep, draftBytes)`.
+5. **Шаг 5:** Возвращает серверный таймстемп сохранения `time.Now()`.
+
+#### ⚠️ Побочные эффекты (Side Effects)
+* **База данных:**
+  - Обновление колонок `draft_answers` и `current_step` в таблице `quiz_attempts`.
+  - При обнаружении таймаута — принудительное закрытие попытки с `passed = false`.
+
+---
+
+### ⚡ Функция: `GetActiveLessonAttempt(ctx, userID, lessonID)`
+
+* **Файл и строки:** [`attempts.go#L212-L273`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/attempts.go#L212-L273)
+* **Бизнес-назначение:** Проверка наличия незавершенной попытки студента по уроку, точный расчет оставшегося времени `remaining_seconds` от серверного времени и автоматическое закрытие просроченных попыток.
+* **Связанная фича:** *Восстановление активной сессии тестирования*
+
+#### 📥 Входные параметры
+| Параметр | Тип | Обязателен | Бизнес-смысл и ограничения |
+|---|---|:---:|---|
+| `userID` | `int64` | Да | Идентификатор студента |
+| `lessonID` | `int64` | Да | Идентификатор урока |
+
+#### 🔄 Пошаговый алгоритм работы
+1. **Шаг 1:** Проверяет существование урока в БД.
+2. **Шаг 2:** Запрашивает активную незавершенную попытку (`quizRepo.GetActiveAttempt(ctx, userID, lessonID)` где `completed_at IS NULL ORDER BY id DESC LIMIT 1`).
+3. **Шаг 3:** Если попытка не найдена (`nil`), возвращает `{ has_active_attempt: false }`.
+4. **Шаг 4 (Расчет оставшегося времени):**
+   - Извлекает `TimeLimitMinutes` из настроек урока `lesson.GetQuizSettings()`.
+   - Если `TimeLimitMinutes > 0`:
+     - Вычисляет `elapsedSeconds = int(time.Since(attempt.StartedAt).Seconds())`.
+     - Если `elapsedSeconds > (TimeLimitMinutes * 60 + 15)` (лимит + Grace Period):
+       - Попытка автоматически закрывается по таймауту: `CompletedAt = NOW()`, `Passed = false`, `Score = 0`, вызывается `UpdateAttempt`.
+       - Возвращает `{ has_active_attempt: false }`.
+     - Иначе рассчитывает `remaining_seconds = totalLimitSeconds - elapsedSeconds` (минимум 0).
+5. **Шаг 5:** При наличии валидной попытки возвращает `{ has_active_attempt: true, attempt: { id, started_at, time_limit_minutes, remaining_seconds, current_step, draft_answers } }`.
 
 ---
 
