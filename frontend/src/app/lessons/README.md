@@ -20,6 +20,8 @@
 3. **Фокусный интерфейс без сайдбара:** Страница плеера урока намеренно не использует глобальный `Sidebar`, разворачиваясь на 100% ширины экрана с закрепленным хедером возврата к курсу (`/dashboard/courses/${courseId}`).
 4. **Защита доступа:** Маршрут изолирован компонентом `<ProtectedRoute allowedRoles={['student', 'teacher', 'author', 'admin']}>`.
 5. **Серверная античит-проверка квизов (Server Anti-Cheat Verification):** Плеер `PuckLessonViewer` отправляет структуру всех выбранных студентом вариантов на сервер. Итоговая оценка фиксируется по подтвержденному ответу бэкенда (`serverData.score`), а результаты валидации блоков подсвечиваются зеленым/красным цветом с бейджами «Сервер: Верно / Неверно».
+6. **Режим глубокой концентрации (Zen / Focus Mode):** Переключение режима скрывает верхнюю и нижнюю панели, разворачивая контент в адаптивную колонку чтения, активирует верхний пульсирующий индикатор прогресса и монтирует плавающий портальный пилл выхода (`createPortal(..., document.body)`). Поддерживает горячие клавиши `F` и `Esc` с защитой от ввода в формы.
+7. **Изолированное масштабирование чтения (Reading Preferences):** Настройки размера шрифта, темы сепия и межстрочного интервала управляются через `ReadingSettingsPopover` («Aa») и применяются через атрибут `data-font-scale` строго к контейнеру `.lesson-content-area`, не деформируя служебные кнопки.
 
 ---
 
@@ -45,6 +47,8 @@
   - Ссылки на уроки из лендинга курса [`courses/[slug]`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/app/courses/%5Bslug%5D/page.tsx).
 - **Исходящие (что импортирует этот модуль):**
   - [`components/player/PuckLessonViewer.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/PuckLessonViewer.tsx) — плеер интерактивного контента с серверной проверкой.
+  - [`components/player/FocusModeToggle.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/FocusModeToggle.tsx) — тумблер режима концентрации и плавающий виджет выхода.
+  - [`components/player/ReadingSettingsPopover.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/ReadingSettingsPopover.tsx) — меню персонализации размера шрифта, темы чтения и ширины холста.
   - [`components/ProtectedRoute.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/ProtectedRoute.tsx) — проверка прав доступа.
   - [`lib/api.ts`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/lib/api.ts) — Axios-клиент.
 

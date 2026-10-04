@@ -28,16 +28,21 @@
 |---|---|
 | [`CourseCard.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/CourseCard.tsx#L1-L49) | Карточка курса с обложкой, бейджем сложности и переходом в каталог или плеер |
 | [`ProtectedRoute.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/ProtectedRoute.tsx#L1-L61) | HOC-компонент защиты маршрутов по авторизации и списку ролей |
+| [`AuthProvider.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/AuthProvider.tsx#L1-L17) | Провайдер гидратации сессии пользователя при монтировании клиентского приложения |
 | [`ThemeProvider.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/ThemeProvider.tsx#L1-L12) | Провайдер темной/светлой темы на базе `next-themes` |
 | **`layout/`** | |
 | [`layout/Sidebar.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/layout/Sidebar.tsx) | Адаптивная боковая панель: фиксированная на десктопе, выезжающий модальный Drawer на мобильных (< md) с оверлеем и кнопкой закрытия |
 | [`layout/TopNavbar.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/layout/TopNavbar.tsx) | Верхняя панель: кнопка вызова мобильного меню (гамбургер), стрелка возврата, заголовок страницы и кнопка темы |
 | **`player/`** | |
 | [`player/PuckLessonViewer.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/PuckLessonViewer.tsx#L1-L1008) | Интерактивный плеер контента урока: тесты, сопоставление, пропуски, эссе, автогрейдинг |
+| [`player/FocusModeToggle.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/FocusModeToggle.tsx) | Переключатель режима концентрации (Zen Mode) с плавающим портальным пиллом выхода |
+| [`player/ReadingSettingsPopover.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/ReadingSettingsPopover.tsx) | Поповер настроек чтения «Aa» (размер шрифта, ширина полотна, межстрочный интервал, сепия) |
+| [`player/PresentationViewer.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/PresentationViewer.tsx) | Плеер встроенных презентаций (Canva, Google Slides, Office 365, PDF) с защитой доменов |
 | **`editor/`** | |
 | [`editor/CustomOutline.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/editor/CustomOutline.tsx#L1-L296) | Дерево структуры урока в Puck с переупорядочиванием, дублированием и превью блоков |
 | [`editor/InlineEditable.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/editor/InlineEditable.tsx#L1-L1234) | Компоненты прямого редактирования текста, панель форматирования Word-like и хук `usePuckPropUpdater` |
 | **`teacher/`** | |
+| [`teacher/CurriculumDndTree.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/CurriculumDndTree.tsx) | Дерево программы курса с нативным HTML5 Drag-and-Drop перетаскиванием секций и уроков |
 | [`teacher/CourseAnalyticsCards.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/CourseAnalyticsCards.tsx#L1-L78) | Сводные KPI-карточки курса: студенты, средний прогресс, средний балл, очередь ДЗ |
 | [`teacher/ModalAddStudent.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/ModalAddStudent.tsx#L1-L111) | Модальное окно ручного зачисления студента по Email или ID пользователя |
 | [`teacher/ModalCreateLesson.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/ModalCreateLesson.tsx#L1-L217) | Модальное окно создания урока в секции с выбором типа и длительности |
@@ -68,6 +73,11 @@
 | [`PendingHomeworksQueue`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/PendingHomeworksQueue.tsx#L26-L100) | [`PendingHomeworksQueue.tsx#L26-L100`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/PendingHomeworksQueue.tsx#L26-L100) | Список непроверенных работ студентов | `{ items, onOpenGradeModal }` |
 | [`ModalGradeHW`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/ModalGradeHW.tsx#L14-L145) | [`ModalGradeHW.tsx#L14-L145`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/ModalGradeHW.tsx#L14-L145) | Диалог проверки практической работы | `{ hw, onClose, onGraded }` |
 | [`ModalStudentDrilldown`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/ModalStudentDrilldown.tsx#L13-L197) | [`ModalStudentDrilldown.tsx#L13-L197`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/ModalStudentDrilldown.tsx#L13-L197) | Диалог детального прогресса учащегося | `{ courseId, studentId, onClose }` |
+| [`CurriculumDndTree`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/CurriculumDndTree.tsx) | [`CurriculumDndTree.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/teacher/CurriculumDndTree.tsx) | Дерево Drag-and-Drop перетаскивания модулей и уроков курса | `{ courseId, modules, onRefresh, onEditModule, onDeleteModule, onEditLesson, onDeleteLesson, onAddLesson }` |
+| [`FocusModeToggle`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/FocusModeToggle.tsx) | [`FocusModeToggle.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/FocusModeToggle.tsx) | Переключатель фокуса и портальная плавающая кнопка выхода | `{ isFocusMode, onToggle }` |
+| [`ReadingSettingsPopover`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/ReadingSettingsPopover.tsx) | [`ReadingSettingsPopover.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/ReadingSettingsPopover.tsx) | Поповер персонализации чтения (шрифт, тема сепия, ширина) | `() => JSX.Element` |
+| [`PresentationViewer`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/PresentationViewer.tsx) | [`PresentationViewer.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/PresentationViewer.tsx) | Безопасный плеер встроенных слайдов и документов | `{ url: string, title?: string, aspectRatio?: string }` |
+| [`AuthProvider`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/AuthProvider.tsx) | [`AuthProvider.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/AuthProvider.tsx) | Глобальная клиентская гидратация токенов и профиля сессии | `{ children: ReactNode }` |
 
 ---
 

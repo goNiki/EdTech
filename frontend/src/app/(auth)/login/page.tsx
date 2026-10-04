@@ -45,7 +45,8 @@ function LoginFormContent() {
         return;
       }
 
-      if (['teacher', 'author', 'admin'].includes(currentUser?.role || '') || viewMode === 'teacher') {
+      const isStaff = ['teacher', 'author', 'admin'].includes(currentUser?.role || '');
+      if (isStaff && viewMode !== 'student') {
         router.replace('/teacher/courses');
       } else {
         router.replace('/dashboard');
