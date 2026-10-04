@@ -102,7 +102,7 @@
 * [**`service/lesson`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/lesson/README.md) — Вычисление позиций `max(pos)+1`, CRUD уроков, контекст навигации (prev/next) и силлабус.
 * [**`service/enrollment`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/enrollment/README.md) — Транзакционный инкремент счетчика студентов, запрет отчисления автора.
 * [**`service/progress`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/README.md) — Атомарный пересчет курса при завершении урока, прием эссе, таймеры, автосохранение драфтов и активные попытки.
-* [**`service/quiz`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/README.md) — Advisory lock от гонок, `FOR UPDATE`, отложенная ручная проверка эссе.
+* [**`service/quiz`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/README.md) — Advisory lock от гонок, `FOR UPDATE`, валидация баллов [0, maxPoints], отложенная ручная проверка эссе.
 * [**`service/analytics`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/analytics/README.md) — Защита доступа преподавателя, аналитика, drilldown, кросс-курсовая очередь проверки, экспорт ведомости в CSV.
 * [**`service/category`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/category/README.md) — Каталог категорий курсов, подсчет опубликованных курсов, CRUD категорий.
 * [**`service/resource`**](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/resource/README.md) — Учебные материалы уроков.

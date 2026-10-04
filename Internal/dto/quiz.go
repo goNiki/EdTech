@@ -64,7 +64,7 @@ type SubmitAnswer struct {
 }
 
 type GradeAttemptRequest struct {
-	Points   int     `json:"points" validate:"gte=0"`
+	Points   int     `json:"points" validate:"min=0"`
 	Feedback *string `json:"feedback,omitempty" validate:"omitempty,max=2000"`
 }
 

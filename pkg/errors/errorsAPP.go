@@ -58,6 +58,7 @@ var (
 	ErrTimeLimitExceeded       = errors.New("quiz time limit exceeded")
 	ErrAttemptAlreadyCompleted = errors.New("quiz attempt already completed")
 	ErrAnswerNotFound          = errors.New("quiz answer not found")
+	ErrInvalidGradePoints      = errors.New("invalid grade points")
 
 	// Enrollment errors
 	ErrEnrolled                   = errors.New("failed to enroll")

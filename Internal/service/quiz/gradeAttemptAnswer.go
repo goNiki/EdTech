@@ -13,6 +13,10 @@ import (
 func (s *service) GradeAttemptAnswer(ctx context.Context, teacherID int64, attemptID int64, answerID int64, points int, feedback *string) (*domain.QuizAttempt, error) {
 	const op = "service.quiz.GradeAttemptAnswer"
 
+	if points < 0 {
+		return nil, fmt.Errorf("%s: %w: балл не может быть меньше 0", op, errorsAPP.ErrInvalidGradePoints)
+	}
+
 	var attempt *domain.QuizAttempt
 
 	err := s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
@@ -29,6 +33,15 @@ func (s *service) GradeAttemptAnswer(ctx context.Context, teacherID int64, attem
 
 		if txErr = s.checkTeacherAccess(ctx, teacherID, quiz.LessonID); txErr != nil {
 			return txErr
+		}
+
+		maxPoints, txErr := s.quizRepo.GetQuizTotalPoints(ctx, attempt.QuizID)
+		if txErr != nil {
+			return txErr
+		}
+
+		if points > maxPoints {
+			return fmt.Errorf("%s: %w: балл не может быть меньше 0 или превышать максимальный балл задания (%d)", op, errorsAPP.ErrInvalidGradePoints, maxPoints)
 		}
 
 		isCorrect := points > 0

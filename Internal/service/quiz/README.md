@@ -17,6 +17,7 @@
    - Вопросы с вариантами ответов проверяются автоматически.
    - При наличии хотя бы одного открытого вопроса (`open_text`) попытка помечается флагом `NeedsGrading = true`, а статус сдачи откладывается до проверки преподавателем.
 5. **Автоматическое завершение урока при успехе:** Когда все вопросы проверены (`CountUngradedAnswers == 0`) и балл превышает проходной (`attempt.Passed == true`), автоматически вызывается `progressService.CompleteLesson`, засчитывая урок студенту.
+6. **Валидация диапазона выставляемых баллов:** При оценке работы студента (`GradeAttemptAnswer`) выставляемый балл обязан находиться в диапазоне `0 <= points <= maxPoints`. При попытке выставить отрицательный балл или значение выше веса задания возвращается `ErrInvalidGradePoints` (HTTP 400 Bad Request).
 
 ---
 
@@ -27,7 +28,7 @@
 | [`createQuiz.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/createQuiz.go) | Создание структуры теста с вопросами и вариантами ответов |
 | [`startAttempt.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/startAttempt.go) | Старт попытки с advisory lock и проверкой `MaxAttempts` |
 | [`submitAttempt.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/submitAttempt.go) | Прием ответов, автоскоринг и перевод в ручную проверку |
-| [`gradeAttemptAnswer.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/gradeAttemptAnswer.go) | Выставление оценки преподавателем, отзыв и финальный пересчет сдачи |
+| [`gradeAttemptAnswer.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/gradeAttemptAnswer.go) | Выставление оценки преподавателем с валидацией диапазона [0, maxPoints], отзыв и финальный пересчет сдачи |
 | [`listAttemptsForGrading.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/listAttemptsForGrading.go) | Выборка попыток курса, ожидающих оценки |
 | [`homework_feedback.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/homework_feedback.go) | Получение студентом результатов проверки и рецензии домашнего задания |
 | [`sanitizer.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/sanitizer.go) | Античит санитизация контента урока Puck и серверная валидация квизов |
@@ -40,7 +41,7 @@
 | `CreateQuiz` | [`createQuiz.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/createQuiz.go) | Валидация и сохранение квиза с вопросами | `CreateQuiz(ctx context.Context, userID int64, quiz *domain.Quiz) (*domain.Quiz, error)` |
 | `StartAttempt` | [`startAttempt.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/startAttempt.go) | Запуск попытки с транзакционной блокировкой | `StartAttempt(ctx context.Context, userID, quizID int64) (*domain.QuizAttempt, error)` |
 | `SubmitAttempt` | [`submitAttempt.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/submitAttempt.go) | Сдача попытки, автопроверка тестов | `SubmitAttempt(ctx context.Context, userID, attemptID int64, answers []domain.QuizAttemptAnswer) (*domain.QuizAttempt, error)` |
-| `GradeAttemptAnswer` | [`gradeAttemptAnswer.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/gradeAttemptAnswer.go) | Проверка ответа учителем, завершение урока при успехе | `GradeAttemptAnswer(ctx context.Context, teacherID, attemptID, answerID int64, points int, feedback *string) (*domain.QuizAttempt, error)` |
+| `GradeAttemptAnswer` | [`gradeAttemptAnswer.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/gradeAttemptAnswer.go) | Проверка ответа учителем с валидацией баллов [0, maxPoints], завершение урока при успехе | `GradeAttemptAnswer(ctx context.Context, teacherID, attemptID, answerID int64, points int, feedback *string) (*domain.QuizAttempt, error)` |
 | `GetStudentHomeworkFeedback` | [`homework_feedback.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/homework_feedback.go) | Получение результатов проверки и рецензии ДЗ студентом | `GetStudentHomeworkFeedback(ctx context.Context, userID, lessonID int64) (*domain.StudentHomeworkFeedback, error)` |
 | `SanitizeLessonContentForStudent` | [`sanitizer.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/sanitizer.go) | Очистка правильных ответов Puck для студентов | `SanitizeLessonContentForStudent(contentJSON string) (string, error)` |
 | `ValidateQuizSubmission` | [`sanitizer.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/quiz/sanitizer.go) | Серверный расчет баллов по ответам на квизы | `ValidateQuizSubmission(contentJSON string, answers []domain.LessonAnswerSubmission) (*domain.LessonCompletionResult, error)` |
