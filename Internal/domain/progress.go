@@ -90,3 +90,28 @@ type LessonAnswerSubmission struct {
 	Answer  any    `json:"answer"`
 }
 
+type LessonAttemptsSummary struct {
+	LessonID            int64
+	TotalAttemptsMade   int
+	MaxAttemptsAllowed  int
+	CanStartNewAttempt  bool
+	BestScore           int
+	BestScorePercentage int
+	IsPassed            bool
+	PassingThreshold    int
+	LastAttempt         *LessonAttemptItem
+	AttemptsHistory     []LessonAttemptItem
+}
+
+type LessonAttemptItem struct {
+	AttemptID   int64
+	Score       int
+	SubmittedAt time.Time
+}
+
+type StartAttemptResult struct {
+	AttemptID int64
+	StartedAt time.Time
+}
+
+

@@ -140,6 +140,8 @@ type QuizRepository interface {
 	ListAttemptsForGrading(ctx context.Context, courseID int64, quizID *int64, limit, offset int) ([]domain.QuizAttempt, int64, error)
 	SaveEssaySubmission(ctx context.Context, userID, courseID, lessonID int64, essay domain.EssaySubmission) error
 	GetLessonSubmissions(ctx context.Context, userID, lessonID int64) ([]domain.LessonSubmissionDetail, error)
+	ListUserAttemptsByLessonID(ctx context.Context, userID, lessonID int64) ([]domain.QuizAttempt, error)
+	GetBestScoreByLessonID(ctx context.Context, userID, lessonID int64) (int, error)
 }
 
 type ReviewRepository interface {

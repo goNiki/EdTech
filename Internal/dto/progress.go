@@ -85,3 +85,28 @@ type EssayDTO struct {
 	MaxPoints    int    `json:"max_points"`
 }
 
+type LessonAttemptsSummaryResponse struct {
+	LessonID            int64                  `json:"lesson_id"`
+	TotalAttemptsMade   int                    `json:"total_attempts_made"`
+	MaxAttemptsAllowed  int                    `json:"max_attempts_allowed"`
+	CanStartNewAttempt  bool                   `json:"can_start_new_attempt"`
+	BestScore           int                    `json:"best_score"`
+	BestScorePercentage int                    `json:"best_score_percentage"`
+	IsPassed            bool                   `json:"is_passed"`
+	PassingThreshold    int                    `json:"passing_threshold"`
+	LastAttempt         *LessonAttemptItemDTO  `json:"last_attempt"`
+	AttemptsHistory     []LessonAttemptItemDTO `json:"attempts_history"`
+}
+
+type LessonAttemptItemDTO struct {
+	AttemptID   int64     `json:"attempt_id"`
+	Score       int       `json:"score"`
+	SubmittedAt time.Time `json:"submitted_at"`
+}
+
+type StartAttemptResponse struct {
+	AttemptID int64     `json:"attempt_id"`
+	StartedAt time.Time `json:"started_at"`
+}
+
+

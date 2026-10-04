@@ -268,3 +268,69 @@ func (r *repositoryImpl) ListAttemptsForGrading(ctx context.Context, courseID in
 
 	return attempts, total, nil
 }
+
+
+func (r *repositoryImpl) ListUserAttemptsByLessonID(ctx context.Context, userID, lessonID int64) ([]domain.QuizAttempt, error) {
+	const op = "repository.quiz.ListUserAttemptsByLessonID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
+
+	query := `
+		SELECT 
+			qa.id, 
+			qa.quiz_id, 
+			qa.user_id, 
+			qa.score, 
+			qa.passed, 
+			qa.started_at, 
+			qa.completed_at 
+		FROM quiz_attempts qa
+		JOIN quizzes q ON q.id = qa.quiz_id
+		WHERE qa.user_id = $1 AND q.lesson_id = $2 AND q.deleted_at IS NULL
+		ORDER BY qa.created_at ASC`
+
+	rows, err := q.Query(ctx, query, userID, lessonID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
+	}
+	defer rows.Close()
+
+	var attempts []domain.QuizAttempt
+	for rows.Next() {
+		var att repomodels.QuizAttempt
+		if err := rows.Scan(
+			&att.ID,
+			&att.QuizID,
+			&att.UserID,
+			&att.Score,
+			&att.Passed,
+			&att.StartedAt,
+			&att.CompletedAt,
+		); err != nil {
+			return nil, fmt.Errorf("%s: scan row: %w: %w", op, errorsAPP.ErrInternalDB, err)
+		}
+		attempts = append(attempts, *repoconverter.QuizAttemptToDomain(&att))
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: rows err: %w: %w", op, errorsAPP.ErrInternalDB, err)
+	}
+
+	return attempts, nil
+}
+
+func (r *repositoryImpl) GetBestScoreByLessonID(ctx context.Context, userID, lessonID int64) (int, error) {
+	const op = "repository.quiz.GetBestScoreByLessonID"
+	q := txmanager.GetQueryExecutor(ctx, r.Pool)
+
+	query := `
+		SELECT COALESCE(MAX(qa.score), 0)
+		FROM quiz_attempts qa
+		JOIN quizzes q ON q.id = qa.quiz_id
+		WHERE qa.user_id = $1 AND q.lesson_id = $2 AND q.deleted_at IS NULL AND qa.completed_at IS NOT NULL`
+
+	var bestScore int
+	err := q.QueryRow(ctx, query, userID, lessonID).Scan(&bestScore)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w: %w", op, errorsAPP.ErrInternalDB, err)
+	}
+	return bestScore, nil
+}

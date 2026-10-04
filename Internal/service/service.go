@@ -91,6 +91,7 @@ type ProgressTrackingOperations interface {
 	StartLesson(ctx context.Context, userID int64, lessonID int64) error
 	UpdateLessonProgress(ctx context.Context, userID int64, lessonID int64, input domain.UpdateProgressInput) error
 	CompleteLesson(ctx context.Context, userID int64, lessonID int64, input domain.CompleteLessonInput) (*domain.LessonCompletionResult, error)
+	StartLessonAttempt(ctx context.Context, userID int64, lessonID int64) (*domain.StartAttemptResult, error)
 }
 
 // ProgressReaderOperations handles querying lesson and course progress statistics
@@ -98,6 +99,7 @@ type ProgressReaderOperations interface {
 	GetLessonProgress(ctx context.Context, userID int64, lessonID int64) (*domain.LessonProgress, error)
 	GetCourseProgress(ctx context.Context, userID int64, courseID int64) (*domain.CourseProgress, error)
 	GetAllLessonProgress(ctx context.Context, userID int64, courseID int64) ([]domain.LessonProgress, error)
+	GetLessonAttemptsSummary(ctx context.Context, userID int64, lessonID int64) (*domain.LessonAttemptsSummary, error)
 }
 
 // ProgressServices aggregates all progress tracking operations

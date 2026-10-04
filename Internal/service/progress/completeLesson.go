@@ -38,17 +38,38 @@ func (s *service) CompleteLesson(ctx context.Context, userID int64, lessonID int
 		return nil, fmt.Errorf("%s: %w", op, rErr)
 	}
 
+	// Best Score Preservation: check completed quiz attempts and previous progress score
 	progressScore := scoreRes.finalScore
+	if s.quizRepo != nil {
+		if bestAttemptScore, bErr := s.quizRepo.GetBestScoreByLessonID(ctx, userID, lessonID); bErr == nil && bestAttemptScore > progressScore {
+			progressScore = bestAttemptScore
+		}
+	}
+
+	var existingProgress *domain.LessonProgress
 	if s.progressRepo != nil {
-		if existingProgress, pErr := s.progressRepo.GetLessonProgress(ctx, userID, lessonID); pErr == nil && existingProgress != nil {
-			if existingProgress.Score != nil && *existingProgress.Score > scoreRes.finalScore {
-				progressScore = *existingProgress.Score
+		if ep, pErr := s.progressRepo.GetLessonProgress(ctx, userID, lessonID); pErr == nil && ep != nil {
+			existingProgress = ep
+			if ep.Score != nil && *ep.Score > progressScore {
+				progressScore = *ep.Score
+			}
+			if ep.Status == domain.ProgressStatusCompleted {
+				scoreRes.isPassed = true
 			}
 		}
 	}
 
+	targetStatus := domain.ProgressStatusCompleted
+	if !scoreRes.isPassed {
+		if existingProgress != nil && existingProgress.Status == domain.ProgressStatusCompleted {
+			targetStatus = domain.ProgressStatusCompleted
+		} else {
+			targetStatus = domain.ProgressStatusInProgress
+		}
+	}
+
 	err = s.txManager.WithTX(ctx, pgx.TxOptions{}, func(ctx context.Context) error {
-		if err := s.saveLessonProgress(ctx, userID, lessonID, lesson.CourseID, progressScore); err != nil {
+		if err := s.saveLessonProgress(ctx, userID, lessonID, lesson.CourseID, progressScore, targetStatus); err != nil {
 			return err
 		}
 
@@ -67,7 +88,7 @@ func (s *service) CompleteLesson(ctx context.Context, userID int64, lessonID int
 	}
 
 	validationResult.LessonID = lessonID
-	validationResult.Status = string(domain.ProgressStatusCompleted)
+	validationResult.Status = string(targetStatus)
 	validationResult.Score = scoreRes.finalScore
 	validationResult.EarnedPoints = scoreRes.earnedPoints
 	validationResult.TotalMaxPoints = scoreRes.totalPoints
@@ -177,8 +198,8 @@ func (s *service) resolveAttemptScore(ctx context.Context, userID, lessonID int6
 	}, nil
 }
 
-func (s *service) saveLessonProgress(ctx context.Context, userID, lessonID, courseID int64, progressScore int) error {
-	err := s.progressRepo.UpdateLessonProgressStatus(ctx, userID, lessonID, domain.ProgressStatusCompleted)
+func (s *service) saveLessonProgress(ctx context.Context, userID, lessonID, courseID int64, progressScore int, targetStatus domain.ProgressStatus) error {
+	err := s.progressRepo.UpdateLessonProgressStatus(ctx, userID, lessonID, targetStatus)
 	if err != nil {
 		if errors.Is(err, errorsAPP.ErrLessonProgressNotFound) {
 			now := time.Now()
@@ -186,7 +207,7 @@ func (s *service) saveLessonProgress(ctx context.Context, userID, lessonID, cour
 				UserID:      userID,
 				LessonID:    lessonID,
 				CourseID:    courseID,
-				Status:      domain.ProgressStatusCompleted,
+				Status:      targetStatus,
 				Score:       &progressScore,
 				CompletedAt: &now,
 				StartedAt:   &now,

@@ -135,7 +135,55 @@
 
 ---
 
+### ⚡ Функция: `GetLessonAttemptsSummary(ctx, userID, lessonID)`
+
+* **Файл и строки:** [`attempts.go#L69-L151`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/attempts.go#L69-L151)
+* **Бизнес-назначение:** Предоставление данных для Pre-flight экрана перед началом тестирования: количество совершенных попыток, разрешенный лимит, возможность начать новую попытку, наивысший балл и хронологическая история попыток.
+* **Связанная фича:** *Pre-flight экран и история попыток (Best Score)*
+
+#### 📥 Входные параметры
+| Параметр | Тип | Обязателен | Бизнес-смысл и ограничения |
+|---|---|:---:|---|
+| `userID` | `int64` | Да | Идентификатор студента |
+| `lessonID` | `int64` | Да | Идентификатор урока с тестом |
+
+#### 🔄 Пошаговый алгоритм работы
+1. **Шаг 1:** Проверяет существование урока в базе данных.
+2. **Шаг 2:** Извлекает настройки квиза (`quizzes`), включая проходной порог `passing_score` (дефолт 70) и лимит попыток `max_attempts` (0 = безлимитно).
+3. **Шаг 3:** Извлекает все попытки студента по уроку (`ListUserAttemptsByLessonID`) и текущий сохраненный балл из `lesson_progress`.
+4. **Шаг 4:** Агрегирует статистику:
+   - Подсчитывает завершенные попытки и формирует массив хронологической истории `AttemptsHistory`.
+   - Вычисляет наивысший балл `BestScore = max(attempts.score, progress.score)`.
+   - Проверяет статус `IsPassed = BestScore >= PassingThreshold` (или если статус урока уже `completed`).
+   - Проверяет флаг `CanStartNewAttempt = (MaxAttemptsAllowed <= 0 || TotalAttemptsMade < MaxAttemptsAllowed)`.
+5. **Шаг 5:** Возвращает структуру `LessonAttemptsSummary`.
+
+---
+
+### ⚡ Функция: `StartLessonAttempt(ctx, userID, lessonID)`
+
+* **Файл и строки:** [`attempts.go#L13-L67`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/attempts.go#L13-L67)
+* **Бизнес-назначение:** Инициализация новой попытки прохождения теста с валидацией лимита попыток.
+* **Связанная фича:** *Старт попытки тестирования*
+
+#### 📥 Входные параметры
+| Параметр | Тип | Обязателен | Бизнес-смысл и ограничения |
+|---|---|:---:|---|
+| `userID` | `int64` | Да | Идентификатор студента |
+| `lessonID` | `int64` | Да | Идентификатор запускаемого теста |
+
+#### 🔄 Пошаговый алгоритм работы
+1. **Шаг 1:** Проверяет существование урока в БД.
+2. **Шаг 2:** Находит привязанный тест в таблице `quizzes` (при отсутствии — регистрирует дефолтный квиз урока).
+3. **Шаг 3 (Контроль лимита):** Подсчитывает число существующих попыток студента (`CountUserAttempts`). Если `max_attempts > 0` и `count >= max_attempts`, возвращает ошибку `ErrForbidden` (HTTP 403 Forbidden: «Лимит попыток исчерпан»).
+4. **Шаг 4:** Создает новую строку в `quiz_attempts` со статусом `started_at = NOW()`, `score = 0`, `passed = false`.
+5. **Шаг 5:** Возвращает `StartAttemptResult` с идентификатором попытки `AttemptID` и временем старта.
+
+---
+
 ## 💡 Подсказка для аналитика (Где менять логику?)
-* *Изменить дефолтный балл за завершение лекции без тестирования:* [`completeLesson.go#L24-L27`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/completeLesson.go#L24-L27).
-* *Формула вычисления процента завершения курса:* [`completeLesson.go#L90-L94`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/completeLesson.go#L90-L94).
+* *Изменить лимиты и логику Pre-flight сводки:* [`attempts.go`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/attempts.go).
+* *Изменить дефолтный балл за завершение лекции без тестирования:* [`completeLesson.go#L95-L105`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/completeLesson.go#L95-L105).
+* *Формула вычисления процента завершения курса:* [`completeLesson.go#L210-L245`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/completeLesson.go#L210-L245).
 * *Политика дефолтной длины курса при отсутствии уроков:* [`startLesson.go#L28-L30`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/internal/service/progress/startLesson.go#L28-L30).
+

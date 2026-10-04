@@ -8,10 +8,11 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from '@/store/useAuth';
-import { ArrowLeft, Save, Sparkles, CheckCircle2, Lock, ShieldAlert, FileUp, Loader2, Zap } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles, CheckCircle2, Lock, ShieldAlert, FileUp, Loader2, Zap, Sliders } from 'lucide-react';
 import { useRef } from 'react';
 import { convertDocumentToHtml } from '@/lib/document-importer';
 import BulkQuizImportModal from '@/components/editor/BulkQuizImportModal';
+import ModalQuizSettings, { QuizSettings, defaultQuizSettings } from '@/components/teacher/ModalQuizSettings';
 
 export default function LessonEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -21,6 +22,8 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
   const [editorKey, setEditorKey] = useState<number>(0);
   const currentPuckDataRef = useRef<any>(null);
   const [lessonMeta, setLessonMeta] = useState<any>(null);
+  const [quizSettings, setQuizSettings] = useState<QuizSettings>(defaultQuizSettings);
+  const [isQuizSettingsOpen, setIsQuizSettingsOpen] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [forbiddenAlert, setForbiddenAlert] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -89,12 +92,21 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
 
         if (lesson.content && lesson.content !== '{}' && lesson.content !== '') {
           try {
-            setInitialData(JSON.parse(lesson.content));
+            const parsed = JSON.parse(lesson.content);
+            setInitialData(parsed);
+            if (parsed.quiz_settings) {
+              setQuizSettings({ ...defaultQuizSettings, ...parsed.quiz_settings });
+            } else if (lesson.quiz_settings) {
+              setQuizSettings({ ...defaultQuizSettings, ...lesson.quiz_settings });
+            }
           } catch (e) {
             setInitialData({});
           }
         } else {
           setInitialData({});
+          if (lesson.quiz_settings) {
+            setQuizSettings({ ...defaultQuizSettings, ...lesson.quiz_settings });
+          }
         }
       } catch (err) {
         console.warn('Could not fetch lesson content, initializing empty editor', err);
@@ -143,11 +155,16 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
     }
 
     try {
-      const contentString = JSON.stringify(data);
+      const dataToSave = {
+        ...data,
+        quiz_settings: quizSettings,
+      };
+      const contentString = JSON.stringify(dataToSave);
       await api.patch(`/lessons/${id}`, {
         content: contentString,
+        quiz_settings: quizSettings,
       });
-      showToast('Контент и интерактивные тесты успешно сохранены!');
+      showToast('Контент и параметры тестирования успешно сохранены!');
     } catch (err: any) {
       console.error('Ошибка сохранения:', err);
       if (err.response?.status === 403) {
@@ -241,6 +258,21 @@ export default function LessonEditor({ params }: { params: Promise<{ id: string 
           >
             <Zap size={14} className="fill-white" />
             <span>⚡ Тесты</span>
+          </button>
+
+          {/* Quiz Settings / Rules Button */}
+          <button
+            type="button"
+            disabled={isReadOnly}
+            onClick={() => setIsQuizSettingsOpen(true)}
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-700 cursor-pointer shadow-xs active:scale-95"
+            title="Настройки таймеров, лимита попыток и режима экзамена"
+          >
+            <Sliders size={14} className="text-indigo-400" />
+            <span>Параметры теста</span>
+            {(quizSettings.time_limit_minutes > 0 || quizSettings.feedback_mode === 'exam_blind') && (
+              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+            )}
           </button>
 
           <span className="text-xs text-slate-400 font-medium hidden sm:inline">

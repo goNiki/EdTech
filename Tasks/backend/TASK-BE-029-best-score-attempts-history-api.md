@@ -1,6 +1,6 @@
 # 🛠 [BE-029] История попыток тестирования, стратегия сохранения высшего балла (Best Score) и Pre-flight API
 
-> **Статус:** Completed  
+> **Статус:** Completed (хэш коммита: ad240e3)  
 > **Приоритет:** High (P1)  
 > **Связанные задачи:** FE-030, QA-030  
 > **Целевой модуль:** `internal/interfaces/handlers/progress/`, `internal/service/progress/`, `internal/repository/progress/`  

@@ -127,6 +127,33 @@ func (m *fullMockQuizRepo) SaveEssaySubmission(_ context.Context, _, _, _ int64,
 	return nil
 }
 
+func (m *fullMockQuizRepo) ListUserAttemptsByLessonID(_ context.Context, _, _ int64) ([]domain.QuizAttempt, error) {
+	if m.attempt != nil {
+		return []domain.QuizAttempt{*m.attempt}, nil
+	}
+	return nil, nil
+}
+
+func (m *fullMockQuizRepo) GetBestScoreByLessonID(_ context.Context, _, _ int64) (int, error) {
+	if m.attempt != nil {
+		return m.attempt.Score, nil
+	}
+	return 0, nil
+}
+
+func (m *fullMockQuizRepo) CountUserAttempts(_ context.Context, _, _ int64) (int, error) {
+	if m.attempt != nil {
+		return 1, nil
+	}
+	return 0, nil
+}
+
+func (m *fullMockQuizRepo) CreateAttempt(_ context.Context, att *domain.QuizAttempt) (*domain.QuizAttempt, error) {
+	att.ID = 1001
+	m.attempt = att
+	return att, nil
+}
+
 // Test 1: Обычная лекция без тестов завершается со 100% прогрессом
 func TestCompleteLesson_Lecture_Default100(t *testing.T) {
 	ctx := context.Background()

@@ -653,6 +653,8 @@ func (d *diContainer) Router() http.Handler {
 			r.Patch("/{lesson_id}/progress", d.ProgressHdl().UpdateLessonProgress)
 			r.Post("/{lesson_id}/complete", d.ProgressHdl().CompleteLesson)
 			r.Get("/{lesson_id}/progress", d.ProgressHdl().GetLessonProgress)
+			r.Get("/{lesson_id}/attempts/summary", d.ProgressHdl().GetAttemptsSummary)
+			r.Post("/{lesson_id}/attempts/start", d.ProgressHdl().StartAttempt)
 			r.Post("/{lesson_id}/quizzes", d.QuizHdl().CreateQuiz)
 		})
 
