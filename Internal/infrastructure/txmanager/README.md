@@ -40,3 +40,8 @@ func (r *Repository) SomeQuery(ctx context.Context, id int64) error {
     return err
 }
 ```
+
+### Экспортируемые контекстные хелперы:
+- `WithTxContext(ctx context.Context, tx pgx.Tx) context.Context` — явное сохранение `tx` в контексте.
+- `GetTxFromContext(ctx context.Context) (pgx.Tx, bool)` — безопасное извлечение активной транзакции из контекста.
+

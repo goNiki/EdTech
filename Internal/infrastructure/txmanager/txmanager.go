@@ -33,8 +33,22 @@ func NewTxManagerWithPool(pool PgxPool) *TxManager {
 	}
 }
 
+// WithTxContext помещает активную транзакцию pgx.Tx в context.Context.
+func WithTxContext(ctx context.Context, tx pgx.Tx) context.Context {
+	return context.WithValue(ctx, txKey{}, tx)
+}
+
+// GetTxFromContext извлекает активную транзакцию pgx.Tx из context.Context.
+func GetTxFromContext(ctx context.Context) (pgx.Tx, bool) {
+	tx, ok := ctx.Value(txKey{}).(pgx.Tx)
+	return tx, ok
+}
+
+// WithTX открывает транзакцию или переиспользует существующую из контекста (реентерабельность).
+// При наличии активной транзакции в ctx новая транзакция из пула НЕ открывается.
+// При панике или ошибке выполняется безопасный Rollback.
 func (tm *TxManager) WithTX(ctx context.Context, opts pgx.TxOptions, fn func(ctx context.Context) error) (err error) {
-	if _, ok := ctx.Value(txKey{}).(pgx.Tx); ok {
+	if _, ok := GetTxFromContext(ctx); ok {
 		return fn(ctx)
 	}
 
@@ -52,7 +66,7 @@ func (tm *TxManager) WithTX(ctx context.Context, opts pgx.TxOptions, fn func(ctx
 		}
 	}()
 
-	ctxWithTx := context.WithValue(ctx, txKey{}, tx)
+	ctxWithTx := WithTxContext(ctx, tx)
 	if err = fn(ctxWithTx); err != nil {
 		return err
 	}
@@ -61,7 +75,7 @@ func (tm *TxManager) WithTX(ctx context.Context, opts pgx.TxOptions, fn func(ctx
 }
 
 func GetQueryExecutor(ctx context.Context, defaultPool db.QueryExecutor) db.QueryExecutor {
-	if tx, ok := ctx.Value(txKey{}).(pgx.Tx); ok {
+	if tx, ok := GetTxFromContext(ctx); ok {
 		return tx
 	}
 	return defaultPool

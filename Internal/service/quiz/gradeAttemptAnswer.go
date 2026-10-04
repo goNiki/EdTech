@@ -114,11 +114,15 @@ func (s *service) finalizeGrading(ctx context.Context, quiz *domain.Quiz, attemp
 	}
 
 	if attempt.Passed {
-		_, _ = s.progressService.CompleteLesson(ctx, attempt.UserID, quiz.LessonID, domain.CompleteLessonInput{
+		if _, err := s.progressService.CompleteLesson(ctx, attempt.UserID, quiz.LessonID, domain.CompleteLessonInput{
 			Score:     &attempt.Score,
 			AttemptID: &attempt.ID,
-		})
-		_ = s.quizRepo.UpdateLessonProgressAfterQuiz(ctx, attempt.UserID, quiz.LessonID, attempt.Score)
+		}); err != nil {
+			return fmt.Errorf("complete lesson on grading: %w", err)
+		}
+		if err := s.quizRepo.UpdateLessonProgressAfterQuiz(ctx, attempt.UserID, quiz.LessonID, attempt.Score); err != nil {
+			return fmt.Errorf("update lesson progress after quiz on grading: %w", err)
+		}
 	}
 
 	return nil

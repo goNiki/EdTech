@@ -201,3 +201,103 @@ func TestTxManager_GetQueryExecutor(t *testing.T) {
 		t.Fatalf("expected nil error, got %v", err)
 	}
 }
+
+func TestWithTxContext_And_GetTxFromContext(t *testing.T) {
+	ctx := context.Background()
+
+	_, ok := GetTxFromContext(ctx)
+	if ok {
+		t.Fatalf("expected no tx in empty context")
+	}
+
+	mockT := &mockTx{}
+	ctxWithTx := WithTxContext(ctx, mockT)
+
+	tx, ok := GetTxFromContext(ctxWithTx)
+	if !ok {
+		t.Fatalf("expected tx in context")
+	}
+	if tx != mockT {
+		t.Fatalf("expected returned tx to match mockTx")
+	}
+}
+
+type limitedCapacityPool struct {
+	maxActive  int
+	activeChan chan struct{}
+}
+
+func newLimitedCapacityPool(maxActive int) *limitedCapacityPool {
+	return &limitedCapacityPool{
+		maxActive:  maxActive,
+		activeChan: make(chan struct{}, maxActive),
+	}
+}
+
+func (p *limitedCapacityPool) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error) {
+	select {
+	case p.activeChan <- struct{}{}:
+		return &limitedTx{pool: p}, nil
+	default:
+		return nil, errors.New("connection pool exhausted: deadlock would occur")
+	}
+}
+
+type limitedTx struct {
+	mockTx
+	pool     *limitedCapacityPool
+	released bool
+}
+
+func (lt *limitedTx) Commit(ctx context.Context) error {
+	if !lt.released {
+		lt.released = true
+		<-lt.pool.activeChan
+	}
+	return lt.mockTx.Commit(ctx)
+}
+
+func (lt *limitedTx) Rollback(ctx context.Context) error {
+	if !lt.released {
+		lt.released = true
+		<-lt.pool.activeChan
+	}
+	return lt.mockTx.Rollback(ctx)
+}
+
+func TestTxManager_ReentrancyAndPoolStarvationPrevention(t *testing.T) {
+	const poolCapacity = 5
+	const concurrentWorkers = 20
+
+	pool := newLimitedCapacityPool(poolCapacity)
+	tm := NewTxManagerWithPool(pool)
+
+	errChan := make(chan error, concurrentWorkers)
+
+	for i := 0; i < concurrentWorkers; i++ {
+		go func() {
+			// Внешняя транзакция (например SubmitAttempt или GradeAttemptAnswer)
+			err := tm.WithTX(context.Background(), pgx.TxOptions{}, func(ctx context.Context) error {
+				// Вложенная транзакция (например CompleteLesson)
+				return tm.WithTX(ctx, pgx.TxOptions{}, func(innerCtx context.Context) error {
+					// Еще один уровень вложенности (например saveLessonProgress)
+					return tm.WithTX(innerCtx, pgx.TxOptions{}, func(deepCtx context.Context) error {
+						tx, ok := GetTxFromContext(deepCtx)
+						if !ok || tx == nil {
+							return errors.New("expected active tx in deep context")
+						}
+						return nil
+					})
+				})
+			})
+			errChan <- err
+		}()
+	}
+
+	for i := 0; i < concurrentWorkers; i++ {
+		if err := <-errChan; err != nil {
+			t.Fatalf("worker failed with error (pool starvation or deadlock): %v", err)
+		}
+	}
+}
+
