@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/store/useAuth';
 import { api } from '@/lib/api';
 import {
@@ -11,11 +11,13 @@ import {
   Eye,
   EyeOff,
   Check,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const login = useAuth((state) => state.login);
 
   const [email, setEmail] = useState('');
@@ -32,14 +34,21 @@ export default function LoginPage() {
 
     try {
       const { data } = await api.post('/auth/login', { email, password });
-      login(data.access_token, data.refresh_token);
-      await useAuth.getState().fetchUser();
+      await login(data.access_token, data.refresh_token);
       
       const currentUser = useAuth.getState().user;
-      if (currentUser?.role === 'teacher') {
-        router.push('/teacher/courses');
+      const viewMode = useAuth.getState().viewMode;
+
+      const redirectParam = searchParams.get('redirect');
+      if (redirectParam && redirectParam.startsWith('/')) {
+        router.replace(redirectParam);
+        return;
+      }
+
+      if (['teacher', 'author', 'admin'].includes(currentUser?.role || '') || viewMode === 'teacher') {
+        router.replace('/teacher/courses');
       } else {
-        router.push('/dashboard');
+        router.replace('/dashboard');
       }
     } catch (err: any) {
       if (err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
@@ -235,5 +244,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="w-full max-w-5xl h-96 flex items-center justify-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        </div>
+      }
+    >
+      <LoginFormContent />
+    </Suspense>
   );
 }

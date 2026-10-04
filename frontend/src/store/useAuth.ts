@@ -23,7 +23,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   viewMode: ViewMode;
-  login: (accessToken: string, refreshToken: string) => void;
+  login: (accessToken: string, refreshToken: string) => Promise<void>;
   logout: () => void;
   fetchUser: () => Promise<void>;
   setViewMode: (mode: ViewMode) => void;
@@ -36,11 +36,15 @@ export const useAuth = create<AuthState>((set, get) => ({
   isLoading: true,
   viewMode: (typeof window !== 'undefined' && (localStorage.getItem('view_mode') as ViewMode)) || 'student',
 
-  login: (accessToken, refreshToken) => {
+  login: async (accessToken, refreshToken) => {
     localStorage.setItem('access_token', accessToken);
     localStorage.setItem('refresh_token', refreshToken);
     set({ isAuthenticated: true });
-    get().fetchUser();
+    await get().fetchUser();
+    const currentUser = get().user;
+    if (currentUser && ['teacher', 'author', 'admin'].includes(currentUser.role)) {
+      get().setViewMode('teacher');
+    }
   },
 
   logout: () => {
