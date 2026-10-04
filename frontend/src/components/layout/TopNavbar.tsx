@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { ArrowLeft, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/store/useAuth';
+import NotificationsDropdown from './NotificationsDropdown';
 
 interface TopNavbarProps {
   title?: string;
@@ -40,6 +41,9 @@ export default function TopNavbar({ title, subtitle, showBack = true }: TopNavba
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Notifications Dropdown */}
+        <NotificationsDropdown />
+
         {/* Theme Toggle Button */}
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
