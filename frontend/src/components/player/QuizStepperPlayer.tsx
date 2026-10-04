@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   CheckCircle,
   CheckCircle2,
@@ -20,7 +20,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Zap,
-  EyeOff
+  EyeOff,
+  Cloud
 } from 'lucide-react';
 import { parseSmartDropdownTemplate } from '@/lib/puck-config';
 import { api } from '@/lib/api';
@@ -34,6 +35,7 @@ export interface QuizStepperPlayerProps {
   initialProgress?: any;
   lessonTitle?: string;
   quizSettings?: QuizSettings;
+  lessonId?: string | number;
 }
 
 export default function QuizStepperPlayer({
@@ -43,6 +45,7 @@ export default function QuizStepperPlayer({
   initialProgress,
   lessonTitle,
   quizSettings,
+  lessonId,
 }: QuizStepperPlayerProps) {
   let parsedContent: any = { content: [] };
   try {
@@ -365,6 +368,13 @@ export default function QuizStepperPlayer({
         totalMaxPoints: serverResponse?.total_max_points ?? totalMaxPoints,
         hasQuizzes: totalMaxPoints > 0,
       });
+
+      // Clear draft after successful submission
+      if (storageKey && typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem(storageKey);
+        } catch {}
+      }
     } catch (e) {
       console.error('Failed to submit in Stepper', e);
       alert('Ошибка при проверке результатов');
@@ -385,6 +395,110 @@ export default function QuizStepperPlayer({
   const [questionRemainingSeconds, setQuestionRemainingSeconds] = useState<number>(() => {
     return effectiveQuizSettings.question_time_limit_seconds || 0;
   });
+
+  // Autosave and Recovery state
+  const storageKey = lessonId ? `quiz_draft_lesson_${lessonId}` : null;
+  const [syncStatus, setSyncStatus] = useState<'saved' | 'saving' | 'offline'>('saved');
+  const [restoredBanner, setRestoredBanner] = useState<string | null>(null);
+  const isRestoredRef = useRef(false);
+  const timerStartedAtRef = useRef<number>(Date.now());
+
+  // Restore attempt draft from LocalStorage on mount
+  useEffect(() => {
+    if (!storageKey || typeof window === 'undefined' || isRestoredRef.current) return;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const draft = JSON.parse(saved);
+        if (draft && draft.answers) {
+          isRestoredRef.current = true;
+          if (typeof draft.currentStepIdx === 'number' && draft.currentStepIdx < steps.length) {
+            setCurrentStepIdx(draft.currentStepIdx);
+          }
+          if (draft.answers.singleAnswers) setSingleAnswers(draft.answers.singleAnswers);
+          if (draft.answers.multiAnswers) setMultiAnswers(draft.answers.multiAnswers);
+          if (draft.answers.matchAnswers) setMatchAnswers(draft.answers.matchAnswers);
+          if (draft.answers.dropdownAnswers) setDropdownAnswers(draft.answers.dropdownAnswers);
+          if (draft.answers.inputAnswers) setInputAnswers(draft.answers.inputAnswers);
+          if (draft.answers.sequenceOrders) setSequenceOrders(draft.answers.sequenceOrders);
+          if (draft.answers.essayAnswers) setEssayAnswers(draft.answers.essayAnswers);
+          if (draft.answers.uploadedFiles) setUploadedFiles(draft.answers.uploadedFiles);
+
+          // Timer recovery with elapsed offset
+          if (draft.timerStartedAt && draft.initialOverallSeconds) {
+            timerStartedAtRef.current = draft.timerStartedAt;
+            const elapsed = Math.floor((Date.now() - draft.timerStartedAt) / 1000);
+            const remaining = Math.max(0, draft.initialOverallSeconds - elapsed);
+            setRemainingOverallSeconds(remaining);
+          }
+
+          const stepNum = (draft.currentStepIdx || 0) + 1;
+          setRestoredBanner(`Сессия восстановлена. Ваши предыдущие ответы сохранены (шаг ${stepNum} из ${steps.length}).`);
+          setTimeout(() => setRestoredBanner(null), 5000);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to restore quiz draft from localStorage', e);
+    }
+  }, [storageKey, steps.length]);
+
+  // Autosave answers to LocalStorage + Debounced server sync
+  useEffect(() => {
+    if (!storageKey || typeof window === 'undefined') return;
+
+    const draftData = {
+      lessonId,
+      currentStepIdx,
+      timestamp: Date.now(),
+      timerStartedAt: timerStartedAtRef.current,
+      initialOverallSeconds: (effectiveQuizSettings.time_limit_minutes || 0) * 60,
+      answers: {
+        singleAnswers,
+        multiAnswers,
+        matchAnswers,
+        dropdownAnswers,
+        inputAnswers,
+        sequenceOrders,
+        essayAnswers,
+        uploadedFiles,
+      },
+    };
+
+    // 1. Instant local persistence (0 ms latency)
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(draftData));
+    } catch {}
+
+    // 2. Debounced background sync
+    setSyncStatus('saving');
+    const handler = setTimeout(async () => {
+      try {
+        if (lessonId) {
+          await api.patch(`/lessons/${lessonId}/progress`, {
+            last_position: currentStepIdx,
+          }).catch(() => {});
+        }
+        setSyncStatus('saved');
+      } catch {
+        setSyncStatus('offline');
+      }
+    }, 1500);
+
+    return () => clearTimeout(handler);
+  }, [
+    storageKey,
+    lessonId,
+    currentStepIdx,
+    singleAnswers,
+    multiAnswers,
+    matchAnswers,
+    dropdownAnswers,
+    inputAnswers,
+    sequenceOrders,
+    essayAnswers,
+    uploadedFiles,
+    effectiveQuizSettings.time_limit_minutes,
+  ]);
 
   // Overall quiz timer countdown
   useEffect(() => {
@@ -416,11 +530,13 @@ export default function QuizStepperPlayer({
       setQuestionRemainingSeconds((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          if (currentStepIdx < steps.length - 1) {
-            setCurrentStepIdx((idx) => idx + 1);
-          } else {
+          setCurrentStepIdx((idx) => {
+            if (idx < steps.length - 1) {
+              return idx + 1;
+            }
             handleFinish();
-          }
+            return idx;
+          });
           return 0;
         }
         return prev - 1;
@@ -428,7 +544,7 @@ export default function QuizStepperPlayer({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [currentStepIdx, effectiveQuizSettings.question_time_limit_seconds, steps.length]);
+  }, [currentStepIdx, effectiveQuizSettings.question_time_limit_seconds, steps.length, handleFinish]);
 
   const formatMMSS = (totalSeconds: number) => {
     const m = Math.floor(Math.max(0, totalSeconds) / 60);
@@ -438,11 +554,12 @@ export default function QuizStepperPlayer({
 
   const isBlindMode = effectiveQuizSettings.feedback_mode === 'exam_blind';
 
-  const currentStep = steps[currentStepIdx];
-  const isLastStep = currentStepIdx === steps.length - 1;
-  const isFirstStep = currentStepIdx === 0;
+  const safeStepIdx = Math.min(Math.max(0, currentStepIdx), Math.max(0, steps.length - 1));
+  const currentStep = steps[safeStepIdx];
+  const isLastStep = safeStepIdx === steps.length - 1;
+  const isFirstStep = safeStepIdx === 0;
 
-  if (steps.length === 0) {
+  if (steps.length === 0 || !currentStep) {
     return (
       <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3">
         <FileText size={36} className="mx-auto text-slate-400" />
@@ -457,7 +574,24 @@ export default function QuizStepperPlayer({
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto w-full">
+    <div className="space-y-4 max-w-3xl mx-auto w-full">
+      {/* Reconnect / Restored Draft Banner */}
+      {restoredBanner && (
+        <div className="p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center justify-between gap-3 shadow-md animate-in fade-in duration-300">
+          <div className="flex items-center gap-2">
+            <RotateCcw size={15} className="text-indigo-600 dark:text-indigo-400 flex-shrink-0 animate-spin" />
+            <span>{restoredBanner}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setRestoredBanner(null)}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold px-2 py-0.5 rounded cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Top Wizard Status & Numbers Bar */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -477,6 +611,26 @@ export default function QuizStepperPlayer({
           </div>
 
           <div className="flex items-center gap-3 text-slate-500 text-[11px] font-semibold">
+            {/* Autosave Status Pill */}
+            <div className="flex items-center gap-1.5 font-bold">
+              {syncStatus === 'saving' ? (
+                <div className="flex items-center gap-1 text-slate-400">
+                  <Loader2 size={12} className="animate-spin text-indigo-500" />
+                  <span className="text-[10px]">Сохранение...</span>
+                </div>
+              ) : syncStatus === 'offline' ? (
+                <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400" title="Сохранено на вашем устройстве">
+                  <Cloud size={13} className="text-amber-500" />
+                  <span className="text-[10px]">Локально</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500" title="Все ответы надежно зафиксированы">
+                  <CheckCircle2 size={12} className="text-emerald-500" />
+                  <span className="text-[10px]">Сохранено</span>
+                </div>
+              )}
+            </div>
+
             {effectiveQuizSettings.time_limit_minutes > 0 && (
               <div
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black tracking-wider transition-all ${

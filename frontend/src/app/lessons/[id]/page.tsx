@@ -444,6 +444,7 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
 
               {hasQuizzes && playerMode === 'stepper' ? (
                 <QuizStepperPlayer
+                  lessonId={id}
                   contentJson={lessonData?.content || lessonData?.Content || '{}'}
                   onComplete={handleComplete}
                   initialProgress={progressData}
