@@ -260,19 +260,19 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
 
   return (
     <ProtectedRoute allowedRoles={['student', 'teacher', 'author', 'admin']}>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col overflow-x-hidden">
         {/* Sticky Player Header */}
-        <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <button
               onClick={handleRequestExit}
-              className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer"
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer flex-shrink-0"
               title="Назад к курсу"
             >
               <ChevronLeft size={18} />
             </button>
-            <div>
-              <h1 className="font-extrabold text-sm md:text-base text-slate-900 dark:text-white truncate max-w-lg">
+            <div className="min-w-0">
+              <h1 className="font-extrabold text-sm md:text-base text-slate-900 dark:text-white truncate max-w-xs sm:max-w-md md:max-w-lg">
                 {lessonData?.title || lessonData?.Title || 'Урок'}
               </h1>
               <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
@@ -353,7 +353,7 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
         </header>
 
         {/* Lesson Body */}
-        <main className="flex-1 max-w-4xl w-full mx-auto py-8 px-6 space-y-6">
+        <main className="flex-1 max-w-4xl w-full mx-auto py-6 sm:py-8 px-4 sm:px-6 space-y-6">
           {hasQuizzes && showResultScreen && lastResult ? (
             <QuizResultScreen
               score={lastResult.score}

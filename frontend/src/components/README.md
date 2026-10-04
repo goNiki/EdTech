@@ -30,8 +30,8 @@
 | [`ProtectedRoute.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/ProtectedRoute.tsx#L1-L61) | HOC-компонент защиты маршрутов по авторизации и списку ролей |
 | [`ThemeProvider.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/ThemeProvider.tsx#L1-L12) | Провайдер темной/светлой темы на базе `next-themes` |
 | **`layout/`** | |
-| [`layout/Sidebar.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/layout/Sidebar.tsx#L1-L217) | Боковая панель навигации, переключатель режима Студент/Преподаватель, диалог выхода |
-| [`layout/TopNavbar.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/layout/TopNavbar.tsx#L1-L55) | Верхняя панель со стрелкой возврата, заголовком страницы и кнопкой темы |
+| [`layout/Sidebar.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/layout/Sidebar.tsx) | Адаптивная боковая панель: фиксированная на десктопе, выезжающий модальный Drawer на мобильных (< md) с оверлеем и кнопкой закрытия |
+| [`layout/TopNavbar.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/layout/TopNavbar.tsx) | Верхняя панель: кнопка вызова мобильного меню (гамбургер), стрелка возврата, заголовок страницы и кнопка темы |
 | **`player/`** | |
 | [`player/PuckLessonViewer.tsx`](file:///c:/Users/gogol/OneDrive/Desktop/EdTech/frontend/src/components/player/PuckLessonViewer.tsx#L1-L1008) | Интерактивный плеер контента урока: тесты, сопоставление, пропуски, эссе, автогрейдинг |
 | **`editor/`** | |

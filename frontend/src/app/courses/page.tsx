@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { Category, fetchCategories, DEFAULT_CATEGORIES, getCategoryName } from '@/lib/categories';
 import { useAuth } from '@/store/useAuth';
+import { useLayoutStore } from '@/store/useLayoutStore';
 import TopNavbar from '@/components/layout/TopNavbar';
 import Sidebar from '@/components/layout/Sidebar';
 import {
@@ -178,14 +179,16 @@ function CoursesCatalogInner() {
     }
   };
 
+  const { isCollapsed } = useLayoutStore();
+
   return (
     <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
       <Sidebar />
 
-      <div className="flex-1 ml-64 min-w-0 flex flex-col">
+      <div className={`flex-1 ml-0 ${isCollapsed ? 'md:ml-20' : 'md:ml-64'} min-w-0 flex flex-col transition-all duration-300 overflow-x-hidden`}>
         <TopNavbar title="Все курсы" subtitle="Каталог образовательных программ и практических модулей" />
 
-        <main className="p-8 max-w-7xl w-full mx-auto space-y-8">
+        <main className="p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6 sm:space-y-8">
           {/* Header Banner */}
           <div className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 rounded-3xl p-8 text-white shadow-xl shadow-indigo-500/10 flex flex-col md:flex-row justify-between md:items-center gap-6">
             <div className="space-y-2 max-w-2xl">

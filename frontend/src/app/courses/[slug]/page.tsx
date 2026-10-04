@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/store/useAuth';
 import { useRouter } from 'next/navigation';
 import { fetchCourseReviews, CourseReviewsSummary } from '@/lib/reviews';
+import { useLayoutStore } from '@/store/useLayoutStore';
 import Sidebar from '@/components/layout/Sidebar';
 import TopNavbar from '@/components/layout/TopNavbar';
 import {
@@ -91,11 +92,13 @@ export default function CourseLandingPage({ params }: { params: Promise<{ slug: 
     }
   };
 
+  const { isCollapsed } = useLayoutStore();
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950">
         <Sidebar />
-        <div className="flex-1 ml-64 p-8 animate-pulse space-y-6">
+        <div className={`flex-1 ml-0 ${isCollapsed ? 'md:ml-20' : 'md:ml-64'} p-4 sm:p-8 animate-pulse space-y-6 transition-all duration-300 overflow-x-hidden`}>
           <div className="h-64 bg-slate-200 dark:bg-slate-800 rounded-3xl" />
         </div>
       </div>
@@ -106,7 +109,7 @@ export default function CourseLandingPage({ params }: { params: Promise<{ slug: 
     return (
       <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950">
         <Sidebar />
-        <div className="flex-1 ml-64 p-16 text-center text-slate-500">
+        <div className={`flex-1 ml-0 ${isCollapsed ? 'md:ml-20' : 'md:ml-64'} p-8 sm:p-16 text-center text-slate-500 transition-all duration-300 overflow-x-hidden`}>
           Курс не найден.
         </div>
       </div>
@@ -121,10 +124,10 @@ export default function CourseLandingPage({ params }: { params: Promise<{ slug: 
     <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
       <Sidebar />
 
-      <div className="flex-1 ml-64 min-w-0 flex flex-col">
+      <div className={`flex-1 ml-0 ${isCollapsed ? 'md:ml-20' : 'md:ml-64'} min-w-0 flex flex-col transition-all duration-300 overflow-x-hidden`}>
         <TopNavbar title={courseData.title} subtitle="Обзор образовательной программы" />
 
-        <main className="p-8 max-w-6xl w-full mx-auto space-y-10">
+        <main className="p-4 sm:p-6 md:p-8 max-w-6xl w-full mx-auto space-y-8 sm:space-y-10">
           {/* Hero Section */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-sm grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div className="space-y-4">

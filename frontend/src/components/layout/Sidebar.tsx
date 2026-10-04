@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/store/useAuth';
+import { useLayoutStore } from '@/store/useLayoutStore';
 import {
   BookOpen,
   GraduationCap,
@@ -16,20 +17,46 @@ import {
   CheckSquare,
   Compass,
   ArrowLeft,
-  Shield
+  Shield,
+  X
 } from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, viewMode, setViewMode, logout } = useAuth();
-  const [collapsed, setCollapsed] = useState(false);
+  const { isMobileOpen, closeMobileMenu, isCollapsed, toggleCollapsed } = useLayoutStore();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  // Close mobile drawer on escape or body lock
+  useEffect(() => {
+    if (isMobileOpen) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          closeMobileMenu();
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [isMobileOpen, closeMobileMenu]);
+
+  // Automatically close mobile menu when route changes
+  useEffect(() => {
+    closeMobileMenu();
+  }, [pathname, closeMobileMenu]);
 
   const canSwitchRole = ['teacher', 'author', 'admin'].includes(user?.role || '');
 
   const handleRoleChange = (mode: 'student' | 'teacher') => {
     setViewMode(mode);
+    closeMobileMenu();
     if (mode === 'teacher') {
       router.push('/teacher/courses');
     } else {
@@ -68,19 +95,34 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* Mobile Backdrop Overlay */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 md:hidden animate-in fade-in duration-200 cursor-pointer"
+          onClick={closeMobileMenu}
+          aria-hidden="true"
+        />
+      )}
+
       <aside
-        className={`bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-all duration-300 z-30 fixed h-full shadow-sm ${
-          collapsed ? 'w-20' : 'w-64'
+        className={`transform bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-transform duration-300 z-50 fixed h-full shadow-2xl md:shadow-sm inset-y-0 left-0 ${
+          isCollapsed ? 'md:w-20' : 'md:w-64'
+        } w-72 max-w-[85vw] ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
         <div>
           {/* Brand Header */}
           <div className="h-16 px-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
-            <Link href="/" className="flex items-center gap-3 overflow-hidden">
+            <Link
+              href="/"
+              onClick={closeMobileMenu}
+              className="flex items-center gap-3 overflow-hidden"
+            >
               <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center text-white font-extrabold text-lg flex-shrink-0 shadow-sm">
                 ED
               </div>
-              {!collapsed && (
+              {(!isCollapsed || isMobileOpen) && (
                 <div className="flex flex-col whitespace-nowrap">
                   <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">
                     ED.Learn
@@ -91,17 +133,29 @@ export default function Sidebar() {
                 </div>
               )}
             </Link>
+
+            {/* Desktop Collapse Button */}
             <button
-              onClick={() => setCollapsed(!collapsed)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              title={collapsed ? 'Развернуть' : 'Свернуть'}
+              onClick={toggleCollapsed}
+              className="hidden md:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title={isCollapsed ? 'Развернуть' : 'Свернуть'}
             >
-              {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+              {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </button>
+
+            {/* Mobile Close Button */}
+            <button
+              onClick={closeMobileMenu}
+              className="flex md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Закрыть меню"
+              aria-label="Закрыть мобильное меню"
+            >
+              <X size={20} />
             </button>
           </div>
 
           {/* Role Switcher Banner (for teachers/authors/admins) */}
-          {canSwitchRole && !collapsed && (
+          {canSwitchRole && (!isCollapsed || isMobileOpen) && (
             <div className="p-3">
               <div className="bg-indigo-50/80 dark:bg-slate-800/80 border border-indigo-100 dark:border-slate-700/80 rounded-2xl p-2.5">
                 <div className="flex items-center justify-between mb-2">
@@ -113,7 +167,7 @@ export default function Sidebar() {
                 <div className="grid grid-cols-2 gap-1 bg-slate-200/60 dark:bg-slate-900 p-1 rounded-xl">
                   <button
                     onClick={() => handleRoleChange('student')}
-                    className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all text-center ${
+                    className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all text-center cursor-pointer ${
                       !isTeacherView
                         ? 'bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -123,7 +177,7 @@ export default function Sidebar() {
                   </button>
                   <button
                     onClick={() => handleRoleChange('teacher')}
-                    className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all text-center ${
+                    className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all text-center cursor-pointer ${
                       isTeacherView
                         ? 'bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -141,20 +195,22 @@ export default function Sidebar() {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || (item.href !== '/courses' && item.href !== '/teacher/courses' && pathname.startsWith(item.href));
+              const showText = !isCollapsed || isMobileOpen;
 
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={closeMobileMenu}
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-sm font-semibold transition-all ${
                     isActive
                       ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 shadow-sm ring-1 ring-indigo-100 dark:ring-indigo-900/40'
                       : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                   }`}
-                  title={collapsed ? item.label : undefined}
+                  title={!showText ? item.label : undefined}
                 >
                   <Icon size={18} className="flex-shrink-0" />
-                  {!collapsed && <span className="truncate">{item.label}</span>}
+                  {showText && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             })}
@@ -163,7 +219,7 @@ export default function Sidebar() {
 
         {/* Footer Profile & Logout */}
         <div className="p-3 border-t border-slate-100 dark:border-slate-800 mt-auto space-y-2">
-          {!collapsed ? (
+          {(!isCollapsed || isMobileOpen) ? (
             <div className="flex items-center gap-3 p-2 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
               <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-sm">
                 {user?.first_name?.[0] || user?.username?.[0] || 'U'}
@@ -183,14 +239,17 @@ export default function Sidebar() {
           )}
 
           <button
-            onClick={() => setIsLogoutModalOpen(true)}
-            className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors ${
-              collapsed ? 'justify-center' : ''
+            onClick={() => {
+              closeMobileMenu();
+              setIsLogoutModalOpen(true);
+            }}
+            className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer ${
+              (isCollapsed && !isMobileOpen) ? 'justify-center' : ''
             }`}
-            title={collapsed ? 'Выйти' : undefined}
+            title={(isCollapsed && !isMobileOpen) ? 'Выйти' : undefined}
           >
             <LogOut size={16} className="flex-shrink-0" />
-            {!collapsed && <span>Выйти</span>}
+            {(!isCollapsed || isMobileOpen) && <span>Выйти</span>}
           </button>
         </div>
       </aside>
