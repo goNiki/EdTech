@@ -36,6 +36,8 @@ export interface QuizStepperPlayerProps {
   lessonTitle?: string;
   quizSettings?: QuizSettings;
   lessonId?: string | number;
+  attemptId?: number;
+  initialActiveAttempt?: any;
 }
 
 export default function QuizStepperPlayer({
@@ -46,6 +48,8 @@ export default function QuizStepperPlayer({
   lessonTitle,
   quizSettings,
   lessonId,
+  attemptId,
+  initialActiveAttempt,
 }: QuizStepperPlayerProps) {
   let parsedContent: any = { content: [] };
   try {
@@ -402,12 +406,19 @@ export default function QuizStepperPlayer({
   const [restoredBanner, setRestoredBanner] = useState<string | null>(null);
   const isRestoredRef = useRef(false);
   const timerStartedAtRef = useRef<number>(Date.now());
+  const currentAttemptIdRef = useRef<number | undefined>(attemptId);
 
-  // Restore attempt draft from LocalStorage on mount
   useEffect(() => {
-    if (!storageKey || typeof window === 'undefined' || isRestoredRef.current) return;
+    if (attemptId) {
+      currentAttemptIdRef.current = attemptId;
+    }
+  }, [attemptId]);
+
+  // Restore attempt draft from LocalStorage or Server on mount
+  useEffect(() => {
+    if (typeof window === 'undefined' || isRestoredRef.current) return;
     try {
-      const saved = localStorage.getItem(storageKey);
+      const saved = storageKey ? localStorage.getItem(storageKey) : null;
       if (saved) {
         const draft = JSON.parse(saved);
         if (draft && draft.answers) {
@@ -436,11 +447,34 @@ export default function QuizStepperPlayer({
           setRestoredBanner(`Сессия восстановлена. Ваши предыдущие ответы сохранены (шаг ${stepNum} из ${steps.length}).`);
           setTimeout(() => setRestoredBanner(null), 5000);
         }
+      } else if (initialActiveAttempt?.has_active_attempt && initialActiveAttempt?.attempt) {
+        const serverAtt = initialActiveAttempt.attempt;
+        currentAttemptIdRef.current = serverAtt.id;
+        isRestoredRef.current = true;
+        if (serverAtt.current_step && serverAtt.current_step <= steps.length) {
+          setCurrentStepIdx(serverAtt.current_step - 1);
+        }
+        if (serverAtt.draft_answers) {
+          const ans = serverAtt.draft_answers;
+          if (ans.singleAnswers) setSingleAnswers(ans.singleAnswers);
+          if (ans.multiAnswers) setMultiAnswers(ans.multiAnswers);
+          if (ans.matchAnswers) setMatchAnswers(ans.matchAnswers);
+          if (ans.dropdownAnswers) setDropdownAnswers(ans.dropdownAnswers);
+          if (ans.inputAnswers) setInputAnswers(ans.inputAnswers);
+          if (ans.sequenceOrders) setSequenceOrders(ans.sequenceOrders);
+          if (ans.essayAnswers) setEssayAnswers(ans.essayAnswers);
+          if (ans.uploadedFiles) setUploadedFiles(ans.uploadedFiles);
+        }
+        if (typeof serverAtt.remaining_seconds === 'number' && serverAtt.remaining_seconds > 0) {
+          setRemainingOverallSeconds(serverAtt.remaining_seconds);
+        }
+        setRestoredBanner(`Сессия восстановлена с сервера (шаг ${serverAtt.current_step || 1} из ${steps.length}).`);
+        setTimeout(() => setRestoredBanner(null), 5000);
       }
     } catch (e) {
-      console.warn('Failed to restore quiz draft from localStorage', e);
+      console.warn('Failed to restore quiz draft', e);
     }
-  }, [storageKey, steps.length]);
+  }, [storageKey, steps.length, initialActiveAttempt]);
 
   // Autosave answers to LocalStorage + Debounced server sync
   useEffect(() => {
@@ -474,6 +508,13 @@ export default function QuizStepperPlayer({
     const handler = setTimeout(async () => {
       try {
         if (lessonId) {
+          const activeId = currentAttemptIdRef.current;
+          if (activeId) {
+            await api.patch(`/lessons/${lessonId}/attempts/${activeId}/draft`, {
+              current_step: currentStepIdx + 1,
+              answers: draftData.answers,
+            }).catch(() => {});
+          }
           await api.patch(`/lessons/${lessonId}/progress`, {
             last_position: currentStepIdx,
           }).catch(() => {});

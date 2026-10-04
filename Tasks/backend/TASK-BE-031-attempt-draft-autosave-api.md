@@ -1,8 +1,9 @@
 # 🛠 [BE-031] Серверное автосохранение черновика попытки (Quiz Draft Autosave) и восстановление активной сессии
 
+> **Статус:** ✅ Выполнено (Done)  
 > **Приоритет:** High (P1)  
 > **Связанные задачи:** FE-032, QA-032  
-> **Целевой модуль:** `internal/interfaces/handlers/quiz/`, `internal/service/quiz/`  
+> **Целевой модуль:** `internal/interfaces/handlers/progress/`, `internal/service/progress/`, `internal/repository/quiz/`  
 > **Документация модуля:** [internal/service/README.md](../../internal/service/README.md)
 
 ---

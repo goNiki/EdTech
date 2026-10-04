@@ -18,6 +18,8 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isAttemptStarted, setIsAttemptStarted] = useState(false);
+  const [activeAttempt, setActiveAttempt] = useState<any>(null);
+  const [activeAttemptId, setActiveAttemptId] = useState<number | null>(null);
   const [showResultScreen, setShowResultScreen] = useState(false);
   const [lastResult, setLastResult] = useState<{
     score: number;
@@ -37,11 +39,12 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
   useEffect(() => {
     const fetchLessonAndProgress = async () => {
       try {
-        // Fetch lesson content, progress, and attempts summary in parallel
-        const [lessonRes, progressRes, attemptsRes] = await Promise.all([
+        // Fetch lesson content, progress, attempts summary, and active attempt in parallel
+        const [lessonRes, progressRes, attemptsRes, activeAttRes] = await Promise.all([
           api.get(`/lessons/${id}`),
           api.get(`/lessons/${id}/progress`).catch(() => null),
           api.get(`/lessons/${id}/attempts/summary`).catch(() => null),
+          api.get(`/lessons/${id}/attempts/active`).catch(() => null),
         ]);
 
         const lData = lessonRes.data?.data?.lesson || lessonRes.data?.lesson || lessonRes.data || {};
@@ -49,6 +52,13 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
 
         const pData = progressRes?.data?.data || progressRes?.data;
         const attData = attemptsRes?.data?.data || attemptsRes?.data;
+        const actData = activeAttRes?.data?.data || activeAttRes?.data;
+
+        if (actData?.has_active_attempt && actData?.attempt) {
+          setActiveAttempt(actData);
+          setActiveAttemptId(actData.attempt.id);
+          setIsAttemptStarted(true);
+        }
 
         const hasBeenCompleted = Boolean(
           (pData && (pData.status === 'completed' || pData.Status === 'completed' || pData.completed_at || pData.CompletedAt)) ||
@@ -74,7 +84,11 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
 
   const handleStartAttempt = async () => {
     try {
-      await api.post(`/lessons/${id}/attempts/start`).catch(() => api.post(`/lessons/${id}/start`));
+      const res = await api.post(`/lessons/${id}/attempts/start`).catch(() => api.post(`/lessons/${id}/start`));
+      const attId = res?.data?.data?.attempt_id || res?.data?.attempt_id;
+      if (attId) {
+        setActiveAttemptId(attId);
+      }
     } catch {}
     setShowResultScreen(false);
     setIsAttemptStarted(true);
@@ -445,6 +459,8 @@ export default function LessonPlayer({ params }: { params: Promise<{ id: string 
               {hasQuizzes && playerMode === 'stepper' ? (
                 <QuizStepperPlayer
                   lessonId={id}
+                  attemptId={activeAttemptId || activeAttempt?.attempt?.id}
+                  initialActiveAttempt={activeAttempt}
                   contentJson={lessonData?.content || lessonData?.Content || '{}'}
                   onComplete={handleComplete}
                   initialProgress={progressData}
